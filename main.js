@@ -27,6 +27,7 @@ const furnitureCatalog = [
   { id:'door',   name:'門',     icon:'🚪', color:0x8B6040 },
   { id:'cobble', name:'石子路', icon:'🪨', color:0xB0A898 },
   { id:'pond',   name:'池塘',   icon:'💧', color:0x5C8FB0 },
+  { id:'japanese_house', name:'和風小屋', icon:'🏯', color:0xC87060 },
 ];
 
 const SEASON_CFG = {
@@ -553,6 +554,98 @@ function buildFurnitureMesh(id) {
     const lily = new THREE.Mesh(new THREE.CylinderGeometry(0.2,0.2,0.03,8),
       new THREE.MeshLambertMaterial({ color:0x78C860 }));
     lily.position.set(0.2,0.1,0.2); g.add(lily);
+
+  } else if (id === 'japanese_house') {
+    // ═══ 和風小屋 — 5.5×5.5 footprint (≈ 30 cells²) ═══
+    const beigeM = new THREE.MeshLambertMaterial({ color: 0xE8D8B8 });
+    const redM   = new THREE.MeshLambertMaterial({ color: 0xC07050 });
+    const darkM  = new THREE.MeshLambertMaterial({ color: 0x5A3820 });
+    const greenM = new THREE.MeshLambertMaterial({ color: 0x7AAA50 });
+    const whiteM = new THREE.MeshLambertMaterial({ color: 0xF5F0E8 });
+    const stoneM = new THREE.MeshLambertMaterial({ color: 0xB0A898 });
+    const blueM  = new THREE.MeshLambertMaterial({ color: 0x5C8FB0, transparent: true, opacity: 0.82 });
+    const pinkM  = new THREE.MeshLambertMaterial({ color: 0xF6C6C8 });
+    const brownM = new THREE.MeshLambertMaterial({ color: 0x8B6040 });
+    const lanM   = new THREE.MeshLambertMaterial({ color: 0xF5D060, emissive: 0xFFAA00, emissiveIntensity: 0.35 });
+    const winM   = new THREE.MeshLambertMaterial({ color: 0xC8E8F8, transparent: true, opacity: 0.7 });
+
+    const jh = (geo, mat, x, y, z) => {
+      const m = new THREE.Mesh(geo, mat);
+      m.position.set(x, y, z);
+      m.castShadow = true;
+      g.add(m);
+    };
+
+    // Platform (5.5 × 5.5 = 30.25 cell²)
+    jh(new THREE.BoxGeometry(5.5, 0.2, 5.5),    beigeM,  0,     0.1,   0);
+
+    // Deck (front-right)
+    jh(new THREE.BoxGeometry(1.5,  0.12, 1.8),  beigeM,  1.75,  0.26,  0.9);
+    jh(new THREE.BoxGeometry(0.05, 0.4,  1.8),  darkM,   2.5,   0.46,  0.9);
+    jh(new THREE.BoxGeometry(1.5,  0.05, 0.05), darkM,   1.75,  0.66,  1.8);
+
+    // House walls
+    jh(new THREE.BoxGeometry(3.4,  2.0,  0.14), redM,    0,     1.32,  1.27);   // front
+    jh(new THREE.BoxGeometry(3.4,  2.0,  0.14), redM,    0,     1.32, -1.27);   // back
+    jh(new THREE.BoxGeometry(0.14, 2.0,  2.4),  redM,   -1.63,  1.32,  0);      // left
+    jh(new THREE.BoxGeometry(0.14, 2.0,  2.4),  redM,    1.63,  1.32,  0);      // right
+
+    // Sliding doors (front center)
+    jh(new THREE.BoxGeometry(0.82, 1.5, 0.1),   whiteM, -0.47,  1.07,  1.32);
+    jh(new THREE.BoxGeometry(0.82, 1.5, 0.1),   whiteM,  0.47,  1.07,  1.32);
+
+    // Round window (right wall — disc rotated sideways)
+    const jhWin = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 0.1, 10), winM);
+    jhWin.rotation.z = Math.PI / 2;
+    jhWin.position.set(1.7, 1.5, 0.3);
+    g.add(jhWin);
+
+    // Tatami floor
+    jh(new THREE.BoxGeometry(3.1, 0.1, 2.2),    greenM,  0,     0.27,  0);
+
+    // Low table
+    jh(new THREE.BoxGeometry(0.7, 0.1, 0.45),   darkM,   0,     0.42,  0.1);
+
+    // Roof — 3-step pyramid + ridge
+    jh(new THREE.BoxGeometry(4.2,  0.22, 3.6),  darkM,   0,     2.34,  0);   // eave
+    jh(new THREE.BoxGeometry(3.5,  0.22, 2.9),  darkM,   0,     2.60,  0);   // mid
+    jh(new THREE.BoxGeometry(2.7,  0.22, 2.2),  darkM,   0,     2.86,  0);   // upper
+    jh(new THREE.BoxGeometry(1.8,  0.28, 0.32), darkM,   0,     3.08,  0);   // ridge
+    jh(new THREE.BoxGeometry(0.26, 0.32, 0.24), darkM,  -0.88,  3.22,  0);   // cap L
+    jh(new THREE.BoxGeometry(0.26, 0.32, 0.24), darkM,   0.88,  3.22,  0);   // cap R
+
+    // Bamboo cluster (left side)
+    [[-2.1,-1.1],[-1.88,-0.7],[-2.2,-0.28],[-1.95,0.12]].forEach(([bx, bz]) => {
+      jh(new THREE.CylinderGeometry(0.06, 0.08, 2.2, 6), greenM, bx, 1.1, bz);
+    });
+
+    // Hanging lanterns (front corners, under eave)
+    [-1.3, 1.3].forEach(lx => {
+      jh(new THREE.BoxGeometry(0.04, 0.28, 0.04),          darkM, lx, 2.12, 1.3);
+      jh(new THREE.CylinderGeometry(0.1, 0.08, 0.28, 6),   lanM,  lx, 1.88, 1.3);
+    });
+
+    // Stone path (front)
+    [[-0.6,2.1],[0,2.22],[0.6,2.1],[-0.28,2.45],[0.28,2.45]].forEach(([px, pz]) => {
+      jh(new THREE.BoxGeometry(0.32, 0.06, 0.28), stoneM, px, 0.18, pz);
+    });
+
+    // Pond (front center)
+    jh(new THREE.BoxGeometry(1.5,  0.14, 0.9),  stoneM,  0, 0.12, 2.52);
+    jh(new THREE.BoxGeometry(1.15, 0.1,  0.58), blueM,   0, 0.19, 2.52);
+
+    // Scatter stones
+    [[-1.9,2.0],[2.1,1.8],[-2.1,-0.4],[2.0,-1.1]].forEach(([sx, sz]) => {
+      jh(new THREE.BoxGeometry(0.22, 0.12, 0.18), stoneM, sx, 0.16, sz);
+    });
+
+    // Cherry blossom trees (back-left + back-right)
+    [[-1.9,-1.2],[1.8,-1.5]].forEach(([tx, tz]) => {
+      jh(new THREE.CylinderGeometry(0.1, 0.13, 1.6, 6), brownM, tx, 0.8, tz);
+      [[0,1.62,0],[0.3,1.4,0.2],[-0.28,1.4,-0.2],[0.12,1.5,-0.3],[-0.12,1.5,0.3]].forEach(([bx, by, bz]) => {
+        jh(new THREE.SphereGeometry(0.28, 6, 5), pinkM, tx+bx, by, tz+bz);
+      });
+    });
   }
   return g;
 }
