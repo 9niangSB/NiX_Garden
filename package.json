@@ -1,0 +1,24 @@
+{
+  "name": "nix-garden",
+  "version": "1.0.0",
+  "description": "NiX Garden — 和風 Voxel 種田家園 Three.js Game",
+  "main": "index.html",
+  "scripts": {
+    "dev": "npx live-server --port=3000 --open=index.html",
+    "cap:init": "npx cap init \"NiX Garden\" \"com.nixgarden.app\" --web-dir=.",
+    "cap:add-android": "npx cap add android",
+    "cap:sync": "npx cap sync",
+    "cap:run-android": "npx cap run android"
+  },
+  "devDependencies": {
+    "live-server": "^1.2.2"
+  },
+  "dependencies": {
+    "@capacitor/android": "^6.0.0",
+    "@capacitor/cli": "^6.0.0",
+    "@capacitor/core": "^6.0.0"
+  },
+  "keywords": ["threejs", "voxel", "game", "capacitor", "japanese"],
+  "author": "NiX Garden Team",
+  "license": "MIT"
+}

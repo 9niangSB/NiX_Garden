@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <title>NiX Garden — 農場庭院</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <div id="canvas-container"></div>
+
+  <div id="hud">
+
+    <!-- ===== 頂部標題列 ===== -->
+    <div id="title-bar">
+      <span id="title-text">🌸 NiX Garden</span>
+      <div id="title-center">
+        <span id="season-label">春 🌸</span>
+        <span id="mode-label">模式：種植</span>
+      </div>
+      <!-- 金錢顯示（右上） -->
+      <div id="money-panel">
+        <span class="money-icon">💰</span>
+        <span id="money-display">0</span>
+        <span class="money-unit">コイン</span>
+      </div>
+    </div>
+
+    <!-- ===== 季節按鈕（右側） ===== -->
+    <div id="season-bar">
+      <button class="season-btn active" id="btn-season-spring" onclick="setSeason('spring')">🌸</button>
+      <button class="season-btn"        id="btn-season-summer" onclick="setSeason('summer')">☀️</button>
+      <button class="season-btn"        id="btn-season-autumn" onclick="setSeason('autumn')">🍁</button>
+      <button class="season-btn"        id="btn-season-winter" onclick="setSeason('winter')">❄️</button>
+    </div>
+
+    <!-- ===== 左下工具列 ===== -->
+    <div id="toolbar">
+      <button class="tool-btn active" id="btn-plant"  onclick="setMode('plant')">
+        <span class="btn-icon">🌱</span><span class="btn-label">種植</span>
+      </button>
+      <button class="tool-btn"        id="btn-build"  onclick="setMode('build')">
+        <span class="btn-icon">🪑</span><span class="btn-label">家具</span>
+      </button>
+      <button class="tool-btn"        id="btn-delete" onclick="setMode('delete')">
+        <span class="btn-icon">🗑️</span><span class="btn-label">移除</span>
+      </button>
+
+      <div class="btn-divider"></div>
+
+      <button class="tool-btn catalog-btn" onclick="openCatalog('plant')">
+        <span class="btn-icon">📖</span><span class="btn-label">植物圖鑑</span>
+      </button>
+      <button class="tool-btn catalog-btn" onclick="openCatalog('build')">
+        <span class="btn-icon">🏠</span><span class="btn-label">家具圖鑑</span>
+      </button>
+
+      <div class="btn-divider"></div>
+
+      <button class="tool-btn shop-btn" onclick="openShop()">
+        <span class="btn-icon">🏪</span><span class="btn-label">便利屋</span>
+      </button>
+    </div>
+
+    <!-- ===== 倉庫（左上 / 標題下方） ===== -->
+    <div id="inventory-panel">
+      <div class="inv-title">📦 倉庫</div>
+      <div class="inv-grid">
+        <div class="inv-item"><span class="inv-icon">🍅</span><span id="inv-tomato">0</span></div>
+        <div class="inv-item"><span class="inv-icon">🍓</span><span id="inv-strawberry">0</span></div>
+        <div class="inv-item"><span class="inv-icon">🎃</span><span id="inv-pumpkin">0</span></div>
+        <div class="inv-item"><span class="inv-icon">🍉</span><span id="inv-watermelon">0</span></div>
+        <div class="inv-item"><span class="inv-icon">🍈</span><span id="inv-melon">0</span></div>
+      </div>
+    </div>
+
+    <!-- ===== 植物 / 家具圖鑑面板 ===== -->
+    <div id="catalog-panel" class="hidden">
+      <div id="catalog-header">
+        <span id="catalog-title">圖鑑</span>
+        <button class="panel-close" onclick="closeCatalog()">✕</button>
+      </div>
+      <div id="catalog-list"></div>
+    </div>
+
+    <!-- ===== 便利屋面板 ===== -->
+    <div id="shop-panel" class="hidden">
+      <div class="panel-header">
+        <span>🏪 便利屋</span>
+        <button class="panel-close" onclick="closeShop()">✕</button>
+      </div>
+
+      <!-- 賣出區 -->
+      <div class="shop-section">
+        <div class="shop-section-title">💰 倉庫を売る</div>
+        <div id="sell-list"></div>
+        <div id="sell-total" class="sell-total">合計: 0 コイン</div>
+        <button class="shop-action-btn sell-btn" onclick="sellAll()">🌾 全部賣掉</button>
+      </div>
+
+      <!-- 買種子區 -->
+      <div class="shop-section">
+        <div class="shop-section-title">🌱 種を買う</div>
+        <button class="shop-buy-btn" onclick="buySeed('pumpkin')">
+          <span class="buy-icon">🎃</span>
+          <span class="buy-name">南瓜</span>
+          <span class="buy-price">20コイン</span>
+          <span class="buy-stock">×<span id="seed-pumpkin">0</span></span>
+        </button>
+        <button class="shop-buy-btn" onclick="buySeed('watermelon')">
+          <span class="buy-icon">🍉</span>
+          <span class="buy-name">西瓜</span>
+          <span class="buy-price">30コイン</span>
+          <span class="buy-stock">×<span id="seed-watermelon">0</span></span>
+        </button>
+        <button class="shop-buy-btn" onclick="buySeed('melon')">
+          <span class="buy-icon">🍈</span>
+          <span class="buy-name">哈密瓜</span>
+          <span class="buy-price">40コイン</span>
+          <span class="buy-stock">×<span id="seed-melon">0</span></span>
+        </button>
+      </div>
+
+      <!-- 種子庫存（免費）顯示 -->
+      <div class="shop-section">
+        <div class="shop-section-title">📦 種の在庫</div>
+        <div class="seed-stock-grid">
+          <div class="seed-stock-item">🍅 ×<span id="seed-tomato">999</span></div>
+          <div class="seed-stock-item">🍓 ×<span id="seed-strawberry">999</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== Toast ===== -->
+    <div id="toast" class="hidden"></div>
+
+  </div><!-- end #hud -->
+
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://unpkg.com/three@0.163.0/build/three.module.js",
+      "three/addons/": "https://unpkg.com/three@0.163.0/examples/jsm/"
+    }
+  }
+  </script>
+  <script type="module" src="main.js"></script>
+</body>
+</html>
