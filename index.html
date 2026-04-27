@@ -12,31 +12,94 @@
 
   <div id="hud">
 
+    <!-- ===== Title Bar ===== -->
     <div id="title-bar">
       <span id="title-text">🌸 NiX 庭院</span>
+      <span id="season-label">春 🌸</span>
       <span id="mode-label">模式：種植</span>
     </div>
 
+    <!-- ===== Season Bar (top-right) ===== -->
+    <div id="season-bar">
+      <button class="season-btn active" id="btn-season-spring" onclick="setSeason('spring')">春</button>
+      <button class="season-btn"        id="btn-season-summer" onclick="setSeason('summer')">夏</button>
+      <button class="season-btn"        id="btn-season-autumn" onclick="setSeason('autumn')">秋</button>
+      <button class="season-btn"        id="btn-season-winter" onclick="setSeason('winter')">冬</button>
+    </div>
+
+    <!-- ===== Money Panel (top-left) ===== -->
+    <div id="money-panel">
+      <span>💰</span> <span id="money-display">0</span> コイン
+    </div>
+
+    <!-- ===== Inventory Panel (left) ===== -->
+    <div id="inventory-panel">
+      <div class="inv-title">🧺 倉庫</div>
+      <div class="inv-row">🍅 <span id="inv-tomato">0</span></div>
+      <div class="inv-row">🍓 <span id="inv-strawberry">0</span></div>
+      <div class="inv-row">🫐 <span id="inv-blueberry">0</span></div>
+      <div class="inv-row">🎃 <span id="inv-pumpkin">0</span></div>
+      <div class="inv-row">🌸 <span id="inv-sakura">0</span></div>
+    </div>
+
+    <!-- ===== Toolbar (bottom-left) ===== -->
     <div id="toolbar">
-      <button class="tool-btn active" id="btn-plant" onclick="setMode('plant')">
-        <span class="btn-icon">🌱</span>
-        <span class="btn-label">種植</span>
+      <button class="tool-btn active" id="btn-plant"  onclick="setMode('plant')">
+        <span class="btn-icon">🌱</span><span class="btn-label">種植</span>
       </button>
-      <button class="tool-btn" id="btn-build" onclick="setMode('build')">
-        <span class="btn-icon">🪑</span>
-        <span class="btn-label">家具</span>
+      <button class="tool-btn" id="btn-build"  onclick="setMode('build')">
+        <span class="btn-icon">🪑</span><span class="btn-label">家具</span>
       </button>
       <button class="tool-btn" id="btn-delete" onclick="setMode('delete')">
-        <span class="btn-icon">🗑️</span>
-        <span class="btn-label">移除</span>
+        <span class="btn-icon">🗑️</span><span class="btn-label">移除</span>
+      </button>
+      <button class="tool-btn" onclick="openCatalog('plant')">
+        <span class="btn-icon">🌿</span><span class="btn-label">植物</span>
+      </button>
+      <button class="tool-btn" onclick="openCatalog('build')">
+        <span class="btn-icon">🪵</span><span class="btn-label">圖鑑</span>
+      </button>
+      <button class="tool-btn" onclick="openShop()">
+        <span class="btn-icon">🏪</span><span class="btn-label">商店</span>
       </button>
     </div>
 
+    <!-- ===== Info Panel (bottom-right) ===== -->
     <div id="info-panel">
       <div class="info-row">🌿 植物: <span id="plant-count">0</span></div>
       <div class="info-row">🪵 家具: <span id="build-count">0</span></div>
     </div>
 
+    <!-- ===== Catalog Panel (popup) ===== -->
+    <div id="catalog-panel" class="hidden popup-panel">
+      <div class="panel-header">
+        <span id="catalog-title">圖鑑</span>
+        <button class="close-btn" onclick="closeCatalog()">✕</button>
+      </div>
+      <div id="catalog-list"></div>
+    </div>
+
+    <!-- ===== Shop Panel (popup) ===== -->
+    <div id="shop-panel" class="hidden popup-panel">
+      <div class="panel-header">
+        <span>🏪 便利屋</span>
+        <button class="close-btn" onclick="closeShop()">✕</button>
+      </div>
+
+      <div class="shop-section-title">📦 倉庫販賣</div>
+      <div id="sell-list"></div>
+      <div id="sell-total">合計: 0 コイン</div>
+      <button class="shop-sell-btn" onclick="sellAll()">💰 全部賣出</button>
+
+      <div class="shop-section-title">🌱 購買種子</div>
+      <div class="shop-buy-row">
+        <span>🎃 南瓜の種</span>
+        <span class="seed-stock">持有: <span id="seed-pumpkin">0</span></span>
+        <button class="shop-buy-btn" onclick="buySeed('pumpkin')">20 コイン</button>
+      </div>
+    </div>
+
+    <!-- ===== Toast ===== -->
     <div id="toast" class="hidden"></div>
 
   </div>
