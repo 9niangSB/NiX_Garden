@@ -556,191 +556,248 @@ function buildFurnitureMesh(id) {
     lily.position.set(0.2,0.1,0.2); g.add(lily);
 
   } else if (id === 'japanese_house') {
-    // ═══ 五重塔 v2.0 — 5-Tier Pagoda (5.5×5.5 base ≈ 30 cells²) ═══
-    // Visual richness: 3-5 color shades per material, no empty surfaces
+    // ═══ 五重塔 v3.0 — Strict Voxel Rule System ═══
+    // size = BASE_W * 0.85^i | 3-layer roof (dark/base/light) | corbels | air gaps
+    // Color: 3-5 shades per material + 5~10% noise | no flat surfaces | no perfect symmetry
 
-    // Reds: 3 shades (wall / shadow / highlight)
+    const V      = 0.22;        // 1 voxel unit
+    const BASE_W = 2.50;
+    const WALL_H = V * 4;       // 4 voxels tall
+
+    // Walls: 3 reds (dark / mid / light)
     const rA = new THREE.MeshLambertMaterial({ color: 0xBE3020 });
-    const rB = new THREE.MeshLambertMaterial({ color: 0x982018 });
+    const rB = new THREE.MeshLambertMaterial({ color: 0x962018 });
     const rC = new THREE.MeshLambertMaterial({ color: 0xD44035 });
-    // Teals: 3 shades (roof main / deep / accent)
-    const tA = new THREE.MeshLambertMaterial({ color: 0x1E6852 });
-    const tB = new THREE.MeshLambertMaterial({ color: 0x286860 });
-    const tC = new THREE.MeshLambertMaterial({ color: 0x144C3C });
+    // Roofs: 3-layer teal (dark bottom / base mid / light top)
+    const tDk = new THREE.MeshLambertMaterial({ color: 0x145040 });
+    const tMd = new THREE.MeshLambertMaterial({ color: 0x1E6852 });
+    const tLt = new THREE.MeshLambertMaterial({ color: 0x2C7C65 });
     // Stones: 3 shades
     const sA = new THREE.MeshLambertMaterial({ color: 0xC8BEB0 });
     const sB = new THREE.MeshLambertMaterial({ color: 0xB0A898 });
     const sC = new THREE.MeshLambertMaterial({ color: 0xDAD4C8 });
-    // Pinks: 3 shades (light / mid / saturated)
-    const pkA = new THREE.MeshLambertMaterial({ color: 0xFCD8E4 });
-    const pkB = new THREE.MeshLambertMaterial({ color: 0xF0A8C0 });
-    const pkC = new THREE.MeshLambertMaterial({ color: 0xFAECF2 });
-    // Browns: 2 shades
+    // Pinks: 4 shades (light / mid / saturated / near-white) — 40/40/20 rule
+    const pkA = new THREE.MeshLambertMaterial({ color: 0xFCD8E4 });  // light 40%
+    const pkB = new THREE.MeshLambertMaterial({ color: 0xF0A8C0 });  // mid   40%
+    const pkC = new THREE.MeshLambertMaterial({ color: 0xE280A0 });  // sat   20%
+    const pkW = new THREE.MeshLambertMaterial({ color: 0xFAF2F5 });  // white
+    // Browns: 3 shades
     const brM = new THREE.MeshLambertMaterial({ color: 0x8B6040 });
     const brD = new THREE.MeshLambertMaterial({ color: 0x644828 });
+    const brL = new THREE.MeshLambertMaterial({ color: 0xA07848 });
     // Greens: 3 shades
-    const grA = new THREE.MeshLambertMaterial({ color: 0x7AAA50 });
-    const grB = new THREE.MeshLambertMaterial({ color: 0x5A9040 });
-    const grC = new THREE.MeshLambertMaterial({ color: 0x92C060 });
-    // Gold (sorin finial)
+    const grA = new THREE.MeshLambertMaterial({ color: 0x6AA040 });
+    const grB = new THREE.MeshLambertMaterial({ color: 0x52882E });
+    const grC = new THREE.MeshLambertMaterial({ color: 0x88B84C });
+    // Flowers: yellow / white / pink
+    const flY = new THREE.MeshLambertMaterial({ color: 0xF0D050 });
+    const flW = new THREE.MeshLambertMaterial({ color: 0xF8F4F0 });
+    const flP = new THREE.MeshLambertMaterial({ color: 0xF0A0B8 });
+    // Gold + white
     const goM = new THREE.MeshLambertMaterial({ color: 0xD4AA30, emissive: 0xA88010, emissiveIntensity: 0.30 });
     const whM = new THREE.MeshLambertMaterial({ color: 0xF8F0E0 });
-    // Water: 2 depths
-    const wA  = new THREE.MeshLambertMaterial({ color: 0x4C82B0, transparent: true, opacity: 0.85 });
-    const wB  = new THREE.MeshLambertMaterial({ color: 0x38689A, transparent: true, opacity: 0.80 });
+    // Water: shallow edge / deep center
+    const wSh = new THREE.MeshLambertMaterial({ color: 0x72AACC, transparent: true, opacity: 0.80 });
+    const wDp = new THREE.MeshLambertMaterial({ color: 0x3A6898, transparent: true, opacity: 0.88 });
     // Lantern glow
-    const lnM = new THREE.MeshLambertMaterial({ color: 0xF5D060, emissive: 0xFFAA00, emissiveIntensity: 0.42 });
+    const lnM = new THREE.MeshLambertMaterial({ color: 0xF5D060, emissive: 0xFFAA00, emissiveIntensity: 0.45 });
 
     const jh = (geo, mat, x, y, z) => {
       const m = new THREE.Mesh(geo, mat);
-      m.position.set(x, y, z);
-      m.castShadow = true;
-      m.receiveShadow = true;
-      g.add(m);
-      return m;
+      m.position.set(x, y, z); m.castShadow = true; m.receiveShadow = true; g.add(m);
     };
 
     // ─── Platform ─────────────────────────────────────────────
-    jh(new THREE.BoxGeometry(5.5,  0.24, 5.5),  sA, 0, 0.12, 0);    // base
-    jh(new THREE.BoxGeometry(5.5,  0.06, 5.5),  sC, 0, 0.27, 0);    // highlight strip
-    jh(new THREE.BoxGeometry(3.4,  0.24, 3.4),  sB, 0, 0.36, 0);    // inner raised plinth
-    jh(new THREE.BoxGeometry(3.4,  0.04, 3.4),  sC, 0, 0.52, 0);    // plinth edge
-    // Steps (front-center)
-    jh(new THREE.BoxGeometry(1.8,  0.12, 0.32), sB, 0, 0.36, 1.74);
-    jh(new THREE.BoxGeometry(1.5,  0.12, 0.32), sA, 0, 0.48, 1.44);
+    jh(new THREE.BoxGeometry(5.5,  0.24, 5.5),  sA, 0, 0.12,  0);   // base
+    jh(new THREE.BoxGeometry(5.5,  0.06, 5.5),  sC, 0, 0.27,  0);   // top highlight
+    jh(new THREE.BoxGeometry(3.6,  0.24, 3.6),  sB, 0, 0.36,  0);   // inner plinth
+    jh(new THREE.BoxGeometry(3.6,  0.04, 3.6),  sC, 0, 0.52,  0);   // plinth edge
+    jh(new THREE.BoxGeometry(1.9,  0.12, 0.32), sB, 0, 0.36,  1.84); // steps
+    jh(new THREE.BoxGeometry(1.6,  0.12, 0.32), sA, 0, 0.48,  1.54);
 
-    // ─── 5-Tier Pagoda ────────────────────────────────────────
-    // Alternating wall/eave colors per tier for visual richness
-    const pTiers = [
-      { bW:2.50, bH:1.10, e1:3.75, e2:4.08, wM:rA, eM:tA },
-      { bW:2.00, bH:0.96, e1:3.05, e2:3.32, wM:rB, eM:tC },
-      { bW:1.60, bH:0.84, e1:2.44, e2:2.66, wM:rA, eM:tB },
-      { bW:1.25, bH:0.74, e1:1.92, e2:2.10, wM:rC, eM:tA },
-      { bW:0.96, bH:0.64, e1:1.50, e2:1.64, wM:rB, eM:tC },
-    ];
+    // ─── 5-Tier Pagoda  (size rule: fw = BASE_W × 0.85^i) ─────
+    const wallMats = [rA, rB, rA, rC, rB];  // color noise via alternation
+
     let cY = 0.56;
-    pTiers.forEach((t, i) => {
-      // Body
-      jh(new THREE.BoxGeometry(t.bW, t.bH, t.bW), t.wM, 0, cY+t.bH/2, 0);
-      // Front face highlight (lighter red strip)
-      jh(new THREE.BoxGeometry(t.bW*0.68, t.bH*0.48, 0.04), rC, 0, cY+t.bH*0.54, t.bW/2+0.02);
-      // Eave — lower droop (slightly wider, lower, thin)
-      const eY = cY + t.bH;
-      jh(new THREE.BoxGeometry(t.e2, 0.09, t.e2), t.eM, 0, eY-0.05, 0);
-      // Eave — main slab
-      jh(new THREE.BoxGeometry(t.e1, 0.20, t.e1), t.eM, 0, eY+0.10, 0);
-      // Eave — top accent (tB = mid teal)
-      jh(new THREE.BoxGeometry(t.e1*0.86, 0.05, t.e1*0.86), tB, 0, eY+0.22, 0);
-      // Eave corner gold ornaments (4 corners)
-      const hw = t.e1/2 - 0.08;
-      [[hw,hw],[hw,-hw],[-hw,hw],[-hw,-hw]].forEach(([cx,cz]) => {
-        jh(new THREE.BoxGeometry(0.1, 0.16, 0.1), goM, cx, eY+0.07, cz);
+    for (let i = 0; i < 5; i++) {
+      const fw  = BASE_W * Math.pow(0.85, i);   // ← RULE: 0.85^i
+      const hw  = fw / 2;
+      const wM  = wallMats[i];
+      const rY  = cY + WALL_H;                  // roof base Y
+
+      // Body (wall) — solid, NOT hollow
+      jh(new THREE.BoxGeometry(fw, WALL_H, fw), wM, 0, cY + WALL_H/2, 0);
+      // Front face highlight (color noise, lighter strip)
+      jh(new THREE.BoxGeometry(fw*0.62, WALL_H*0.46, 0.030), rC, 0, cY+WALL_H*0.55, hw+0.012);
+      // Side shadow strips (dark edges)
+      jh(new THREE.BoxGeometry(0.022, WALL_H*0.72, fw), rB,  hw-0.011, cY+WALL_H*0.5, 0);
+      jh(new THREE.BoxGeometry(0.022, WALL_H*0.72, fw), rB, -hw+0.011, cY+WALL_H*0.5, 0);
+
+      // ── 3-Layer Roof: bottom DARK → mid BASE → top LIGHT ────
+      // Layer 1: lip droop (widest, thinnest, lowest — DARK)
+      jh(new THREE.BoxGeometry(fw+V*5.2, V*0.34, fw+V*5.2), tDk, 0, rY-V*0.22, 0);
+      // Layer 2: main dark slab (expand by 4V each side)
+      jh(new THREE.BoxGeometry(fw+V*4.0, V*1.0,  fw+V*4.0), tDk, 0, rY+V*0.5,  0);
+      // Layer 3: mid base slab (inset 0.6V — BASE tone)
+      jh(new THREE.BoxGeometry(fw+V*2.8, V*0.85, fw+V*2.8), (i%2===0 ? tMd : tDk), 0, rY+V*1.35, 0);
+      // Layer 4: light top slab (inset 1.2V — LIGHT tone)
+      jh(new THREE.BoxGeometry(fw+V*1.6, V*0.65, fw+V*1.6), tLt, 0, rY+V*2.0,  0);
+      // Cap accent strip
+      jh(new THREE.BoxGeometry(fw+V*0.8, V*0.14, fw+V*0.8), tLt, 0, rY+V*2.52, 0);
+
+      // Gold corner ornaments (4 corners, slightly asymmetric offset)
+      const ech = (fw + V*4.0)/2 - V*0.08;
+      [[ech,ech],[ech,-ech-V*0.1],[-ech-V*0.05,ech],[-ech,-(ech+V*0.08)]].forEach(([cx,cz]) => {
+        jh(new THREE.BoxGeometry(V*0.46, V*0.72, V*0.46), goM, cx, rY+V*0.30, cz);
       });
-      cY = eY + 0.27;
+
+      // ── Under-roof corbels (斗栱) — lower 3 tiers, every 2-3V ─
+      if (i < 3) {
+        const sp = V * 2.6;
+        const ch = V * 0.82;
+        for (let bx = -hw + sp*0.5; bx < hw + sp*0.1; bx += sp) {
+          jh(new THREE.BoxGeometry(V*0.40, ch, V*0.30), brM, bx, rY-V*0.60,  hw+V*0.56);
+          jh(new THREE.BoxGeometry(V*0.40, ch, V*0.30), brM, bx, rY-V*0.60, -hw-V*0.56);
+        }
+        for (let bz = -hw + sp*0.5; bz < hw + sp*0.1; bz += sp) {
+          jh(new THREE.BoxGeometry(V*0.30, ch, V*0.40), brM,  hw+V*0.56, rY-V*0.60, bz);
+          jh(new THREE.BoxGeometry(V*0.30, ch, V*0.40), brM, -hw-V*0.56, rY-V*0.60, bz);
+        }
+      }
+
+      // Air gap: 1 voxel between roof top and next floor (shadow separation)
+      cY = rY + V*2.66 + V;
+    }
+
+    // ─── Tier-1: Columns / Door / Round Windows ───────────────
+    const t1hw = BASE_W / 2;  // = 1.25
+    [-t1hw*0.74, t1hw*0.74].forEach(cx => {
+      jh(new THREE.BoxGeometry(V*0.50, WALL_H, V*0.50), rC, cx,  0.56+WALL_H/2,  t1hw+0.014);
+      jh(new THREE.BoxGeometry(V*0.50, WALL_H, V*0.50), rC, cx,  0.56+WALL_H/2, -t1hw-0.014);
+    });
+    jh(new THREE.BoxGeometry(V*2.8, WALL_H*0.58, V*0.32), whM, 0, 0.56+WALL_H*0.50, t1hw+0.016);
+    jh(new THREE.BoxGeometry(V*2.7, V*0.20, V*0.36), rB, 0, 0.56+V*0.90, t1hw+0.018);
+    jh(new THREE.BoxGeometry(V*2.7, V*0.20, V*0.36), rB, 0, 0.56+V*2.20, t1hw+0.018);
+    jh(new THREE.BoxGeometry(V*0.20, WALL_H*0.58, V*0.36), rB, 0, 0.56+WALL_H*0.50, t1hw+0.018);
+    [-t1hw-0.006, t1hw+0.006].forEach(wx => {
+      const wd = new THREE.Mesh(new THREE.CylinderGeometry(V*0.82, V*0.82, V*0.40, 10), whM);
+      wd.rotation.z = Math.PI/2; wd.position.set(wx, 0.56+V*2.5, 0); g.add(wd);
     });
 
-    // ─── Tier-1 Columns, Doors & Windows ─────────────────────
-    [-0.92, 0.92].forEach(cx => {   // front columns
-      jh(new THREE.BoxGeometry(0.11, 1.0, 0.11), rC, cx, 1.06, 1.26);
-    });
-    // Sliding door panels (front)
-    jh(new THREE.BoxGeometry(0.58, 0.52, 0.07), whM,  0, 0.82, 1.27);
-    jh(new THREE.BoxGeometry(0.56, 0.04, 0.08), rB, 0, 0.70, 1.28);
-    jh(new THREE.BoxGeometry(0.56, 0.04, 0.08), rB, 0, 0.86, 1.28);
-    jh(new THREE.BoxGeometry(0.04, 0.50, 0.08), rB, 0, 0.82, 1.28);
-    // Round windows (both sides — CylinderGeometry disc)
-    [-1.27, 1.27].forEach(wx => {
-      const wd = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.18, 0.08, 10), whM);
-      wd.rotation.z = Math.PI / 2;
-      wd.position.set(wx, 0.92, 0);
-      g.add(wd);
-    });
-    // Back columns
-    [-0.92, 0.92].forEach(cx => {
-      jh(new THREE.BoxGeometry(0.11, 1.0, 0.11), rC, cx, 1.06, -1.26);
-    });
-
-    // ─── Sorin Spire (相輪) ───────────────────────────────────
+    // ─── Sorin (相輪) ──────────────────────────────────────────
     const sY = cY;
-    jh(new THREE.BoxGeometry(0.52, 0.48, 0.52), sB, 0, sY+0.24, 0);   // stone pedestal
-    jh(new THREE.BoxGeometry(0.36, 0.40, 0.36), sA, 0, sY+0.68, 0);   // taper
-    jh(new THREE.CylinderGeometry(0.04, 0.08, 1.6, 6), goM, 0, sY+1.50, 0); // gold rod
-    [0.28, 0.52, 0.74, 0.93, 1.10].forEach(dy => {                    // 5 gold rings
-      jh(new THREE.CylinderGeometry(0.10, 0.10, 0.055, 8), goM, 0, sY+0.88+dy, 0);
+    jh(new THREE.BoxGeometry(V*2.4, V*2.2, V*2.4), sB, 0, sY+V*1.1,  0);  // pedestal
+    jh(new THREE.BoxGeometry(V*1.6, V*1.8, V*1.6), sA, 0, sY+V*3.2,  0);  // taper
+    const jhRod = new THREE.Mesh(
+      new THREE.CylinderGeometry(V*0.18, V*0.32, V*7.2, 6), goM);
+    jhRod.position.set(0, sY+V*7.5, 0); jhRod.castShadow = true; g.add(jhRod);
+    [1.30, 2.40, 3.40, 4.30, 5.10].forEach(dy => {         // 5 rings
+      jh(new THREE.CylinderGeometry(V*0.46, V*0.46, V*0.26, 8), goM, 0, sY+V*4.0+V*dy, 0);
     });
-    jh(new THREE.SphereGeometry(0.10, 8, 6),      goM, 0, sY+2.38, 0); // top orb
-    jh(new THREE.ConeGeometry(0.07, 0.22, 6),     goM, 0, sY+2.56, 0); // flame tip
+    jh(new THREE.SphereGeometry(V*0.46, 8, 6),  goM, 0, sY+V*11.0, 0);  // orb
+    jh(new THREE.ConeGeometry(V*0.30, V*0.95, 6), goM, 0, sY+V*11.7, 0); // flame
 
-    // ─── Torii Gate (front entrance) ─────────────────────────
-    jh(new THREE.BoxGeometry(0.10, 1.52, 0.10), rA, -1.08, 0.76, 2.44);
-    jh(new THREE.BoxGeometry(0.10, 1.52, 0.10), rA,  1.08, 0.76, 2.44);
-    jh(new THREE.BoxGeometry(2.45, 0.10, 0.10), rA,  0, 1.50, 2.44);
-    jh(new THREE.BoxGeometry(2.25, 0.08, 0.10), rB,  0, 1.34, 2.44);
-    jh(new THREE.BoxGeometry(0.88, 0.17, 0.08), goM, 0, 1.42, 2.46);   // plaque
+    // ─── Torii Gate ────────────────────────────────────────────
+    jh(new THREE.BoxGeometry(V*0.46, V*7.0, V*0.46), rA, -V*4.9, V*3.5,  2.44);
+    jh(new THREE.BoxGeometry(V*0.46, V*7.0, V*0.46), rA,  V*4.9, V*3.5,  2.44);
+    jh(new THREE.BoxGeometry(V*11.0, V*0.46, V*0.46), rA, 0, V*6.9, 2.44);
+    jh(new THREE.BoxGeometry(V*10.0, V*0.36, V*0.46), rB, 0, V*6.1, 2.44);
+    jh(new THREE.BoxGeometry(V*4.0,  V*0.80, V*0.36), goM, 0, V*6.4, 2.46);
 
-    // ─── Stone Lanterns (4 positions) ─────────────────────────
-    [[-1.52,1.92],[1.52,1.92],[-2.18,-0.08],[2.18,-0.08]].forEach(([lx,lz]) => {
-      jh(new THREE.BoxGeometry(0.24, 0.10, 0.24), sB,  lx, 0.17, lz);  // base
-      jh(new THREE.BoxGeometry(0.12, 0.52, 0.12), sA,  lx, 0.47, lz);  // pole
-      jh(new THREE.BoxGeometry(0.32, 0.22, 0.32), lnM, lx, 0.77, lz);  // glow box
-      jh(new THREE.BoxGeometry(0.40, 0.09, 0.40), sB,  lx, 0.93, lz);  // cap
+    // ─── Stone Lanterns (4) ────────────────────────────────────
+    [[-1.52,1.92],[1.52,1.92],[-2.20,-0.10],[2.20,-0.10]].forEach(([lx,lz]) => {
+      jh(new THREE.BoxGeometry(V*1.10, V*0.46, V*1.10), sB,  lx, V*0.23, lz);
+      jh(new THREE.BoxGeometry(V*0.55, V*2.40, V*0.55), sA,  lx, V*1.66, lz);
+      jh(new THREE.BoxGeometry(V*1.50, V*1.00, V*1.50), lnM, lx, V*3.16, lz);
+      jh(new THREE.BoxGeometry(V*1.80, V*0.40, V*1.80), sB,  lx, V*3.82, lz);
     });
 
-    // ─── Water Pond + Wooden Bridge ───────────────────────────
-    jh(new THREE.BoxGeometry(2.05, 0.15, 1.22), sA,  -1.58, 0.09, 2.08);  // rim
-    jh(new THREE.BoxGeometry(1.74, 0.10, 0.95), wA,  -1.58, 0.15, 2.08);  // surface
-    jh(new THREE.BoxGeometry(1.74, 0.06, 0.95), wB,  -1.58, 0.09, 2.08);  // depth
-    // Lily pads (3 greens)
-    [[-1.4,2.02,grA],[-1.72,2.16,grB],[-1.52,2.38,grC]].forEach(([px,pz,gm]) => {
-      jh(new THREE.CylinderGeometry(0.13, 0.13, 0.03, 8), gm, px, 0.20, pz);
+    // ─── Water Pond: 2-depth (shallow edge + deep center) ─────
+    jh(new THREE.BoxGeometry(2.05,  V*0.68, 1.22),  sA,  -1.58, V*0.34, 2.08);  // rim
+    jh(new THREE.BoxGeometry(1.74,  V*0.48, 0.96),  wSh, -1.58, V*0.54, 2.08);  // shallow
+    jh(new THREE.BoxGeometry(1.18,  V*0.36, 0.62),  wDp, -1.58, V*0.49, 2.08);  // deep center
+    [[-1.40,2.02,grA],[-1.72,2.16,grB],[-1.54,2.40,grC]].forEach(([px,pz,gm]) => {
+      jh(new THREE.CylinderGeometry(V*0.60, V*0.60, V*0.14, 8), gm, px, V*0.72, pz);
     });
     // Red wooden bridge
-    jh(new THREE.BoxGeometry(0.54, 0.07, 1.22), rB, -1.58, 0.23, 2.08);
-    [-0.54, -0.10, 0.35].forEach(dz => {
-      jh(new THREE.BoxGeometry(0.54, 0.28, 0.05), rA, -1.58, 0.37, 2.08+dz);  // railings
+    jh(new THREE.BoxGeometry(V*2.5, V*0.32, 1.22), rB, -1.58, V*1.16, 2.08);
+    [-0.54,-0.10,0.35].forEach(dz => {
+      jh(new THREE.BoxGeometry(V*2.5, V*1.30, V*0.22), rA, -1.58, V*1.70, 2.08+dz);
     });
-    jh(new THREE.BoxGeometry(0.54, 0.05, 1.22), rC, -1.58, 0.50, 2.08);  // handrail top
+    jh(new THREE.BoxGeometry(V*2.5, V*0.22, 1.22), rC, -1.58, V*2.46, 2.08);
 
-    // ─── Cherry Blossom Trees (4 trees, rich clusters) ────────
+    // ─── Cherry Blossom Trees — 30% removed sphere clusters ───
+    // Define 13 offsets; keep 9-10 (= 30% removed) per tree
+    const blmSph = [
+      [0,0,0],[0.32,0,0],[-0.30,0,0],[0,0.30,0],[0,0,0.30],
+      [0,-0.22,0],[0,0,-0.28],[0.22,0.20,0.14],[-0.20,0.22,-0.14],
+      [0.14,0.18,-0.24],[-0.18,0.16,0.22],[0.24,-0.16,0.18],[-0.22,-0.14,-0.20]
+    ];
+    const PINKS = [pkA, pkB, pkC, pkW];
+
     [[-2.12,-1.70],[-2.10,0.88],[2.20,-1.52],[2.20,0.68]].forEach(([tx,tz], ti) => {
-      const tBr = ti%2===0 ? brM : brD;
-      jh(new THREE.CylinderGeometry(0.10, 0.15, 1.52, 6), tBr, tx, 0.76, tz);
-      jh(new THREE.CylinderGeometry(0.06, 0.09, 0.66, 5), tBr, tx+0.24, 1.18, tz+0.10);
-      jh(new THREE.CylinderGeometry(0.06, 0.09, 0.64, 5), tBr, tx-0.20, 1.22, tz-0.10);
-      // 9-sphere blossom crown (3 pink shades, varying sizes)
-      const PKS = [pkA, pkB, pkC];
-      [[0,1.66,0],[0.38,1.44,0.22],[-0.32,1.46,-0.20],[0.16,1.57,-0.30],
-       [-0.20,1.52,0.28],[0.28,1.63,-0.14],[-0.12,1.73,0.12],[0,1.50,0.38],[-0.34,1.36,0.30]
-      ].forEach(([bx,by,bz], bi) => {
-        jh(new THREE.SphereGeometry(0.20+(bi%3)*0.04, 6, 5), PKS[bi%3], tx+bx, by, tz+bz);
+      const tBrM = [brM, brD, brM, brD][ti];
+      // Trunk (slight lean via ti-based offset)
+      jh(new THREE.CylinderGeometry(V*0.45, V*0.68, V*7.0, 6), tBrM, tx, V*3.5, tz);
+      // 4 branches (brL = light brown for tips)
+      [[-0.22,1.10,0.10],[0.20,1.14,-0.10],[-0.10,1.18,-0.22],[0.14,1.08,0.18]].forEach(([bx,by,bz]) => {
+        jh(new THREE.CylinderGeometry(V*0.26, V*0.36, V*3.0, 5), brL, tx+bx, by, tz+bz);
+      });
+      // Blossom crown: 9+(ti%2) of 13 spheres → ~30% removed
+      // Sizes vary (0.17~0.29), colors: 40% pkA / 40% pkB / 20% pkC+pkW
+      blmSph.slice(0, 9 + ti%2).forEach(([bx,by,bz], bi) => {
+        jh(new THREE.SphereGeometry(0.17+(bi%4)*0.03, 6, 5), PINKS[bi%4], tx+bx, 1.62+by, tz+bz);
+      });
+      // Falling petals (floating in air, sparse)
+      [[0.38,1.22,0.12],[0.85,0.82,-0.15],[1.22,1.05,0.24],[1.68,0.62,-0.08]].forEach(([pd,py,pz], pi) => {
+        const sign = ti < 2 ? -1 : 1;
+        jh(new THREE.BoxGeometry(V*0.32, V*0.10, V*0.24), PINKS[pi%4], tx+sign*pd, py, tz+pz);
+      });
+      // Ground petals (scattered in radius around base)
+      [0.30, 0.62, 0.95, 1.28].forEach((r, ri) => {
+        const ang = r * 2.4 + ti;
+        jh(new THREE.BoxGeometry(V*0.32, V*0.08, V*0.24), PINKS[ri%4],
+           tx + r*Math.cos(ang), 0.26, tz + r*Math.sin(ang));
       });
     });
 
-    // ─── Scattered Petals (on ground + stone path) ────────────
-    [[-0.6,2.55],[-1.88,2.22],[0.9,2.42],[1.6,2.02],
-     [-0.2,2.88],[0.5,1.86],[1.2,2.62],[-0.8,1.72],[0.3,2.35]].forEach(([px,pz],pi) => {
-      jh(new THREE.BoxGeometry(0.07, 0.025, 0.055), [pkA,pkB,pkC][pi%3], px, 0.26, pz);
-    });
-    // Petals drifting on eave (first roof tier top)
-    [[-1.6,1.88,-1.0],[1.6,1.88,-0.8],[-1.2,1.88,1.4],[1.4,1.88,1.2]].forEach(([px,py,pz],pi) => {
-      jh(new THREE.BoxGeometry(0.07, 0.025, 0.055), [pkA,pkB][pi%2], px, py, pz);
+    // ─── Ground Flowers (3% per tile ≈ 12 flowers) ────────────
+    [[1.22,2.32,flY],[-1.02,2.12,flW],[2.02,0.42,flP],[-2.12,1.02,flY],
+     [0.82,-1.82,flW],[1.82,-1.22,flP],[-1.52,-1.62,flY],[-0.62,-2.22,flW],
+     [2.32,-0.62,flY],[-2.32,0.02,flP],[0.02,2.62,flW],[1.52,1.52,flP]
+    ].forEach(([fx,fz,fm]) => {
+      jh(new THREE.BoxGeometry(V*0.36, V*0.46, V*0.36), fm, fx, V*1.36, fz);  // petal
+      jh(new THREE.BoxGeometry(V*0.16, V*0.82, V*0.16), grB, fx, V*0.58, fz); // stem
     });
 
-    // ─── Ground Details ───────────────────────────────────────
-    // Stone path (front-center)
-    [[-0.58,2.12],[0,2.24],[0.58,2.12],[-0.3,2.46],[0.3,2.46]].forEach(([px,pz]) => {
-      jh(new THREE.BoxGeometry(0.30, 0.06, 0.26), [sA,sB,sC][Math.floor(Math.random()*3)], px, 0.18, pz);
+    // ─── Ground: 3-color grass noise (random per tile) ────────
+    [[-2.35,1.30,grA],[-2.45,-0.20,grB],[2.18,1.60,grC],[2.30,-0.70,grA],
+     [-1.08,-2.10,grB],[1.28,-2.20,grC],[0,-2.48,grA],[-2.05,-1.55,grC],
+     [2.10,-1.82,grB],[1.70,2.10,grA],[-1.60,2.00,grB],[0.50,-2.52,grC],
+     [-0.50,2.62,grA],[2.52,0.80,grC],[-2.52,0.60,grB]
+    ].forEach(([gx,gz,gm]) => {
+      jh(new THREE.BoxGeometry(V*1.6+Math.random()*V*1.2, V*0.28, V*1.4+Math.random()*V),
+         gm, gx, V*0.24, gz);
     });
-    // Moss / grass patches
-    [[-2.32,1.28],[-2.42,-0.22],[2.18,1.58],[2.30,-0.72],
-     [-1.08,-2.12],[1.28,-2.20],[0,-2.45],[-2.02,-1.52],[2.08,-1.80]].forEach(([gx,gz]) => {
-      jh(new THREE.BoxGeometry(0.36+Math.random()*0.28, 0.06, 0.30+Math.random()*0.22),
-         [grA,grB,grC][Math.floor(Math.random()*3)], gx, 0.26, gz);
+
+    // Stone path: irregular shapes, 3 gray tones
+    [[-0.58,2.12,sA],[0,2.24,sB],[0.58,2.12,sC],[-0.30,2.46,sA],[0.30,2.46,sB]].forEach(([px,pz,sm]) => {
+      jh(new THREE.BoxGeometry(V*1.4, V*0.28, V*1.2), sm, px, V*0.22, pz);
     });
-    // Scatter rocks (3 stone shades)
-    [[-2.55,0.52],[2.46,0.10],[-0.50,-2.36],[0.92,-2.42],
-     [-1.90,-1.88],[1.84,-1.72],[-2.58,-1.22],[2.50,-1.40]].forEach(([rx,rz],ri) => {
-      jh(new THREE.BoxGeometry(0.18, 0.10, 0.14), [sA,sB,sC][ri%3], rx, 0.17, rz);
+
+    // Scatter rocks (3 stone shades, slight height variation)
+    [[-2.55,0.52,sA],[2.46,0.10,sB],[-0.50,-2.36,sC],[0.92,-2.42,sA],
+     [-1.90,-1.88,sB],[1.84,-1.72,sC],[-2.58,-1.22,sA],[2.50,-1.40,sB]
+    ].forEach(([rx,rz,rm]) => {
+      jh(new THREE.BoxGeometry(V*0.82, V*0.46, V*0.62), rm, rx, V*0.24, rz);
+    });
+
+    // Petals on first eave top (Tier-1 roof)
+    const epY = 0.56 + WALL_H + V*2.52;
+    [[-1.62,epY,-0.98],[1.64,epY,-0.80],[-1.24,epY,1.38],
+     [1.42,epY,1.20],[0.52,epY,1.90],[-0.62,epY,1.94]
+    ].forEach(([px,py,pz], pi) => {
+      jh(new THREE.BoxGeometry(V*0.32, V*0.10, V*0.24), PINKS[pi%4], px, py, pz);
     });
   }
   return g;
