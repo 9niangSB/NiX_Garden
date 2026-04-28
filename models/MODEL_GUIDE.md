@@ -59,6 +59,7 @@
 | big_jump | 大跳台 | `big_jump.obj` |
 | chairlift | 纜車椅 | `chairlift.obj` |
 | snow_cannon | 造雪機 | `snow_cannon.obj` |
+| frozen_tree | 冰結樹 | `frozen_tree.obj` |
 
 ### 動物 (Animals)
 | LV | 名稱 | 檔名 |

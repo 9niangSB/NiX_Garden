@@ -55,6 +55,7 @@ const furnitureCatalog = [
   { id:'big_jump',    name:'大跳台',  icon:'🏔️', color:0xD0E8FF },
   { id:'chairlift',   name:'纜車椅', icon:'🚡', color:0xC0C8D8 },
   { id:'snow_cannon', name:'造雪機', icon:'💨', color:0x8090A8 },
+  { id:'frozen_tree', name:'冰結樹', icon:'🧊', color:0xE0F0FF },
 ];
 
 const SEASON_CFG = {
@@ -1691,6 +1692,198 @@ function buildFurnitureMesh(id) {
     // Control box
     jh(new THREE.BoxGeometry(V*1.8, V*2.2, V*1.0), mtC, -0.52, V*5.5, 0.35);
     jh(new THREE.BoxGeometry(V*1.6, V*0.3, V*0.8), acA, -0.52, V*6.6, 0.35);
+
+  } else if (id === 'frozen_tree') {
+    // ═══════════════════════════════════════════════════════════════
+    //  Frozen Tree — 冰結樹 (ref: @mc_builds27)
+    //  粗壯木+冰紋幹 → 寬扁冰冠(3層) → 垂掛發光冰柱 → 暖光核心
+    //  尺寸: 比茶室更高更寬 (約 5.5 寬 × 6.0 高)
+    // ═══════════════════════════════════════════════════════════════
+    const V = 0.22;
+    // ── 木材 3色調 ──
+    const wkD = new THREE.MeshLambertMaterial({ color: 0x3A2010 });  // dark oak
+    const wkM = new THREE.MeshLambertMaterial({ color: 0x5A3820 });  // mid oak
+    const wkL = new THREE.MeshLambertMaterial({ color: 0x7A5030 });  // light oak
+    // ── 冰紋石塊 3色調（半透明）──
+    const iceA = new THREE.MeshLambertMaterial({ color: 0xA0C0D0, transparent: true, opacity: 0.80 });
+    const iceB = new THREE.MeshLambertMaterial({ color: 0x88AAB8, transparent: true, opacity: 0.75 });
+    const iceC = new THREE.MeshLambertMaterial({ color: 0xC0D8E8, transparent: true, opacity: 0.85 });
+    // ── 樹冠發光塊（暖白 emission）──
+    const glA = new THREE.MeshLambertMaterial({ color: 0xFFF0D0, emissive: new THREE.Color(0xFFE8B0), emissiveIntensity: 0.55 });
+    const glB = new THREE.MeshLambertMaterial({ color: 0xFFF8E8, emissive: new THREE.Color(0xFFF0C0), emissiveIntensity: 0.70 });
+    const glC = new THREE.MeshLambertMaterial({ color: 0xFFFFFF, emissive: new THREE.Color(0xFFFFE0), emissiveIntensity: 0.45 });
+    // ── 冰柱發光（強 emission）──
+    const icG = new THREE.MeshLambertMaterial({ color: 0xFFF8F0, emissive: new THREE.Color(0xFFE8C0), emissiveIntensity: 0.90, transparent: true, opacity: 0.85 });
+    // ── 草地 ──
+    const grA = new THREE.MeshLambertMaterial({ color: 0x6AAA40 });
+    const grB = new THREE.MeshLambertMaterial({ color: 0x88C850 });
+    const grC = new THREE.MeshLambertMaterial({ color: 0xA0D060 });
+    // ── 泥土/路徑 ──
+    const drM = new THREE.MeshLambertMaterial({ color: 0xC8A870 });
+    // ── 紅蘑菇 ──
+    const msR = new THREE.MeshLambertMaterial({ color: 0xD03020 });
+    const msW = new THREE.MeshLambertMaterial({ color: 0xF0E8E0 });
+
+    const jh = (geo, mat, x, y, z) => {
+      const m = new THREE.Mesh(geo, mat);
+      m.position.set(x, y, z); m.castShadow = true; m.receiveShadow = true; g.add(m);
+      return m;
+    };
+
+    // ═══ 基座：草地方塊（不規則棋盤格）═══
+    const baseY = V * 0.5;
+    const grassMats = [grA, grB, grC, drM];
+    for (let gx = -3; gx <= 3; gx++) {
+      for (let gz = -3; gz <= 3; gz++) {
+        const dist = Math.sqrt(gx*gx + gz*gz);
+        if (dist > 3.5) continue;
+        const gh = V * (1.5 + Math.random() * 1.2);
+        const gm = grassMats[(gx+gz+8) % grassMats.length];
+        jh(new THREE.BoxGeometry(V*4.2, gh, V*4.2), gm,
+           gx*V*4.2, gh/2, gz*V*4.2);
+      }
+    }
+
+    // ═══ 小紅蘑菇（基座裝飾）═══
+    jh(new THREE.BoxGeometry(V*1.0, V*1.8, V*1.0), msW, V*5, V*1.4, V*3);
+    jh(new THREE.BoxGeometry(V*2.0, V*1.0, V*2.0), msR, V*5, V*2.5, V*3);
+
+    // ═══ 樹幹：粗壯方塊（木材+冰紋交錯）═══
+    const trunkH = V * 24;   // ~5.3 voxel units tall
+    const trunkW = V * 5;
+
+    // 主幹核心（3段疊加，交錯材質）
+    jh(new THREE.BoxGeometry(trunkW, trunkH*0.35, trunkW), wkD, 0, trunkH*0.175 + baseY, 0);
+    jh(new THREE.BoxGeometry(trunkW, trunkH*0.35, trunkW), wkM, 0, trunkH*0.525 + baseY, 0);
+    jh(new THREE.BoxGeometry(trunkW*0.85, trunkH*0.30, trunkW*0.85), wkL, 0, trunkH*0.80 + baseY, 0);
+
+    // 冰紋石塊鑲嵌在幹面（SKILL D 邊緣破碎）
+    jh(new THREE.BoxGeometry(V*4.8, V*5.0, V*1.5), iceA, 0, trunkH*0.35+baseY, trunkW*0.48);
+    jh(new THREE.BoxGeometry(V*1.5, V*6.0, V*4.8), iceB, trunkW*0.48, trunkH*0.55+baseY, 0);
+    jh(new THREE.BoxGeometry(V*4.8, V*4.0, V*1.5), iceC, 0, trunkH*0.65+baseY, -trunkW*0.45);
+    jh(new THREE.BoxGeometry(V*1.5, V*5.5, V*4.8), iceA, -trunkW*0.48, trunkH*0.45+baseY, 0);
+
+    // 幹頂冰塊突出
+    jh(new THREE.BoxGeometry(V*3.5, V*3.0, V*3.5), iceB, V*1.5, trunkH*0.88+baseY, V*1.5);
+    jh(new THREE.BoxGeometry(V*3.0, V*3.5, V*3.0), iceC, -V*2.0, trunkH*0.82+baseY, -V*1.0);
+
+    // ═══ 樹冠：寬扁蘑菇形（3層堆疊）═══
+    const crownY = trunkH + baseY;
+    const crownW = V * 28;   // 寬度 ~6.2 units
+    const crownD = V * 26;
+
+    // ── 第1層（最下）：大面積半透明冰+發光塊 ──
+    const layer1Y = crownY + V*1;
+    // 冰塊 — 不規則排列
+    const icePos1 = [
+      [-10,-8,iceA],[-6,-6,iceC],[-2,-10,iceB],[2,-8,iceA],[6,-6,iceC],[10,-8,iceB],
+      [-10,-2,iceC],[-6, 0,iceA],[-2,-4,iceB],[2, 0,iceC],[6,-2,iceA],[10,-4,iceB],
+      [-10, 4,iceA],[-6, 6,iceB],[-2, 4,iceC],[2, 6,iceA],[6, 4,iceB],[10, 6,iceC],
+      [-8, 8,iceB],[-4, 10,iceA],[0, 8,iceC],[4, 10,iceB],[8, 8,iceA],
+    ];
+    icePos1.forEach(([ix, iz, im]) => {
+      const bh = V * (2.5 + Math.random()*1.5);
+      jh(new THREE.BoxGeometry(V*4.5, bh, V*4.5), im, ix*V, layer1Y+bh/2, iz*V);
+    });
+    // 發光暖塊穿插
+    const glowPos1 = [
+      [-8,-4,glA],[-4,-8,glB],[0,-2,glA],[4,-6,glC],[8,0,glB],
+      [-6,4,glA],[2,4,glC],[6,8,glB],[-2,8,glA],
+    ];
+    glowPos1.forEach(([gx,gz,gm]) => {
+      const bh = V * (3.0 + Math.random()*1.5);
+      jh(new THREE.BoxGeometry(V*4.5, bh, V*4.5), gm, gx*V, layer1Y+bh/2, gz*V);
+    });
+
+    // ── 第2層（中間）：稍窄，更多發光塊 ──
+    const layer2Y = crownY + V*5;
+    const icePos2 = [
+      [-8,-6,iceC],[-4,-4,iceA],[0,-8,iceB],[4,-4,iceC],[8,-6,iceA],
+      [-8, 2,iceB],[-4, 4,iceC],[0, 2,iceA],[4, 4,iceB],[8, 2,iceC],
+      [-4, 8,iceA],[4, 8,iceB],
+    ];
+    icePos2.forEach(([ix,iz,im]) => {
+      const bh = V * (2.0 + Math.random()*1.5);
+      jh(new THREE.BoxGeometry(V*4.5, bh, V*4.5), im, ix*V, layer2Y+bh/2, iz*V);
+    });
+    const glowPos2 = [
+      [-6,0,glB],[0,0,glA],[6,0,glC],[-2,-6,glB],[2,6,glA],[0,-4,glC],
+    ];
+    glowPos2.forEach(([gx,gz,gm]) => {
+      const bh = V * (2.5 + Math.random()*1.0);
+      jh(new THREE.BoxGeometry(V*4.5, bh, V*4.5), gm, gx*V, layer2Y+bh/2, gz*V);
+    });
+
+    // ── 第3層（最上）：小頂冠 ──
+    const layer3Y = crownY + V*8;
+    [[-4,-2,iceC],[0,-4,glA],[4,-2,iceA],[-2,2,glB],[2,4,iceB],[0,0,glC]].forEach(([ix,iz,im]) => {
+      const bh = V * (2.0 + Math.random()*1.0);
+      jh(new THREE.BoxGeometry(V*4.5, bh, V*4.5), im, ix*V, layer3Y+bh/2, iz*V);
+    });
+
+    // ═══ 垂掛冰柱（最關鍵特徵）：從樹冠邊緣垂下 ═══
+    const iciclePositions = [
+      // 外圈（長冰柱）
+      [-12,-8, 18],[-8,-10, 22],[0,-10, 20],[8,-10, 24],[12,-8, 19],
+      [-12, 0, 21],[-12, 6, 17],[12, 2, 23],[12, 8, 18],
+      [-8, 10, 20],[-4, 12, 22],[4, 12, 19],[8, 10, 24],
+      // 中圈（中等冰柱）
+      [-6,-6, 14],[-2,-8, 16],[4,-6, 13],[8,-4, 15],
+      [-6, 4, 12],[6, 6, 14],[-2, 8, 16],[2, 6, 13],
+      // 內圈（短冰柱）
+      [-4,-2, 8],[0,-4, 10],[4, 0, 9],[-2, 4, 11],[2, 2, 7],
+    ];
+    iciclePositions.forEach(([ix, iz, len]) => {
+      const icicleH = len * V;
+      const topY    = layer1Y;
+      // 冰柱主體（細長方塊，強發光）
+      const icicle = jh(
+        new THREE.BoxGeometry(V*0.6, icicleH, V*0.6),
+        icG, ix*V, topY - icicleH/2, iz*V
+      );
+      // 冰柱頂端稍粗（連接點）
+      jh(new THREE.BoxGeometry(V*1.2, V*1.5, V*1.2), icG, ix*V, topY - V*0.5, iz*V);
+      // 冰柱尖端更細
+      jh(new THREE.BoxGeometry(V*0.3, V*2.0, V*0.3), icG, ix*V, topY - icicleH - V*1.0, iz*V);
+    });
+
+    // ═══ 光源系統 ═══
+    // 樹冠中心暖光
+    const mainLight = new THREE.PointLight(0xFFE8C0, 3.0, 8.0);
+    mainLight.position.set(0, crownY + V*4, 0);
+    g.add(mainLight);
+    // 樹冠邊緣補光（4個方向）
+    [[V*-20, V*2, 0],[V*20, V*2, 0],[0, V*2, V*-20],[0, V*2, V*20]].forEach(([lx,ly,lz]) => {
+      const edgeLight = new THREE.PointLight(0xFFF0D0, 1.2, 5.0);
+      edgeLight.position.set(lx, crownY + ly, lz);
+      g.add(edgeLight);
+    });
+    // 冰柱底部微光
+    const bottomGlow = new THREE.PointLight(0xFFF8E8, 1.5, 4.0);
+    bottomGlow.position.set(0, crownY - V*14, 0);
+    g.add(bottomGlow);
+
+    // ═══ 空氣微粒（sparkle 小方塊散佈在樹冠周圍）═══
+    for (let si = 0; si < 35; si++) {
+      const sx = (Math.random()-0.5) * crownW * 1.2;
+      const sy = crownY + (Math.random()-0.5) * V * 20;
+      const sz = (Math.random()-0.5) * crownD * 1.2;
+      const sparkSize = V * (0.3 + Math.random()*0.5);
+      const sparkle = jh(
+        new THREE.BoxGeometry(sparkSize, sparkSize, sparkSize),
+        new THREE.MeshLambertMaterial({
+          color: 0xFFFFFF,
+          emissive: new THREE.Color(0xFFFFE0),
+          emissiveIntensity: 0.6 + Math.random()*0.4,
+          transparent: true,
+          opacity: 0.5 + Math.random()*0.4,
+        }),
+        sx, sy, sz
+      );
+    }
+
+    // ═══ 搖曳動畫標記 ═══
+    g.userData.frozenTreeSway = true;
   }
   return g;
 }
@@ -2374,6 +2567,15 @@ function animate() {
     previewMesh.position.y += Math.sin(previewFloatT) * 0.003;
     previewMesh.rotation.y += delta * 1.2;
   }
+
+  // ── Frozen Tree 搖曳動畫 ──
+  const swayT = now * 0.001;
+  placedObjects.forEach(o => {
+    if (!o.mesh.userData.frozenTreeSway) return;
+    // 樹冠微幅搖擺（wind sway）
+    o.mesh.rotation.z = Math.sin(swayT * 0.6) * 0.012;
+    o.mesh.rotation.x = Math.cos(swayT * 0.45 + 0.5) * 0.008;
+  });
 
   renderer.render(scene, camera);
 }
