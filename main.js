@@ -13,11 +13,30 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 //  資料層
 // ============================================================
 const plantCatalog = {
-  tomato:     { name:'番茄',   icon:'🍅', stemColor:0x6CA850, topColor:0xFF6347, shape:'sphere', growTime:8000,  produceTime:6000,  sell:5  },
-  strawberry: { name:'草莓',   icon:'🍓', stemColor:0x6CA850, topColor:0xFF4D6D, shape:'cone',   growTime:10000, produceTime:6000,  sell:8  },
-  blueberry:  { name:'藍莓',   icon:'🫐', stemColor:0x6CA850, topColor:0x4F6DFF, shape:'sphere', growTime:10000, produceTime:6000,  sell:10 },
-  pumpkin:    { name:'南瓜',   icon:'🎃', stemColor:0x5A8A40, topColor:0xFFA500, shape:'big',    growTime:18000, produceTime:10000, sell:25, price:20 },
-  sakura:     { name:'櫻花樹', icon:'🌸', stemColor:0x8B6040, topColor:0xF6C6C8, shape:'big',    growTime:12000, produceTime:12000, sell:15 },
+  // ── D Grade (disposable — dies after first harvest) ───────────
+  carrot:     { name:'胡蘿蔔', icon:'🥕', grade:'D', disposable:true,  stemColor:0x5A8840, topColor:0xFF7040, shape:'cone',    growTime:5000,  produceTime:4000,  sell:2,  price:3,  minRadius:0.6 },
+  scallion:   { name:'蔥',     icon:'🌿', grade:'D', disposable:true,  stemColor:0x50A040, topColor:0x78D060, shape:'flat',    growTime:4000,  produceTime:3000,  sell:1,  price:2,  minRadius:0.5 },
+  onion:      { name:'洋蔥',   icon:'🧅', grade:'D', disposable:true,  stemColor:0xD0C8A0, topColor:0xC0A040, shape:'shroom',  growTime:6000,  produceTime:4000,  sell:3,  price:4,  minRadius:0.6 },
+  // ── C Grade (永續 sustainable) ────────────────────────────────
+  tomato:     { name:'番茄',   icon:'🍅', grade:'C', stemColor:0x6CA850, topColor:0xFF6347, shape:'sphere', growTime:8000,  produceTime:6000,  sell:5,  minRadius:0.7 },
+  strawberry: { name:'草莓',   icon:'🍓', grade:'C', stemColor:0x6CA850, topColor:0xFF4D6D, shape:'cone',   growTime:10000, produceTime:6000,  sell:8,  minRadius:0.7 },
+  blueberry:  { name:'藍莓',   icon:'🫐', grade:'C', stemColor:0x6CA850, topColor:0x4F6DFF, shape:'sphere', growTime:10000, produceTime:6000,  sell:10, minRadius:0.7 },
+  // ── B Grade (永續 sustainable) ────────────────────────────────
+  corn:       { name:'玉米',   icon:'🌽', grade:'B', stemColor:0x70A030, topColor:0xF0D040, shape:'tall',   growTime:14000, produceTime:8000,  sell:15, price:12, minRadius:0.8 },
+  sunflowerB: { name:'向日葵', icon:'🌻', grade:'B', stemColor:0x80B030, topColor:0xF0C020, shape:'tall',   growTime:16000, produceTime:9000,  sell:18, price:15, minRadius:0.8 },
+  pumpkin:    { name:'南瓜',   icon:'🎃', grade:'B', stemColor:0x5A8A40, topColor:0xFFA500, shape:'big',    growTime:18000, produceTime:10000, sell:25, price:20, minRadius:1.0 },
+  // ── A Grade (昂貴永續 expensive sustainable) ──────────────────
+  sakura:     { name:'櫻花樹', icon:'🌸', grade:'A', stemColor:0x8B6040, topColor:0xF6C6C8, shape:'big',    growTime:22000, produceTime:12000, sell:40, price:30, minRadius:1.2 },
+  pinecone:   { name:'松果',   icon:'🌲', grade:'A', stemColor:0x5A4020, topColor:0x4A7030, shape:'tall',   growTime:25000, produceTime:14000, sell:50, price:38, minRadius:1.1 },
+  willow:     { name:'柳樹',   icon:'🌳', grade:'A', stemColor:0x6A5030, topColor:0x608040, shape:'drape',  growTime:28000, produceTime:16000, sell:60, price:45, minRadius:1.2 },
+  // ── S Grade (稀有昂貴永續 rare expensive) ─────────────────────
+  giantSakura:{ name:'巨大櫻花樹', icon:'🌸', grade:'S', stemColor:0x7A5030, topColor:0xF0B0C8, shape:'big', growTime:40000, produceTime:20000, sell:100, price:80, minRadius:1.5 },
+  giantPine:  { name:'巨大松樹',   icon:'🌲', grade:'S', stemColor:0x4A3820, topColor:0x386030, shape:'big', growTime:45000, produceTime:22000, sell:120, price:95, minRadius:1.5 },
+  butterfly:  { name:'蝴蝶草',     icon:'🦋', grade:'S', stemColor:0x9060B0, topColor:0xD080E0, shape:'rose', growTime:35000, produceTime:18000, sell:90, price:70, minRadius:1.3 },
+  // ── SS Grade (極稀有昂貴永續 ultra rare) ─────────────────────
+  demonFruit: { name:'惡魔果實',icon:'🔴', grade:'SS', stemColor:0x802040, topColor:0xFF2060, shape:'crystal', growTime:60000, produceTime:30000, sell:250, price:180, minRadius:1.6 },
+  moonLotus:  { name:'月蓮',   icon:'🪷', grade:'SS', stemColor:0x6080C0, topColor:0xC0D8FF, shape:'lotus',   growTime:55000, produceTime:28000, sell:200, price:150, minRadius:1.4 },
+  hemp:       { name:'大麻樹', icon:'🌿', grade:'SS', stemColor:0x507030, topColor:0x78C050, shape:'tall',    growTime:65000, produceTime:35000, sell:300, price:220, minRadius:1.6 },
 };
 
 const furnitureCatalog = [
@@ -28,6 +47,11 @@ const furnitureCatalog = [
   { id:'cobble', name:'石子路', icon:'🪨', color:0xB0A898 },
   { id:'pond',   name:'池塘',   icon:'💧', color:0x5C8FB0 },
   { id:'japanese_house', name:'和風小屋', icon:'🏯', color:0xC87060 },
+  { id:'tea_house',      name:'茶室',    icon:'🍵', color:0xB03020 },
+  { id:'jump_ramp',   name:'小跳台',  icon:'🎿', color:0xE8F0FF },
+  { id:'big_jump',    name:'大跳台',  icon:'🏔️', color:0xD0E8FF },
+  { id:'chairlift',   name:'纜車椅', icon:'🚡', color:0xC0C8D8 },
+  { id:'snow_cannon', name:'造雪機', icon:'💨', color:0x8090A8 },
 ];
 
 const SEASON_CFG = {
@@ -46,14 +70,27 @@ let selectedFurnId = 'chair';
 let currentSeason  = 'spring';
 let money          = 0;
 
-const inventory      = { tomato:0, strawberry:0, blueberry:0, pumpkin:0, sakura:0 };
-const inventorySeeds = { tomato:999, strawberry:999, blueberry:999, pumpkin:0, sakura:999 };
+const inventory      = Object.fromEntries(Object.keys(plantCatalog).map(k=>[k,0]));
+const inventorySeeds = Object.fromEntries(Object.keys(plantCatalog).map(k=>[k,
+  (plantCatalog[k].grade==='D' || plantCatalog[k].grade==='C') ? 999 : (plantCatalog[k].price>0 ? 0 : 999)
+]));
+
+const SNOW_ZONE_Z = -8;  // tiles with worldZ < this become permanent snow
 
 const plants        = [];   // plant data objects
 const placedObjects = [];   // furniture
 const occupiedCells = new Set();
 const groundTiles   = [];   // refs for season recolor
 const animals       = [];
+
+// ── Per-voxel colour variation helper (±5% brightness noise) ──
+function varyColor(hex, pct = 0.05) {
+  const f = 1 + (Math.random() * 2 - 1) * pct;
+  const r = Math.min(255, Math.round(((hex >> 16) & 0xFF) * f));
+  const g = Math.min(255, Math.round(((hex >>  8) & 0xFF) * f));
+  const b = Math.min(255, Math.round(( hex        & 0xFF) * f));
+  return new THREE.MeshLambertMaterial({ color: (r<<16)|(g<<8)|b });
+}
 
 // ============================================================
 //  ═══ 地基層 ═══  Renderer / Scene / Camera
@@ -128,26 +165,31 @@ groundHitMesh.name = 'groundHit';
 scene.add(groundHitMesh);
 
 function buildGround() {
-  const half = GRID_SIZE / 2;
+  const half     = GRID_SIZE / 2;
+  const snowPal  = SEASON_CFG.winter.grass;
   for (let x = -half; x < half; x++) {
     for (let z = -half; z < half; z++) {
+      const worldZ   = z * CELL_SIZE + CELL_SIZE / 2;
+      const isSnow   = worldZ < SNOW_ZONE_Z;
+      const palette  = isSnow ? snowPal : GRASS_COLORS;
       const yOffset  = (Math.random() - 0.5) * 0.1;
       const height   = 0.2 + Math.random() * 0.08;
-      const colorIdx = Math.floor(Math.random() * GRASS_COLORS.length);
+      const colorIdx = Math.floor(Math.random() * palette.length);
       const mesh = new THREE.Mesh(
         new THREE.BoxGeometry(CELL_SIZE, height, CELL_SIZE),
-        new THREE.MeshLambertMaterial({ color: GRASS_COLORS[colorIdx] })
+        new THREE.MeshLambertMaterial({ color: palette[colorIdx] })
       );
       mesh.position.set(
         x * CELL_SIZE + CELL_SIZE / 2,
         yOffset - height / 2,
-        z * CELL_SIZE + CELL_SIZE / 2
+        worldZ
       );
       mesh.receiveShadow = true;
       mesh.name = 'ground_tile';
       mesh.userData.colorIdx = colorIdx;
+      mesh.userData.isSnow   = isSnow;
       groundGroup.add(mesh);
-      groundTiles.push(mesh);   // ← season recolor
+      groundTiles.push(mesh);
     }
   }
 }
@@ -349,10 +391,14 @@ function createPreviewMesh() {
   let geo, color;
   if (currentMode === 'plant') {
     const def = plantCatalog[selectedSeed];
+    if (!def) return;
     color = def.topColor;
-    geo   = def.shape === 'big'    ? new THREE.SphereGeometry(0.5,7,5)
-          : def.shape === 'sphere' ? new THREE.SphereGeometry(0.25,7,5)
-          :                          new THREE.ConeGeometry(0.28,0.7,6);
+    const r = (def.minRadius ?? 0.7) * 0.55;
+    geo   = def.shape === 'big'    ? new THREE.SphereGeometry(r*1.2, 7, 5)
+          : def.shape === 'sphere' ? new THREE.SphereGeometry(r, 7, 5)
+          : def.shape === 'cone'   ? new THREE.ConeGeometry(r*0.8, r*2, 6)
+          : def.shape === 'tall'   ? new THREE.CylinderGeometry(r*0.5, r*0.6, r*2.5, 6)
+          :                          new THREE.SphereGeometry(r, 7, 5);
   } else {
     color = (furnitureCatalog.find(f=>f.id===selectedFurnId)||furnitureCatalog[0]).color;
     geo   = new THREE.BoxGeometry(0.75,0.55,0.75);
@@ -368,52 +414,152 @@ function createPreviewMesh() {
 //  ═══ 二樓 ═══  植物：視覺構建
 // ============================================================
 function buildPlantGroup(type) {
-  const def   = plantCatalog[type];
-  const g     = new THREE.Group();
-  const isBig = def.shape === 'big';
-  const stemH = isBig ? 0.7 : 0.38;
+  const def = plantCatalog[type];
+  const g   = new THREE.Group();
 
-  const stem = new THREE.Mesh(
+  const jh = (geo, mat, x, y, z) => {
+    const m = new THREE.Mesh(geo, mat);
+    m.position.set(x, y, z);
+    m.castShadow = true;
+    g.add(m);
+    return m;
+  };
+
+  const isBig = ['big','drape','rose','lotus','crystal'].includes(def.shape);
+  const stemH = isBig ? 0.70 : 0.38;
+
+  // Stem (shared by all shapes)
+  jh(
     new THREE.CylinderGeometry(isBig?0.08:0.04, isBig?0.11:0.06, stemH, 6),
-    new THREE.MeshLambertMaterial({ color: def.stemColor })
+    varyColor(def.stemColor, 0.05),
+    0, stemH/2, 0
   );
-  stem.position.y = stemH / 2;
-  g.add(stem);
 
-  let top;
-  if (def.shape === 'big') {
-    top = new THREE.Mesh(new THREE.SphereGeometry(0.5,8,6),
-      new THREE.MeshLambertMaterial({ color: def.topColor }));
-    top.position.y = stemH + 0.4;
-  } else if (def.shape === 'sphere') {
-    top = new THREE.Mesh(new THREE.SphereGeometry(0.22,7,5),
-      new THREE.MeshLambertMaterial({ color: def.topColor }));
-    top.position.y = stemH + 0.22;
-  } else {
-    top = new THREE.Mesh(new THREE.ConeGeometry(0.28,0.6,6),
-      new THREE.MeshLambertMaterial({ color: def.topColor }));
-    top.position.y = stemH + 0.4;
+  switch (def.shape) {
+    case 'sphere': {
+      const top = jh(new THREE.SphereGeometry(0.22,7,5), varyColor(def.topColor), 0, stemH+0.22, 0);
+      top.userData.isPlantTop = true;
+      jh(new THREE.SphereGeometry(0.13,6,4), varyColor(def.topColor), 0.14, stemH+0.30, 0.08);
+      jh(new THREE.SphereGeometry(0.11,6,4), varyColor(def.topColor), -0.12, stemH+0.28, -0.06);
+      break;
+    }
+    case 'cone': {
+      const top = jh(new THREE.ConeGeometry(0.28,0.6,6), varyColor(def.topColor), 0, stemH+0.40, 0);
+      top.userData.isPlantTop = true;
+      jh(new THREE.SphereGeometry(0.08,5,4), varyColor(def.topColor), 0.18, stemH+0.14, 0.10);
+      jh(new THREE.SphereGeometry(0.07,5,4), varyColor(def.topColor), -0.16, stemH+0.12, 0.08);
+      break;
+    }
+    case 'big': {
+      const top = jh(new THREE.SphereGeometry(0.5,8,6), varyColor(def.topColor), 0, stemH+0.40, 0);
+      top.userData.isPlantTop = true;
+      jh(new THREE.SphereGeometry(0.32,7,5), varyColor(def.topColor), 0.28, stemH+0.52, 0.18);
+      jh(new THREE.SphereGeometry(0.28,7,5), varyColor(def.topColor), -0.24, stemH+0.48, -0.16);
+      jh(new THREE.BoxGeometry(0.22,0.05,0.16), varyColor(def.stemColor), 0.36, stemH+0.10, -0.14);
+      jh(new THREE.BoxGeometry(0.22,0.05,0.16), varyColor(def.stemColor), -0.32, stemH+0.10, 0.16);
+      jh(new THREE.BoxGeometry(0.22,0.05,0.16), varyColor(def.stemColor), 0.10, stemH+0.10, 0.38);
+      break;
+    }
+    case 'flat': {
+      const top = jh(new THREE.CylinderGeometry(0.28,0.28,0.06,8), varyColor(def.topColor), 0, stemH+0.05, 0);
+      top.userData.isPlantTop = true;
+      jh(new THREE.SphereGeometry(0.12,6,4), varyColor(def.topColor),  0.18, stemH+0.08,  0.16);
+      jh(new THREE.SphereGeometry(0.12,6,4), varyColor(def.topColor), -0.18, stemH+0.08,  0.16);
+      jh(new THREE.SphereGeometry(0.12,6,4), varyColor(def.topColor),  0.00, stemH+0.08, -0.20);
+      break;
+    }
+    case 'shroom': {
+      const top = jh(new THREE.CylinderGeometry(0.32,0.18,0.22,8), varyColor(def.topColor), 0, stemH+0.22, 0);
+      top.userData.isPlantTop = true;
+      jh(new THREE.BoxGeometry(0.06,0.04,0.06), varyColor(0xF8F4F0), 0.12, stemH+0.38, 0.08);
+      jh(new THREE.BoxGeometry(0.06,0.04,0.06), varyColor(0xF8F4F0), -0.10, stemH+0.38, 0.14);
+      jh(new THREE.BoxGeometry(0.06,0.04,0.06), varyColor(0xF8F4F0), 0.02, stemH+0.38, -0.12);
+      break;
+    }
+    case 'tall': {
+      jh(
+        new THREE.CylinderGeometry(0.05,0.07,0.45,6),
+        varyColor(def.stemColor), 0, stemH+0.225, 0
+      );
+      const top = jh(new THREE.CylinderGeometry(0.24,0.24,0.32,8), varyColor(def.topColor), 0, stemH+0.61, 0);
+      top.userData.isPlantTop = true;
+      jh(new THREE.BoxGeometry(0.28,0.06,0.10), varyColor(def.stemColor),  0.22, 0.30, 0.06);
+      jh(new THREE.BoxGeometry(0.28,0.06,0.10), varyColor(def.stemColor), -0.22, 0.50, 0.06);
+      break;
+    }
+    case 'drape': {
+      const top = jh(new THREE.SphereGeometry(0.40,7,5), varyColor(def.topColor), 0, stemH+0.36, 0);
+      top.userData.isPlantTop = true;
+      jh(new THREE.BoxGeometry(0.10,0.18,0.08), varyColor(def.topColor),  0.14, stemH+0.16, 0.10);
+      jh(new THREE.BoxGeometry(0.10,0.18,0.08), varyColor(def.topColor), -0.12, stemH+0.11, 0.06);
+      jh(new THREE.BoxGeometry(0.10,0.18,0.08), varyColor(def.topColor),  0.06, stemH+0.06, -0.12);
+      break;
+    }
+    case 'rose': {
+      const top = jh(new THREE.SphereGeometry(0.26,7,5), varyColor(def.topColor), 0, stemH+0.32, 0);
+      top.userData.isPlantTop = true;
+      const angles = [0, 72, 144, 216, 288].map(d => d * Math.PI / 180);
+      angles.forEach(a =>
+        jh(new THREE.BoxGeometry(0.14,0.10,0.08), varyColor(def.topColor),
+           Math.cos(a)*0.22, stemH+0.28, Math.sin(a)*0.22)
+      );
+      break;
+    }
+    case 'lotus': {
+      const top = jh(new THREE.CylinderGeometry(0.36,0.36,0.08,10), varyColor(def.topColor), 0, stemH+0.06, 0);
+      top.userData.isPlantTop = true;
+      for (let i=0; i<8; i++) {
+        const a = i * Math.PI / 4;
+        jh(new THREE.BoxGeometry(0.16,0.10,0.10), varyColor(def.topColor),
+           Math.cos(a)*0.38, stemH+0.08, Math.sin(a)*0.38);
+      }
+      const center = jh(new THREE.SphereGeometry(0.12,6,5), new THREE.MeshLambertMaterial({
+        color:0xFFFFCC, emissive:new THREE.Color(0xAAAA40), emissiveIntensity:0.4
+      }), 0, stemH+0.18, 0);
+      break;
+    }
+    case 'crystal': {
+      const top = jh(new THREE.ConeGeometry(0.22,0.50,6), varyColor(def.topColor), 0, stemH+0.30, 0);
+      top.userData.isPlantTop = true;
+      top.material.transparent = true; top.material.opacity = 0.88;
+      jh(new THREE.ConeGeometry(0.12,0.30,5), varyColor(def.topColor),  0.18, stemH+0.12, 0.10);
+      jh(new THREE.ConeGeometry(0.10,0.26,5), varyColor(def.topColor), -0.16, stemH+0.10, -0.08);
+      break;
+    }
+    default: {
+      const top = jh(new THREE.SphereGeometry(0.22,7,5), varyColor(def.topColor), 0, stemH+0.22, 0);
+      top.userData.isPlantTop = true;
+    }
   }
-  top.castShadow = true;
-  top.userData.isPlantTop = true;
-  g.add(top);
   return g;
 }
 
 // ============================================================
 //  ═══ 二樓 ═══  植物：種植
 // ============================================================
-function spawnPlant(x, z) {
-  const key = `${x},${z}`;
-  if (occupiedCells.has(key)) return;
+function spawnPlant(worldX, worldZ) {
+  const def = plantCatalog[selectedSeed];
+  if (!def) return;
   if ((inventorySeeds[selectedSeed]||0) <= 0) {
     showToast('種が足りない！便利屋で買おう 🌱'); return;
   }
-  occupiedCells.add(key);
+
+  // Radius-based overlap (free placement — no grid snap)
+  const radius = def.minRadius ?? 0.7;
+  const tooClose = plants.some(p => {
+    const dx = p.mesh.position.x - worldX;
+    const dz = p.mesh.position.z - worldZ;
+    return Math.sqrt(dx*dx + dz*dz) < radius;
+  });
+  if (tooClose) { showToast('近すぎる！少し離して 🌿'); return; }
+
   inventorySeeds[selectedSeed]--;
 
+  // Giant growth roll (10%)
+  const isGiant = Math.random() < 0.10;
+
   const group = buildPlantGroup(selectedSeed);
-  group.position.set(x, 0, z);
+  group.position.set(worldX, 0, worldZ);
   group.scale.setScalar(0.15);
   scene.add(group);
 
@@ -424,11 +570,14 @@ function spawnPlant(x, z) {
     stage:      'growing',
     hasFruit:   false,
     lastUpdate: Date.now(),
-    gridX:      x,
-    gridZ:      z,
+    gridX:      worldX,
+    gridZ:      worldZ,
+    isGiant:    isGiant,
+    disposable: def.disposable || false,
   });
   updateUI();
-  showToast(`${plantCatalog[selectedSeed].icon} ${plantCatalog[selectedSeed].name} を植えた！`);
+  const sizeLabel = isGiant ? ' ✨ ジャイアント！' : '';
+  showToast(`${def.icon} ${def.name} を植えた！${sizeLabel}`);
   animateSpawn(group);
 }
 
@@ -456,7 +605,8 @@ function updatePlants(now) {
 
     if (p.stage === 'growing') {
       const prog = Math.min((now - p.lastUpdate) / def.growTime, 1);
-      p.mesh.scale.setScalar(0.15 + prog * 0.85);
+      const maxScale = p.isGiant ? 2.5 : 1.0;
+      p.mesh.scale.setScalar(0.15 + prog * (maxScale - 0.15));
       if (prog >= 1) { p.stage = 'ready'; p.lastUpdate = now; }
 
     } else if (p.stage === 'ready' && !p.hasFruit) {
@@ -488,6 +638,24 @@ function harvestPlant(pData) {
   showToast(`${def.icon} ${def.name} +1 収穫！`);
   updateUI();
   bounceAnim(pData.mesh);
+
+  // D-grade disposable: remove after first harvest
+  if (pData.disposable) {
+    setTimeout(() => {
+      const idx = plants.indexOf(pData);
+      if (idx >= 0) {
+        scene.remove(pData.mesh);
+        pData.mesh.traverse(c => {
+          if (!c.isMesh) return;
+          c.geometry.dispose();
+          (Array.isArray(c.material)?c.material:[c.material]).forEach(m=>m.dispose());
+        });
+        plants.splice(idx, 1);
+        updateUI();
+        showToast(`${def.icon} 一年生植物が枯れた 🍂`);
+      }
+    }, 800);
+  }
 }
 
 // ============================================================
@@ -556,7 +724,44 @@ function buildFurnitureMesh(id) {
     lily.position.set(0.2,0.1,0.2); g.add(lily);
 
   } else if (id === 'japanese_house') {
-    // ═══ 五重塔 v3.0 — Strict Voxel Rule System ═══
+    // ═══════════════════════════════════════════════════════════════════
+    //  NiX Garden — VOXEL SKILL SYSTEM  (shared by all catalog models)
+    // ═══════════════════════════════════════════════════════════════════
+    //  SKILL A — STRUCTURAL DEPTH
+    //    walls ≥ 2V thick | roofs = 3 layers min | floors ≥ 2 layers
+    //    NO flat surfaces allowed
+    //
+    //  SKILL B — LAYERED ARCHITECTURE
+    //    Each building layer: core mass → roof base (+2V) → roof stack
+    //    (3 layers: top light / mid base / bottom dark) → edge lip (+1V)
+    //    → underside beams (1V lines)
+    //    Upper levels: inset 1V, scale ≈ 0.85, 1V air gap between tiers
+    //
+    //  SKILL C — COLOR DEPTH
+    //    Each material = 3 tones: top→light / vertical→mid / bottom→dark
+    //    Add ~10% noise variation via alternating mat selection
+    //
+    //  SKILL D — EDGE BREAKUP
+    //    Every 3–5V: offset ±1 OR color variation OR small protrusion
+    //    Avoid perfect straight edges
+    //
+    //  SKILL E — ORGANIC TREE SYSTEM
+    //    Trunk: upward + random lean offset
+    //    Branches: recursive depth 2–3, outward+upward bias
+    //    Foliage: sphere base r=2–4V, remove 30% voxels randomly
+    //             mix 3 pink tones | add floating+ground petals
+    //    NO perfect spheres allowed
+    //
+    //  SKILL F — SURFACE DETAIL
+    //    No empty area > 4×4V: color variation OR object OR height variation
+    //
+    //  SKILL G — GROUND SYSTEM
+    //    Grass: 3 green tones random | Stone: irregular, 2–3 gray tones
+    //    Water: depth gradient (light edge → dark center)
+    //
+    //  FINAL RULE: Structure clarity > decoration > performance
+    // ═══════════════════════════════════════════════════════════════════
+    // ═══ 五重塔 v3.1 — SKILL A/B/C/D/E/F/G compliant ═══
     // size = BASE_W * 0.85^i | 3-layer roof (dark/base/light) | corbels | air gaps
     // Color: 3-5 shades per material + 5~10% noise | no flat surfaces | no perfect symmetry
 
@@ -799,6 +1004,460 @@ function buildFurnitureMesh(id) {
     ].forEach(([px,py,pz], pi) => {
       jh(new THREE.BoxGeometry(V*0.32, V*0.10, V*0.24), PINKS[pi%4], px, py, pz);
     });
+
+  } else if (id === 'tea_house') {
+    // ═══ 日式茶室 v1.0 — Full SKILL A/B/C/D/E/F/G ═══
+    // Open-front tea house diorama with deck / bamboo / cherry blossoms / pond
+    // All materials use 3-tone depth (top light / mid / bottom dark)
+
+    const V = 0.22;  // 1 voxel unit
+
+    // ── PALETTE: 3 tones per material (SKILL C) ─────────────────
+    // Red wood walls
+    const rwD = new THREE.MeshLambertMaterial({ color: 0x821808 });
+    const rwM = new THREE.MeshLambertMaterial({ color: 0xA82818 });
+    const rwL = new THREE.MeshLambertMaterial({ color: 0xC44030 });
+    // Roof browns: bottom dark → mid → top light
+    const rfD = new THREE.MeshLambertMaterial({ color: 0x5A3818 });
+    const rfM = new THREE.MeshLambertMaterial({ color: 0x8A5C2A });
+    const rfL = new THREE.MeshLambertMaterial({ color: 0xB88040 });
+    // Wooden floor: 3 tones
+    const wfD = new THREE.MeshLambertMaterial({ color: 0x6A3C18 });
+    const wfM = new THREE.MeshLambertMaterial({ color: 0x8E5C30 });
+    const wfL = new THREE.MeshLambertMaterial({ color: 0xB08050 });
+    // Tatami: 2-tone green variation (SKILL C)
+    const ttA = new THREE.MeshLambertMaterial({ color: 0x8AB870 });
+    const ttB = new THREE.MeshLambertMaterial({ color: 0x6A9850 });
+    // Stone: 3 gray tones (SKILL G)
+    const stA = new THREE.MeshLambertMaterial({ color: 0xD0C8BE });
+    const stB = new THREE.MeshLambertMaterial({ color: 0xB0A898 });
+    const stC = new THREE.MeshLambertMaterial({ color: 0x908880 });
+    // Water: shallow edge / deep center (SKILL G depth gradient)
+    const wSh = new THREE.MeshLambertMaterial({ color: 0x80BBCC, transparent: true, opacity: 0.80 });
+    const wDp = new THREE.MeshLambertMaterial({ color: 0x3A6898, transparent: true, opacity: 0.90 });
+    // Cherry pinks: 4 tones 40/40/20/white (SKILL E)
+    const pkL = new THREE.MeshLambertMaterial({ color: 0xFCD8E4 });
+    const pkM = new THREE.MeshLambertMaterial({ color: 0xF0A8C0 });
+    const pkS = new THREE.MeshLambertMaterial({ color: 0xE280A0 });
+    const pkW = new THREE.MeshLambertMaterial({ color: 0xFAF2F5 });
+    const TPINKS = [pkL, pkM, pkS, pkW];
+    // Tree browns: 3 tones
+    const trD = new THREE.MeshLambertMaterial({ color: 0x5A3010 });
+    const trM = new THREE.MeshLambertMaterial({ color: 0x7A5030 });
+    const trL = new THREE.MeshLambertMaterial({ color: 0xA07040 });
+    // Grass: 3 green tones (SKILL G)
+    const grA = new THREE.MeshLambertMaterial({ color: 0x7AB860 });
+    const grB = new THREE.MeshLambertMaterial({ color: 0x5E9E48 });
+    const grC = new THREE.MeshLambertMaterial({ color: 0x90C870 });
+    // Interior
+    const tbM = new THREE.MeshLambertMaterial({ color: 0x3C2008 });
+    const csA = new THREE.MeshLambertMaterial({ color: 0x7080B8 });
+    const csB = new THREE.MeshLambertMaterial({ color: 0xB08858 });
+    const csC = new THREE.MeshLambertMaterial({ color: 0x906890 });
+    const teaK = new THREE.MeshLambertMaterial({ color: 0x303030 });
+    const cupM = new THREE.MeshLambertMaterial({ color: 0x68A888 });
+    const whM = new THREE.MeshLambertMaterial({ color: 0xF0EDE8 });
+    const lnM = new THREE.MeshLambertMaterial({ color: 0xF5D060, emissive: 0xFFAA00, emissiveIntensity: 0.42 });
+    // Bamboo
+    const bmA = new THREE.MeshLambertMaterial({ color: 0x70A840 });
+    const bmB = new THREE.MeshLambertMaterial({ color: 0x5A9030 });
+    const bmN = new THREE.MeshLambertMaterial({ color: 0x9EC858 });
+
+    const jh = (geo, mat, x, y, z) => {
+      const m = new THREE.Mesh(geo, mat);
+      m.position.set(x, y, z);
+      m.castShadow = true; m.receiveShadow = true; g.add(m);
+    };
+
+    // ── SKILL A: PLATFORM — floor ≥ 2 layers ─────────────────────
+    jh(new THREE.BoxGeometry(5.8, V*0.9, 5.8), stC, 0, V*0.45, 0);   // base dark
+    jh(new THREE.BoxGeometry(5.8, V*0.28, 5.8), stA, 0, V*1.04, 0);  // top highlight
+    jh(new THREE.BoxGeometry(4.2, V*0.28, 5.8), stB, 0, V*1.32, 0);  // plinth edge noise
+
+    // Raised wood floor: 2 layers (SKILL A)
+    jh(new THREE.BoxGeometry(3.8, V*1.2, 3.0), wfD, 0, V*1.8, -0.4);  // bottom dark
+    jh(new THREE.BoxGeometry(3.8, V*0.5, 3.0), wfM, 0, V*2.7, -0.4);  // top mid
+    // Floor edge lip +1V (SKILL B)
+    jh(new THREE.BoxGeometry(4.0, V*0.4, 3.2), wfD, 0, V*1.4, -0.4);
+
+    // Tatami inset (lower 1V, 2 alternating tones — SKILL C noise)
+    jh(new THREE.BoxGeometry(1.65, V*0.4, 2.7), ttA, -0.48, V*3.0, -0.4);
+    jh(new THREE.BoxGeometry(1.65, V*0.4, 2.7), ttB,  0.55, V*3.0, -0.4);
+    // Tatami border strip (color noise — SKILL D)
+    jh(new THREE.BoxGeometry(3.3, V*0.2, V*0.5), wfM, 0, V*3.1, -0.4);
+
+    // ── SKILL A: WALLS ≥ 2V thick ────────────────────────────────
+    // Back wall: outer + inner face (2V depth)
+    jh(new THREE.BoxGeometry(3.8, V*9, V*2.0), rwM, 0, V*7.1, -1.9);  // body mid
+    jh(new THREE.BoxGeometry(3.8, V*0.6, V*2.0), rwL, 0, V*11.2, -1.9); // top light
+    jh(new THREE.BoxGeometry(3.8, V*0.4, V*2.0), rwD, 0, V*3.1, -1.9);  // base dark
+    // SKILL D: vertical beam accents every ~3V
+    [-1.4, -0.45, 0.45, 1.4].forEach(bx => {
+      jh(new THREE.BoxGeometry(V*0.7, V*9, V*2.0), rwD, bx, V*7.1, -1.9);
+    });
+
+    // Left wall: 2V thick
+    jh(new THREE.BoxGeometry(V*2.0, V*9, 3.0), rwM, -2.1, V*7.1, -0.4);
+    jh(new THREE.BoxGeometry(V*2.0, V*0.6, 3.0), rwL, -2.1, V*11.2, -0.4);
+    jh(new THREE.BoxGeometry(V*2.0, V*0.4, 3.0), rwD, -2.1, V*3.1, -0.4);
+    [-1.1, 0.1, 1.3].forEach(bz => {
+      jh(new THREE.BoxGeometry(V*2.0, V*9, V*0.7), rwD, -2.1, V*7.1, bz);
+    });
+
+    // Right wall: 2V thick
+    jh(new THREE.BoxGeometry(V*2.0, V*9, 3.0), rwM, 2.1, V*7.1, -0.4);
+    jh(new THREE.BoxGeometry(V*2.0, V*0.6, 3.0), rwL, 2.1, V*11.2, -0.4);
+    jh(new THREE.BoxGeometry(V*2.0, V*0.4, 3.0), rwD, 2.1, V*3.1, -0.4);
+    [-1.1, 0.1, 1.3].forEach(bz => {
+      jh(new THREE.BoxGeometry(V*2.0, V*9, V*0.7), rwD, 2.1, V*7.1, bz);
+    });
+
+    // Open front: corner posts only (no full wall — tea house open design)
+    jh(new THREE.BoxGeometry(V*1.8, V*9, V*1.8), rwM, -1.8, V*7.1, 1.4);
+    jh(new THREE.BoxGeometry(V*1.8, V*9, V*1.8), rwM,  1.8, V*7.1, 1.4);
+    // Lintel beam across open front
+    jh(new THREE.BoxGeometry(3.8, V*0.6, V*1.4), rwD, 0, V*11.0, 1.4);
+
+    // ── ROUND WINDOW on right wall (voxel circle approx) ─────────
+    const rwX = 2.1 * V + 0.04;
+    // Outer ring (8 positions around center)
+    [[0,0.55],[0,-0.55],[0.55,0],[-0.55,0],[0.38,0.38],[0.38,-0.38],[-0.38,0.38],[-0.38,-0.38]].forEach(([dy,dz]) => {
+      jh(new THREE.BoxGeometry(V*0.3, V*0.55, V*0.55), rwL, rwX, V*7.5+dy*0.6, -0.6+dz*0.6);
+    });
+    // Glass center
+    jh(new THREE.BoxGeometry(V*0.3, V*1.3, V*1.3), whM, rwX, V*7.5, -0.6);
+
+    // ── SLIDING DOORS (open front, white grid — SKILL F fill) ────
+    // Panel left (slightly inset from open edge)
+    jh(new THREE.BoxGeometry(1.3, V*7.5, V*0.45), whM, -0.65, V*6.5, 1.32);
+    [V*2.5, V*4.5, V*6.5].forEach(gy => {
+      jh(new THREE.BoxGeometry(1.3, V*0.20, V*0.48), rwD, -0.65, V*3+gy, 1.32);
+    });
+    [-0.32, 0, 0.32].forEach(gx => {
+      jh(new THREE.BoxGeometry(V*0.20, V*7.5, V*0.48), rwD, -0.65+gx, V*6.5, 1.32);
+    });
+    // Panel right (slightly ajar — SKILL D offset ±1)
+    jh(new THREE.BoxGeometry(1.1, V*7.5, V*0.45), whM, 1.0, V*6.5, 1.36);
+    [V*2.5, V*4.5, V*6.5].forEach(gy => {
+      jh(new THREE.BoxGeometry(1.1, V*0.20, V*0.48), rwD, 1.0, V*3+gy, 1.36);
+    });
+    [0.3, 0.65].forEach(gx => {
+      jh(new THREE.BoxGeometry(V*0.20, V*7.5, V*0.48), rwD, 0.5+gx, V*6.5, 1.36);
+    });
+
+    // ── SKILL B: ROOF — 3 layers + edge lip + underside beams ────
+    const roofY = V*11.5;
+    const rW    = 3.8 + V*4.0;   // base wall + outset +2V each side
+    const rD    = 3.0 + V*4.0;
+
+    // Underside beams (SKILL B: 1V thick lines)
+    for (let bx = -1.7; bx <= 1.7; bx += 0.65) {
+      jh(new THREE.BoxGeometry(V*0.5, V*0.5, rD + V*1.6), rfD, bx, roofY - V*0.7, -0.4);
+    }
+    for (let bz = -1.6; bz <= 1.6; bz += 0.7) {
+      jh(new THREE.BoxGeometry(rW + V*1.6, V*0.5, V*0.5), rfD, 0, roofY - V*0.7, bz - 0.4);
+    }
+    // Layer 1 (bottom DARK): drooping lip — widest, thinnest
+    jh(new THREE.BoxGeometry(rW + V*2.6, V*0.55, rD + V*2.6), rfD, 0, roofY - V*0.9, -0.4);
+    // Edge lip +1V outward (SKILL B)
+    jh(new THREE.BoxGeometry(rW + V*0.6, V*0.22, rD + V*0.6), rfM, 0, roofY - V*0.2, -0.4);
+    // Layer 2 (main slab DARK): +4V outset
+    jh(new THREE.BoxGeometry(rW, V*1.5, rD), rfD, 0, roofY + V*0.75, -0.4);
+    // Layer 3 (mid MID): inset 1.2V
+    jh(new THREE.BoxGeometry(rW - V*2.4, V*1.1, rD - V*2.4), rfM, 0, roofY + V*2.1, -0.4);
+    // Layer 4 (top LIGHT): inset 2.4V
+    jh(new THREE.BoxGeometry(rW - V*4.8, V*0.80, rD - V*4.8), rfL, 0, roofY + V*3.0, -0.4);
+    // Roof ridge (slightly raised — SKILL D protrusion)
+    jh(new THREE.BoxGeometry(rW - V*6.5, V*0.90, V*0.9), rfL, 0, roofY + V*3.7, -0.4);
+    // SKILL D: corner offsets ±1 for edge breakup
+    const rHW = (rW + V*2.6) / 2;
+    const rHD = (rD + V*2.6) / 2;
+    [[-rHW, -rHD-0.4], [rHW, -rHD-0.4], [-rHW, rHD-0.4], [rHW+V*0.3, rHD-0.4]].forEach(([cx,cz]) => {
+      jh(new THREE.BoxGeometry(V*0.9, V*0.7, V*0.9), rfD, cx, roofY - V*0.5, cz);
+    });
+
+    // ── LANTERNS hang from roof corners (SKILL F surface detail) ─
+    [[-1.7, 1.4], [1.7, 1.4], [-1.7, -1.7], [1.7, -1.7]].forEach(([lx, lz], li) => {
+      jh(new THREE.BoxGeometry(V*0.15, V*1.8, V*0.15), wfD, lx, roofY - V*2.8, lz - 0.4);
+      jh(new THREE.BoxGeometry(V*1.0, V*1.5, V*1.0), lnM, lx, roofY - V*4.2, lz - 0.4);
+      jh(new THREE.BoxGeometry(V*1.3, V*0.35, V*1.3), rfD, lx, roofY - V*3.4, lz - 0.4);
+      jh(new THREE.BoxGeometry(V*0.5, V*0.45, V*0.5), rfD, lx, roofY - V*5.0, lz - 0.4);
+      const pl = new THREE.PointLight(0xFFCC66, 0.65, 3.2);
+      pl.position.set(lx, roofY - V*4.2, lz - 0.4);
+      g.add(pl);
+    });
+
+    // ── INTERIOR (SKILL F: no empty >4×4) ─────────────────────────
+    // Low table (center)
+    jh(new THREE.BoxGeometry(1.0, V*0.55, 0.70), tbM, -0.1, V*4.0, -0.4);
+    [[-0.38,-0.26],[0.38,-0.26],[-0.38,0.26],[0.38,0.26]].forEach(([tx,tz]) => {
+      jh(new THREE.BoxGeometry(V*0.5, V*1.6, V*0.5), tbM, tx, V*2.45, tz - 0.4);
+    });
+    // Cushions x3 (color variation — SKILL C)
+    jh(new THREE.BoxGeometry(0.52, V*0.90, 0.42), csA, -0.58, V*3.45, 0.25);
+    jh(new THREE.BoxGeometry(0.52, V*0.90, 0.42), csB,  0.52, V*3.45, 0.25);
+    jh(new THREE.BoxGeometry(0.52, V*0.90, 0.42), csC, -0.04, V*3.45, -0.9);
+    // Tea set (clustered voxels — SKILL F micro detail)
+    jh(new THREE.BoxGeometry(V*1.0, V*1.5, V*1.0), teaK,  0.08, V*4.75, -0.38);  // pot
+    jh(new THREE.SphereGeometry(V*0.48, 6, 5), teaK, 0.08, V*5.8, -0.38);         // lid
+    jh(new THREE.BoxGeometry(V*0.60, V*0.80, V*0.60), cupM, -0.28, V*4.55, -0.28); // cup A
+    jh(new THREE.BoxGeometry(V*0.60, V*0.80, V*0.60), cupM,  0.42, V*4.55, -0.22); // cup B (offset — SKILL D)
+    jh(new THREE.BoxGeometry(V*0.30, V*0.28, V*0.50), wfL,  0.08, V*4.30, -0.55); // tray
+
+    // ── EXTERIOR DECK front-right (SKILL A: 2-layer floor) ───────
+    jh(new THREE.BoxGeometry(1.9, V*1.2, 1.5), wfD, 1.55, V*1.8, 2.05);
+    jh(new THREE.BoxGeometry(1.9, V*0.4, 1.5), wfL, 1.55, V*2.65, 2.05);
+    // Deck railing posts spacing 2V (SKILL B: post grid)
+    [0.68, 1.10, 1.52, 1.95, 2.38].forEach(px => {
+      jh(new THREE.BoxGeometry(V*0.6, V*3.8, V*0.6), rwD, px, V*2.8, 2.75);
+    });
+    jh(new THREE.BoxGeometry(1.92, V*0.38, V*0.5), rwM, 1.55, V*6.0, 2.75);  // top rail
+    [0.65, 2.45].forEach(px => {
+      jh(new THREE.BoxGeometry(V*0.6, V*3.8, V*0.6), rwD, px, V*2.8, 1.38);
+    });
+    jh(new THREE.BoxGeometry(V*0.45, V*3.8, 1.5), rwM, 0.65, V*2.8, 2.05);
+
+    // ── STAIRS 3 steps × 2V deep (SKILL A: depth = 2V) ───────────
+    jh(new THREE.BoxGeometry(1.9, V*0.65, V*2), stB, 1.55, V*1.1, 3.12);
+    jh(new THREE.BoxGeometry(1.9, V*0.65, V*2), stA, 1.55, V*1.75, 3.55);
+    jh(new THREE.BoxGeometry(1.9, V*0.65, V*2), stC, 1.55, V*2.40, 3.98);
+
+    // ── BAMBOO CLUSTER (left side — SKILL D height variation) ─────
+    [-2.45, -2.60, -2.35, -2.52, -2.68].forEach((bx, i) => {
+      const bh  = 2.6 + i * 0.38 + (i % 2) * 0.15;
+      const bz  = 1.9 + (i % 3) * 0.20 - 0.12;
+      const bmt = i % 2 === 0 ? bmA : bmB;
+      jh(new THREE.CylinderGeometry(V*0.30, V*0.36, bh, 5), bmt, bx, bh/2, bz);
+      // Node rings every ~0.65V (SKILL D protrusions)
+      for (let ny = 0.45; ny < bh - 0.28; ny += 0.60 + (i%3)*0.10) {
+        jh(new THREE.CylinderGeometry(V*0.38, V*0.38, V*0.32, 5), bmN, bx, ny, bz);
+      }
+      // Leaves (SKILL D variation)
+      jh(new THREE.BoxGeometry(V*1.5, V*0.20, V*0.40), grC, bx+0.28, bh-0.18, bz);
+      jh(new THREE.BoxGeometry(V*1.1, V*0.20, V*0.38), grA, bx-0.22, bh-0.42, bz+0.08);
+    });
+
+    // ── CHERRY BLOSSOM TREES — SKILL E (2 trees left+right) ─────
+    [[-2.55, -1.9], [2.55, -1.9]].forEach(([tx, tz], ti) => {
+      const lean = ti === 0 ? 0.10 : -0.10;
+      // Trunk grows upward with slight lean offset (SKILL E)
+      jh(new THREE.CylinderGeometry(V*0.52, V*0.78, V*8.5, 6), trM, tx, V*4.25, tz);
+      jh(new THREE.CylinderGeometry(V*0.36, V*0.52, V*3.5, 6), trM, tx+lean*0.6, V*9.5, tz);
+
+      // Primary branches: outward + upward bias, depth 1 (SKILL E)
+      const b1 = [[0.38,1.22,0.12],[-0.32,1.18,-0.14],[0.12,1.28,0.42],
+                  [-0.16,1.14,-0.38],[0.28,1.32,-0.28],[-0.30,1.20,0.30]];
+      b1.forEach(([bx,by,bz]) => {
+        jh(new THREE.CylinderGeometry(V*0.24, V*0.34, V*3.4, 5), trL, tx+bx, by, tz+bz);
+        // Sub-branches: depth 2 (SKILL E recursive)
+        jh(new THREE.CylinderGeometry(V*0.14, V*0.24, V*2.0, 5), trL, tx+bx*1.5, by+0.38, tz+bz*1.4);
+      });
+
+      // Foliage: 13 pos → 9+ti used (~30% removed), sizes 0.18–0.32 (SKILL E)
+      const fs = [
+        [0,0,0],[0.40,0.10,0],[-0.38,0.12,0],[0.10,0.38,0],[0.02,0.10,0.40],
+        [0,-0.26,0],[0.06,0,-0.36],[0.30,0.24,0.20],[-0.28,0.24,-0.20],
+        [0.20,0.22,-0.30],[-0.24,0.20,0.28],[0.32,-0.20,0.24],[-0.24,-0.18,-0.22]
+      ];
+      fs.slice(0, 9 + ti).forEach(([bx,by,bz], bi) => {
+        const r = 0.20 + (bi % 4) * 0.03;
+        jh(new THREE.SphereGeometry(r, 6, 5), TPINKS[bi % 4], tx+bx, 1.85+by, tz+bz);
+      });
+
+      // Floating petals (SKILL E)
+      [[0.55,1.20,0.18],[0.95,0.78,-0.22],[1.28,1.08,0.32],[-0.65,0.92,0.38]].forEach(([pd,py,pz],pi) => {
+        const sg = ti === 0 ? 1 : -1;
+        jh(new THREE.BoxGeometry(V*0.36, V*0.10, V*0.26), TPINKS[pi%4], tx+sg*pd, py, tz+pz);
+      });
+
+      // Ground petals scattered (SKILL E)
+      [0.32, 0.62, 0.98, 1.35].forEach((r,ri) => {
+        const ang = r * 2.2 + ti * 1.6;
+        jh(new THREE.BoxGeometry(V*0.36, V*0.08, V*0.26), TPINKS[ri%4],
+           tx + r*Math.cos(ang), V*1.4, tz + r*Math.sin(ang));
+      });
+
+      // Petals on roof eave (SKILL E scatter)
+      [[-0.85,0.95],[0.65,1.18],[1.55,0.78],[-1.38,0.62]].forEach(([px,pz],pi) => {
+        jh(new THREE.BoxGeometry(V*0.36, V*0.10, V*0.26), TPINKS[pi%4],
+           tx*0.25 + px*0.5, roofY + V*0.85, pz - 0.4);
+      });
+    });
+
+    // ── WATER POND (SKILL G: depth gradient, uneven border) ───────
+    // Front center, irregular stone border
+    jh(new THREE.BoxGeometry(2.30, V*1.00, 1.65), stC, -0.45, V*0.50, 2.52);  // stone rim
+    jh(new THREE.BoxGeometry(2.08, V*0.65, 1.45), wSh, -0.45, V*0.82, 2.52);  // shallow edge
+    jh(new THREE.BoxGeometry(1.38, V*0.42, 0.95), wDp, -0.45, V*0.78, 2.52);  // deep center
+    // Uneven border stones (SKILL G irregular)
+    [[0.65,2.22,stA],[0.28,3.08,stB],[-0.85,2.12,stC],
+     [-1.28,2.72,stA],[0.18,2.98,stB],[-1.55,2.30,stC]].forEach(([px,pz,sm]) => {
+      jh(new THREE.BoxGeometry(V*1.3, V*0.55, V*1.1), sm, px, V*0.52, pz);
+    });
+    // Lily pad + small stone
+    jh(new THREE.CylinderGeometry(V*0.70, V*0.70, V*0.14, 8), grA, -0.45, V*1.05, 2.52);
+    jh(new THREE.BoxGeometry(V*0.90, V*0.50, V*0.72), stB, -1.35, V*0.55, 2.42);
+
+    // ── GROUND — SKILL G (3 green tones random patches) ──────────
+    [[-1.8,3.5,grA],[0.3,3.7,grB],[2.1,3.1,grC],
+     [-2.6,1.6,grB],[2.5,1.3,grA],[-2.7,-0.5,grC],
+     [2.6,-1.2,grB],[-2.5,-1.9,grA],[1.3,-2.6,grC],
+     [-1.1,-2.7,grB],[0.1,-2.9,grA],[2.1,-2.4,grC]
+    ].forEach(([gx,gz,gm]) => {
+      jh(new THREE.BoxGeometry(V*1.9+Math.random()*V*1.1, V*0.30, V*1.6+Math.random()*V*0.9), gm, gx, V*0.26, gz);
+    });
+
+    // Stone path (SKILL G irregular, 3 tones)
+    [[-0.5,2.85,stA],[0.1,3.22,stB],[0.65,2.78,stC],
+     [-0.2,3.58,stA],[0.35,3.92,stB]].forEach(([px,pz,sm]) => {
+      jh(new THREE.BoxGeometry(V*1.6, V*0.30, V*1.3), sm, px, V*0.22, pz);
+    });
+
+    // Scatter rocks (SKILL G: irregular 3 tones, height variation)
+    [[-2.65,0.62,stA],[2.55,0.28,stB],[-0.85,-2.52,stC],
+     [1.05,-2.62,stA],[-2.18,-2.08,stB],[1.96,-2.10,stC]].forEach(([rx,rz,rm]) => {
+      jh(new THREE.BoxGeometry(V*1.0, V*0.52, V*0.80), rm, rx, V*0.26, rz);
+    });
+
+    // SKILL F: no empty >4×4 — corner moss tufts + detail voxels
+    [[1.85,-2.05,grA],[-1.85,-2.25,grB],[2.28,-0.82,grC],[-2.28,-0.52,grA]].forEach(([fx,fz,fm]) => {
+      jh(new THREE.BoxGeometry(V*0.95, V*0.62, V*0.95), fm, fx, V*0.52, fz);
+      jh(new THREE.BoxGeometry(V*0.50, V*1.20, V*0.50), grB, fx, V*0.95, fz);
+    });
+
+  } else if (id === 'jump_ramp') {
+    const V = 0.22;
+    const snA = new THREE.MeshLambertMaterial({ color: 0xEFF5FF });
+    const snB = new THREE.MeshLambertMaterial({ color: 0xD8E8F8 });
+    const snC = new THREE.MeshLambertMaterial({ color: 0xC0D4EC });
+    const mtA = new THREE.MeshLambertMaterial({ color: 0x8090A8 });
+    const mtB = new THREE.MeshLambertMaterial({ color: 0x607090 });
+    const mtC = new THREE.MeshLambertMaterial({ color: 0x4A5870 });
+    const jh = (geo, mat, x, y, z) => { const m=new THREE.Mesh(geo,mat); m.position.set(x,y,z); m.castShadow=true; m.receiveShadow=true; g.add(m); };
+
+    // Base platform (2 layers)
+    jh(new THREE.BoxGeometry(2.2, V*1.5, 1.2), snC, 0, V*0.75, 0);
+    jh(new THREE.BoxGeometry(2.2, V*0.4, 1.2), snA, 0, V*1.70, 0);
+    // Angled ramp body
+    const ramp = new THREE.Mesh(new THREE.BoxGeometry(2.0, V*0.5, 1.0), snB);
+    ramp.rotation.x = -Math.PI * 0.18;
+    ramp.position.set(0, V*3.5, -0.25);
+    ramp.castShadow = true; g.add(ramp);
+    const ramp2 = new THREE.Mesh(new THREE.BoxGeometry(2.0, V*0.3, 1.0), snA);
+    ramp2.rotation.x = -Math.PI * 0.18;
+    ramp2.position.set(0, V*4.0, -0.48);
+    g.add(ramp2);
+    // Metal kicker lip
+    jh(new THREE.BoxGeometry(2.0, V*0.4, V*0.5), mtA, 0, V*5.6, -0.72);
+    jh(new THREE.BoxGeometry(2.0, V*0.6, V*0.3), mtB, 0, V*5.2, -0.60);
+    // Side walls
+    [[-1.0], [1.0]].forEach(([sx]) => {
+      jh(new THREE.BoxGeometry(V*0.6, V*3.0, 1.2), mtC, sx, V*2.5, 0);
+      jh(new THREE.BoxGeometry(V*0.4, V*1.2, V*0.4), mtB, sx, V*5.4, -0.65);
+    });
+    // Landing spray voxels
+    jh(new THREE.BoxGeometry(V*1.2, V*0.5, V*0.8), snA,  0.35, 0.06,  0.62);
+    jh(new THREE.BoxGeometry(V*1.0, V*0.4, V*0.7), snA, -0.28, 0.06,  0.70);
+    jh(new THREE.BoxGeometry(V*0.9, V*0.4, V*0.6), snA,  0.10, 0.06,  0.80);
+
+  } else if (id === 'big_jump') {
+    const V = 0.22;
+    const snA = new THREE.MeshLambertMaterial({ color: 0xEFF5FF });
+    const snB = new THREE.MeshLambertMaterial({ color: 0xD8E8F8 });
+    const snC = new THREE.MeshLambertMaterial({ color: 0xB8CDE0 });
+    const mtA = new THREE.MeshLambertMaterial({ color: 0x9AAABB });
+    const mtB = new THREE.MeshLambertMaterial({ color: 0x6A8090 });
+    const jh = (geo, mat, x, y, z) => { const m=new THREE.Mesh(geo,mat); m.position.set(x,y,z); m.castShadow=true; m.receiveShadow=true; g.add(m); };
+
+    // Wide base (3-layer)
+    jh(new THREE.BoxGeometry(3.5, V*2.0, 1.8), snC, 0, V*1.0, 0);
+    jh(new THREE.BoxGeometry(3.5, V*0.5, 1.8), snB, 0, V*2.25, 0);
+    jh(new THREE.BoxGeometry(3.5, V*0.2, 1.8), snA, 0, V*2.60, 0);
+    // Stepped ramp approach
+    jh(new THREE.BoxGeometry(3.4, V*1.5, 0.55), snB, 0, V*3.5, 0.58);
+    jh(new THREE.BoxGeometry(3.4, V*2.5, 0.55), snB, 0, V*4.5, 1.12);
+    jh(new THREE.BoxGeometry(3.4, V*3.5, 0.55), snB, 0, V*5.5, 1.66);
+    // Metal lip
+    jh(new THREE.BoxGeometry(3.4, V*0.8, V*0.6), mtA, 0, V*9.2, 1.92);
+    jh(new THREE.BoxGeometry(3.4, V*0.4, V*0.4), mtB, 0, V*8.8, 1.70);
+    // Back safety wall
+    jh(new THREE.BoxGeometry(3.5, V*7.0, V*2.0), snC, 0, V*6.0, -0.80);
+    jh(new THREE.BoxGeometry(3.5, V*0.4, V*2.0), snA, 0, V*9.8, -0.80);
+    // Side walls
+    [[-1.74],[1.74]].forEach(([sx]) => {
+      jh(new THREE.BoxGeometry(V*0.8, V*9.0, 1.8), mtB, sx, V*4.5, 0);
+    });
+
+  } else if (id === 'chairlift') {
+    const V = 0.22;
+    const stA = new THREE.MeshLambertMaterial({ color: 0xD0D8E8 });
+    const stB = new THREE.MeshLambertMaterial({ color: 0xA8B8CC });
+    const stC = new THREE.MeshLambertMaterial({ color: 0x8090A8 });
+    const stL = new THREE.MeshLambertMaterial({ color: 0xC8D0E0, emissive:new THREE.Color(0x6080A0), emissiveIntensity:0.15 });
+    const seatM = new THREE.MeshLambertMaterial({ color: 0xE8E0D0 });
+    const seatD = new THREE.MeshLambertMaterial({ color: 0xD0C8B8 });
+    const jh = (geo, mat, x, y, z) => { const m=new THREE.Mesh(geo,mat); m.position.set(x,y,z); m.castShadow=true; m.receiveShadow=true; g.add(m); };
+
+    // Two posts
+    [[-1.8],[1.8]].forEach(([px]) => {
+      jh(new THREE.BoxGeometry(V*1.4, V*0.8, V*1.4), stC, px, V*0.4, 0);
+      jh(new THREE.BoxGeometry(V*1.0, V*14,  V*1.0), stB, px, V*8.0, 0);
+      jh(new THREE.BoxGeometry(V*3.8, V*0.8, V*0.8), stB, px, V*15.8, 0);
+      jh(new THREE.BoxGeometry(V*3.8, V*0.3, V*0.8), stA, px, V*16.4, 0);
+    });
+    // Cable
+    jh(new THREE.BoxGeometry(3.6, V*0.25, V*0.25), stL, 0, V*15.5, 0);
+    // Two hanging seats
+    [[-0.7],[0.7]].forEach(([sx]) => {
+      jh(new THREE.BoxGeometry(V*0.20, V*4.0, V*0.20), stC, sx, V*13.5, 0);
+      jh(new THREE.BoxGeometry(V*5.5, V*0.6, V*2.5), seatD, sx, V*11.2, 0);
+      jh(new THREE.BoxGeometry(V*5.5, V*0.3, V*2.5), seatM, sx, V*11.65, 0);
+      jh(new THREE.BoxGeometry(V*5.5, V*0.3, V*0.3), stB, sx, V*13.2, V*1.3);
+      jh(new THREE.BoxGeometry(V*5.5, V*3.5, V*0.4), seatD, sx, V*12.8, -V*1.0);
+      [[-V*2.2],[V*2.2]].forEach(([lx]) =>
+        jh(new THREE.BoxGeometry(V*0.4, V*1.5, V*0.4), stC, sx+lx, V*10.2, 0)
+      );
+    });
+
+  } else if (id === 'snow_cannon') {
+    const V = 0.22;
+    const mtA = new THREE.MeshLambertMaterial({ color: 0x8898AA });
+    const mtB = new THREE.MeshLambertMaterial({ color: 0x5A6878 });
+    const mtC = new THREE.MeshLambertMaterial({ color: 0x3C4858 });
+    const acA = new THREE.MeshLambertMaterial({ color: 0xC83020 });
+    const msA = new THREE.MeshLambertMaterial({ color: 0xE8F4FF, transparent:true, opacity:0.70 });
+    const msB = new THREE.MeshLambertMaterial({ color: 0xD0E8FF, transparent:true, opacity:0.55 });
+    const jh = (geo, mat, x, y, z) => { const m=new THREE.Mesh(geo,mat); m.position.set(x,y,z); m.castShadow=true; m.receiveShadow=true; g.add(m); };
+
+    // Tripod legs
+    [[0.55,0,0.38],[-0.55,0,0.38],[0,0,-0.55]].forEach(([lx,ly,lz], li) => {
+      const rot = li===2 ? 0 : (li===0 ? 0.3 : -0.3);
+      const leg = new THREE.Mesh(new THREE.BoxGeometry(V*0.9, V*3.5, V*0.9), mtC);
+      leg.position.set(lx, V*1.75, lz); leg.rotation.z = rot; leg.castShadow = true; g.add(leg);
+      jh(new THREE.BoxGeometry(V*1.4, V*0.5, V*1.4), mtB, lx, V*0.25, lz);
+    });
+    // Central mount
+    jh(new THREE.BoxGeometry(V*2.0, V*1.2, V*2.0), mtB, 0, V*4.2, 0);
+    jh(new THREE.BoxGeometry(V*1.6, V*0.4, V*1.6), mtA, 0, V*4.9, 0);
+    jh(new THREE.BoxGeometry(V*2.2, V*0.3, V*2.2), mtC, 0, V*3.6, 0);
+    // Tilted barrel
+    const barrel = new THREE.Mesh(new THREE.CylinderGeometry(V*1.1, V*1.4, V*8.0, 8), mtB);
+    barrel.rotation.z = Math.PI * 0.11; barrel.position.set(0.20, V*8.5, 0); barrel.castShadow = true; g.add(barrel);
+    const bH = new THREE.Mesh(new THREE.CylinderGeometry(V*1.15, V*1.45, V*0.5, 8), mtA);
+    bH.rotation.z = Math.PI * 0.11; bH.position.set(0.22, V*11.8, 0); g.add(bH);
+    // Muzzle accent
+    const muzzle = new THREE.Mesh(new THREE.CylinderGeometry(V*1.3, V*1.1, V*0.8, 8), acA);
+    muzzle.rotation.z = Math.PI * 0.11; muzzle.position.set(0.38, V*13.0, 0); g.add(muzzle);
+    // Snow mist cloud voxels
+    jh(new THREE.BoxGeometry(V*1.8, V*1.4, V*1.6), msA, 0.65, V*15, 0.12);
+    jh(new THREE.BoxGeometry(V*1.6, V*1.2, V*1.4), msA, 0.90, V*16, -0.18);
+    jh(new THREE.BoxGeometry(V*1.4, V*1.0, V*1.2), msA, 1.15, V*14.5, 0.24);
+    jh(new THREE.BoxGeometry(V*1.2, V*1.4, V*1.0), msA, 0.80, V*17, 0.06);
+    jh(new THREE.BoxGeometry(V*1.2, V*1.0, V*1.2), msB, 0.50, V*15.8, -0.10);
+    jh(new THREE.BoxGeometry(V*1.0, V*0.8, V*1.0), msB, 1.00, V*15.2, 0.20);
+    // Control box
+    jh(new THREE.BoxGeometry(V*1.8, V*2.2, V*1.0), mtC, -0.52, V*5.5, 0.35);
+    jh(new THREE.BoxGeometry(V*1.6, V*0.3, V*0.8), acA, -0.52, V*6.6, 0.35);
   }
   return g;
 }
@@ -850,48 +1509,122 @@ function buySeed(type) {
 window.buySeed = buySeed;
 
 // ============================================================
-//  ═══ 一樓 ═══  動物
+//  ═══ 一樓 ═══  動物 (4-tier breeding lifecycle)
 // ============================================================
-const ANIMAL_DEF = [
-  { name:'兔', color:0xF5F0EA, sx:0.45, sy:0.45, sz:0.50 },
-  { name:'狐', color:0xE8904A, sx:0.50, sy:0.42, sz:0.55 },
-  { name:'鹿', color:0xC89060, sx:0.40, sy:0.65, sz:0.50 },
+const ANIMAL_TIER = [
+  { lv:1, name:'小兔', nameAdult:'大兔',   color:0xF5F0EA, accent:0xE8DDD0, sx:0.45,sy:0.45,sz:0.50, speed:1.2, lifespan:180, breedTime:50,  nextLv:2 },
+  { lv:2, name:'狐仔', nameAdult:'狐狸',   color:0xE8904A, accent:0xC87030, sx:0.50,sy:0.42,sz:0.55, speed:1.5, lifespan:240, breedTime:70,  nextLv:3 },
+  { lv:3, name:'鷹',   nameAdult:'神鷹',   color:0x8090A0, accent:0xF5C030, sx:0.55,sy:0.35,sz:0.75, speed:1.8, lifespan:300, breedTime:90,  nextLv:4 },
+  { lv:4, name:'雪狼', nameAdult:'芬尼爾', color:0x9080C0, accent:0xE0D0FF, sx:0.80,sy:0.65,sz:0.90, speed:1.0, lifespan:600, breedTime:null,nextLv:null },
 ];
+function getTierDef(lv) { return ANIMAL_TIER.find(t=>t.lv===lv)||ANIMAL_TIER[0]; }
 
-function createAnimal() {
-  const t    = ANIMAL_DEF[Math.floor(Math.random()*ANIMAL_DEF.length)];
+function buildAnimalMesh(tierDef, isBaby) {
+  const sc   = isBaby ? 0.4 : 1.0;
   const body = new THREE.Mesh(
-    new THREE.BoxGeometry(t.sx,t.sy,t.sz),
-    new THREE.MeshLambertMaterial({ color:t.color })
+    new THREE.BoxGeometry(tierDef.sx*sc, tierDef.sy*sc, tierDef.sz*sc),
+    new THREE.MeshLambertMaterial({ color: tierDef.color })
   );
-  const em  = new THREE.MeshLambertMaterial({ color:t.color });
-  const eym = new THREE.MeshLambertMaterial({ color:0x222222 });
+  const em  = new THREE.MeshLambertMaterial({ color: tierDef.color });
+  const acM = new THREE.MeshLambertMaterial({ color: tierDef.accent });
+  const eym = new THREE.MeshLambertMaterial({ color: 0x222222 });
+
+  if (tierDef.lv === 3) {
+    // Hawks get wing stubs instead of ears
+    [-0.1,0.1].forEach(ox => {
+      const wing = new THREE.Mesh(new THREE.BoxGeometry(0.22*sc,0.05*sc,0.12*sc), acM);
+      wing.position.set(ox, tierDef.sy*sc*0.2, 0); body.add(wing);
+    });
+  } else {
+    [-0.1,0.1].forEach(ox => {
+      const ear = new THREE.Mesh(new THREE.BoxGeometry(0.10*sc,0.18*sc,0.08*sc), em);
+      ear.position.set(ox, tierDef.sy*sc*0.6, 0.1*sc); body.add(ear);
+    });
+  }
   [-0.1,0.1].forEach(ox => {
-    const ear = new THREE.Mesh(new THREE.BoxGeometry(0.1,0.18,0.08),em);
-    ear.position.set(ox,t.sy*0.6,0.1); body.add(ear);
+    const eye = new THREE.Mesh(new THREE.BoxGeometry(0.06*sc,0.06*sc,0.06*sc), eym);
+    eye.position.set(ox, tierDef.sy*sc*0.15, tierDef.sz*sc*0.5+0.01); body.add(eye);
   });
-  [-0.1,0.1].forEach(ox => {
-    const eye = new THREE.Mesh(new THREE.BoxGeometry(0.06,0.06,0.06),eym);
-    eye.position.set(ox,t.sy*0.15,t.sz*0.5+0.01); body.add(eye);
-  });
-  body.position.set((Math.random()-0.5)*14, t.sy/2, (Math.random()-0.5)*14);
-  body.castShadow = true;
-  scene.add(body);
+  if (tierDef.lv === 4) {
+    body.material.emissive = new THREE.Color(0x4020A0);
+    body.material.emissiveIntensity = 0.20;
+  }
+  return body;
+}
+
+function spawnAnimal(lv, spawnX, spawnZ) {
+  const tierDef = getTierDef(lv);
+  const mesh    = buildAnimalMesh(tierDef, true);
+  mesh.position.set(
+    spawnX !== undefined ? spawnX : (Math.random()-0.5)*14,
+    tierDef.sy*0.4/2,
+    spawnZ !== undefined ? spawnZ : (Math.random()-0.5)*14
+  );
+  mesh.castShadow = true;
+  scene.add(mesh);
   animals.push({
-    mesh:body, name:t.name, halfH:t.sy/2,
-    speed:0.9+Math.random()*0.6,
-    targetX:(Math.random()-0.5)*14, targetZ:(Math.random()-0.5)*14,
-    changeTimer:0, changeInterval:3+Math.random()*4,
-    isIdle:false, idleTimer:0,
+    mesh, tierDef, lv,
+    isBaby:        true,
+    age:           0,
+    breedCooldown: 0,
+    speed:         tierDef.speed * 0.6,
+    targetX:       (Math.random()-0.5)*14,
+    targetZ:       (Math.random()-0.5)*14,
+    changeTimer:   0,
+    changeInterval: 3+Math.random()*4,
+    isIdle: false, idleTimer: 0,
   });
 }
-for (let i=0;i<3;i++) createAnimal();
+for (let i=0;i<3;i++) spawnAnimal(1);
 
 function updateAnimals(delta, now) {
-  animals.forEach(a => {
-    a.changeTimer += delta;
+  const GROW_AGE = 20;
+  const toSpawn  = [];
 
-    // 尋找有果實的最近植物
+  for (let ai = animals.length-1; ai >= 0; ai--) {
+    const a = animals[ai];
+    a.age           += delta;
+    a.changeTimer   += delta;
+    a.breedCooldown  = Math.max(0, a.breedCooldown - delta);
+
+    // Baby → Adult
+    if (a.isBaby && a.age >= GROW_AGE) {
+      a.isBaby = false;
+      a.speed  = a.tierDef.speed;
+      a.mesh.scale.setScalar(1.0 / 0.4);
+    }
+
+    // Lifespan expiry
+    if (a.age >= a.tierDef.lifespan) {
+      scene.remove(a.mesh);
+      a.mesh.traverse(c => { if (c.isMesh) { c.geometry.dispose(); [c.material].flat().forEach(m=>m.dispose()); }});
+      animals.splice(ai, 1);
+      showToast(`💀 ${a.tierDef.nameAdult} が寿命を終えた`);
+      continue;
+    }
+
+    // Breeding: find nearby adult of same level
+    if (!a.isBaby && a.breedCooldown <= 0 && a.tierDef.nextLv !== null && animals.length < 20) {
+      for (let bi = 0; bi < animals.length; bi++) {
+        if (bi === ai) continue;
+        const b = animals[bi];
+        if (b.lv !== a.lv || b.isBaby || b.breedCooldown > 0) continue;
+        const dx = b.mesh.position.x - a.mesh.position.x;
+        const dz = b.mesh.position.z - a.mesh.position.z;
+        if (Math.sqrt(dx*dx+dz*dz) < 1.5) {
+          const nx = (a.mesh.position.x + b.mesh.position.x) / 2;
+          const nz = (a.mesh.position.z + b.mesh.position.z) / 2;
+          toSpawn.push({ lv: a.tierDef.nextLv, x: nx, z: nz });
+          a.breedCooldown = a.tierDef.breedTime;
+          b.breedCooldown = a.tierDef.breedTime;
+          const nextDef = getTierDef(a.tierDef.nextLv);
+          showToast(`🐣 LV${a.tierDef.nextLv} ${nextDef.name} 誕生！`);
+          break;
+        }
+      }
+    }
+
+    // Seek nearest fruit-bearing plant
     let nearP = null, nearD = Infinity;
     plants.forEach(p => {
       if (!p.hasFruit) return;
@@ -905,16 +1638,16 @@ function updateAnimals(delta, now) {
       a.targetZ = nearP.mesh.position.z;
       if (nearD < 0.9) {
         harvestPlant(nearP);
-        showToast(`🐾 ${a.name}が収穫した！`);
+        showToast(`🐾 ${a.tierDef.nameAdult}が収穫した！`);
         a.isIdle = true; a.idleTimer = 2; a.changeTimer = 0;
-        return;
+        continue;
       }
     }
 
     if (a.isIdle) {
       a.mesh.rotation.y += Math.sin(now*0.003)*0.025;
       if (a.changeTimer > a.idleTimer) { a.isIdle = false; a.changeTimer = 0; }
-      return;
+      continue;
     }
 
     const dx = a.targetX - a.mesh.position.x;
@@ -924,14 +1657,16 @@ function updateAnimals(delta, now) {
       a.mesh.position.x += (dx/d)*a.speed*delta;
       a.mesh.position.z += (dz/d)*a.speed*delta;
       a.mesh.rotation.y  = Math.atan2(dx/d, dz/d);
-      a.mesh.position.y  = a.halfH + Math.abs(Math.sin(now*0.008))*0.07;
+      const halfH = a.tierDef.sy * (a.isBaby ? 0.4 : 1.0) / 2;
+      a.mesh.position.y  = halfH + Math.abs(Math.sin(now*0.008))*0.07;
     }
     if (a.changeTimer > a.changeInterval || d < 0.15) {
       a.changeTimer = 0; a.changeInterval = 3+Math.random()*5;
       if (Math.random() < 0.3) { a.isIdle = true; a.idleTimer = 1+Math.random()*2; }
       else { a.targetX = (Math.random()-0.5)*14; a.targetZ = (Math.random()-0.5)*14; }
     }
-  });
+  }
+  toSpawn.forEach(({ lv, x, z }) => spawnAnimal(lv, x, z));
 }
 
 // ============================================================
@@ -942,7 +1677,10 @@ function setSeason(s) {
   const cfg = SEASON_CFG[s];
   scene.background = new THREE.Color(cfg.bg);
   scene.fog         = new THREE.Fog(cfg.fog, 40, 80);
-  groundTiles.forEach(t => t.material.color.setHex(cfg.grass[t.userData.colorIdx % cfg.grass.length]));
+  groundTiles.forEach(t => {
+    if (t.userData.isSnow) return;
+    t.material.color.setHex(cfg.grass[t.userData.colorIdx % cfg.grass.length]);
+  });
   buildMountains();
   ambientLight.color.setHex(cfg.ambient);
   dirLight.color.setHex(cfg.dir);
@@ -958,12 +1696,13 @@ window.setSeason = setSeason;
 // ============================================================
 //  ═══ 地基層 ═══  刪除
 // ============================================================
-function deleteAt(x, z) {
-  const key = `${x},${z}`;
-  if (!occupiedCells.has(key)) return;
-
-  // 植物優先
-  const pIdx = plants.findIndex(p => p.gridX===x && p.gridZ===z);
+function deleteAt(wx, wz) {
+  // Plants: proximity-based (free placement, no grid key)
+  const pIdx = plants.findIndex(p => {
+    const dx = p.mesh.position.x - wx;
+    const dz = p.mesh.position.z - wz;
+    return Math.sqrt(dx*dx + dz*dz) < 0.9;
+  });
   if (pIdx >= 0) {
     const p = plants[pIdx];
     scene.remove(p.mesh);
@@ -973,14 +1712,15 @@ function deleteAt(x, z) {
       (Array.isArray(c.material)?c.material:[c.material]).forEach(m=>m.dispose());
     });
     plants.splice(pIdx, 1);
-    occupiedCells.delete(key);
     updateUI();
     showToast('🗑️ 植物を除去');
     return;
   }
 
-  // 家具
-  const idx = placedObjects.findIndex(o => o.gridX===x && o.gridZ===z);
+  // Furniture: grid-key based (snapped placement)
+  const key = `${Math.round(wx)},${Math.round(wz)}`;
+  if (!occupiedCells.has(key)) return;
+  const idx = placedObjects.findIndex(o => o.gridX===Math.round(wx) && o.gridZ===Math.round(wz));
   if (idx < 0) return;
   const obj = placedObjects[idx];
   scene.remove(obj.mesh);
@@ -1049,8 +1789,12 @@ renderer.domElement.addEventListener('pointermove', e => {
   getPointerNDC(e);
   const hit = raycastGround();
   if (hit && previewMesh) {
-    const s = snapToGrid(hit);
-    previewMesh.position.set(s.x, currentMode==='plant' ? 0.6 : 0.3, s.z);
+    if (currentMode === 'plant') {
+      previewMesh.position.set(hit.x, 0.6, hit.z);
+    } else {
+      const s = snapToGrid(hit);
+      previewMesh.position.set(s.x, 0.3, s.z);
+    }
     previewMesh.visible = true;
   } else if (previewMesh) {
     previewMesh.visible = false;
@@ -1086,13 +1830,16 @@ renderer.domElement.addEventListener('pointerup', e => {
   // ③ 地面
   const hit = raycastGround();
   if (!hit) return;
-  const { x, z } = snapToGrid(hit);
   const half = (GRID_SIZE/2) * CELL_SIZE;
-  if (Math.abs(x)>half || Math.abs(z)>half) return;
+  if (Math.abs(hit.x)>half || Math.abs(hit.z)>half) return;
 
-  if (currentMode === 'plant')       spawnPlant(x, z);
-  else if (currentMode === 'build')  spawnFurniture(x, z);
-  else if (currentMode === 'delete') deleteAt(x, z);
+  if (currentMode === 'plant') {
+    spawnPlant(hit.x, hit.z);
+  } else {
+    const { x, z } = snapToGrid(hit);
+    if (currentMode === 'build')       spawnFurniture(x, z);
+    else if (currentMode === 'delete') deleteAt(hit.x, hit.z);
+  }
 });
 
 // ============================================================
@@ -1173,7 +1920,7 @@ function updateShopUI() {
   for (const k in inventory) {
     const cnt = inventory[k] || 0;
     const def = plantCatalog[k];
-    if (!def) continue;
+    if (!def || cnt === 0) continue;
     total += cnt * (def.sell||0);
     const row = document.createElement('div');
     row.className = 'sell-row';
@@ -1182,6 +1929,29 @@ function updateShopUI() {
   }
   const tot = document.getElementById('sell-total');
   if (tot) tot.textContent = `合計: ${total} コイン`;
+
+  // Grade-organized buy section
+  const buyList = document.getElementById('shop-buy-list');
+  if (buyList) {
+    buyList.innerHTML = '';
+    const gradeOrder = ['D','C','B','A','S','SS'];
+    const gradeEmoji = { D:'⚪', C:'🟢', B:'🔵', A:'🟣', S:'🟡', SS:'🔴' };
+    gradeOrder.forEach(grade => {
+      const items = Object.entries(plantCatalog).filter(([,d]) => d.grade===grade && d.price>0);
+      if (items.length === 0) return;
+      const hdr = document.createElement('div');
+      hdr.className = 'shop-grade-header';
+      hdr.textContent = `${gradeEmoji[grade]} ${grade} 等級`;
+      buyList.appendChild(hdr);
+      items.forEach(([id, def]) => {
+        const row = document.createElement('div');
+        row.className = 'shop-buy-row';
+        const stock = inventorySeeds[id] || 0;
+        row.innerHTML = `<span>${def.icon} ${def.name}</span><span class="seed-stock">持有: ${stock}</span><button class="shop-buy-btn" onclick="buySeed('${id}')">${def.price} コイン</button>`;
+        buyList.appendChild(row);
+      });
+    });
+  }
 }
 
 // ============================================================
@@ -1192,10 +1962,20 @@ function updateUI() {
   const mEl = document.getElementById('money-display');
   if (mEl) mEl.textContent = money;
 
-  // 倉庫（果實）
-  for (const k in inventory) {
-    const el = document.getElementById(`inv-${k}`);
-    if (el) el.textContent = inventory[k] || 0;
+  // 倉庫 — dynamic (all plant types)
+  const invEl = document.getElementById('inventory-dynamic');
+  if (invEl) {
+    invEl.innerHTML = '';
+    for (const k in inventory) {
+      const def = plantCatalog[k];
+      if (!def) continue;
+      const cnt = inventory[k] || 0;
+      if (cnt === 0 && !plants.some(p => p.type === k)) continue;
+      const row = document.createElement('div');
+      row.className = 'inv-row';
+      row.innerHTML = `${def.icon} <span id="inv-${k}">${cnt}</span>`;
+      invEl.appendChild(row);
+    }
   }
 
   // 種子庫存（便利屋內顯示）
