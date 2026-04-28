@@ -35,11 +35,7 @@
     <!-- ===== Inventory Panel (left) ===== -->
     <div id="inventory-panel">
       <div class="inv-title">🧺 倉庫</div>
-      <div class="inv-row">🍅 <span id="inv-tomato">0</span></div>
-      <div class="inv-row">🍓 <span id="inv-strawberry">0</span></div>
-      <div class="inv-row">🫐 <span id="inv-blueberry">0</span></div>
-      <div class="inv-row">🎃 <span id="inv-pumpkin">0</span></div>
-      <div class="inv-row">🌸 <span id="inv-sakura">0</span></div>
+      <div id="inventory-dynamic"></div>
     </div>
 
     <!-- ===== Toolbar (bottom-left) ===== -->
@@ -92,11 +88,7 @@
       <button class="shop-sell-btn" onclick="sellAll()">💰 全部賣出</button>
 
       <div class="shop-section-title">🌱 購買種子</div>
-      <div class="shop-buy-row">
-        <span>🎃 南瓜の種</span>
-        <span class="seed-stock">持有: <span id="seed-pumpkin">0</span></span>
-        <button class="shop-buy-btn" onclick="buySeed('pumpkin')">20 コイン</button>
-      </div>
+      <div id="shop-buy-list"></div>
     </div>
 
     <!-- ===== Toast ===== -->
