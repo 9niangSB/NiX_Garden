@@ -104,6 +104,7 @@ html, body {
 .popup-panel {
   position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
   min-width: 260px; max-width: 320px; width: 88%;
+  max-height: 80vh; overflow-y: auto;
   background: rgba(255,248,243,0.97); border: 1.5px solid rgba(200,155,109,0.3);
   border-radius: 18px; padding: 16px;
   backdrop-filter: blur(12px); box-shadow: 0 8px 32px rgba(160,90,60,0.18);

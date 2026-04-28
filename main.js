@@ -17,15 +17,15 @@ import { OBJExporter }   from 'three/addons/exporters/OBJExporter.js';
 // ============================================================
 const plantCatalog = {
   // ── D Grade (disposable — dies after first harvest) ───────────
-  carrot:     { name:'胡蘿蔔', icon:'🥕', grade:'D', disposable:true,  stemColor:0x5A8840, topColor:0xFF7040, shape:'cone',    growTime:5000,  produceTime:4000,  sell:2,  price:3,  minRadius:0.6 },
+  carrot:     { name:'胡蘿蔔', icon:'🥕', grade:'D', disposable:true,  stemColor:0x4A8838, topColor:0xF07030, shape:'carrot',  growTime:5000,  produceTime:4000,  sell:2,  price:3,  minRadius:0.6 },
   scallion:   { name:'蔥',     icon:'🌿', grade:'D', disposable:true,  stemColor:0x50A040, topColor:0x78D060, shape:'flat',    growTime:4000,  produceTime:3000,  sell:1,  price:2,  minRadius:0.5 },
   onion:      { name:'洋蔥',   icon:'🧅', grade:'D', disposable:true,  stemColor:0xD0C8A0, topColor:0xC0A040, shape:'shroom',  growTime:6000,  produceTime:4000,  sell:3,  price:4,  minRadius:0.6 },
   // ── C Grade (永續 sustainable) ────────────────────────────────
-  tomato:     { name:'番茄',   icon:'🍅', grade:'C', stemColor:0x6CA850, topColor:0xFF6347, shape:'sphere', growTime:8000,  produceTime:6000,  sell:5,  minRadius:0.7 },
+  tomato:     { name:'番茄',   icon:'🍅', grade:'C', stemColor:0x4A8838, topColor:0xE83020, shape:'tomato', growTime:8000,  produceTime:6000,  sell:5,  minRadius:0.7 },
   strawberry: { name:'草莓',   icon:'🍓', grade:'C', stemColor:0x6CA850, topColor:0xFF4D6D, shape:'cone',   growTime:10000, produceTime:6000,  sell:8,  minRadius:0.7 },
   blueberry:  { name:'藍莓',   icon:'🫐', grade:'C', stemColor:0x6CA850, topColor:0x4F6DFF, shape:'sphere', growTime:10000, produceTime:6000,  sell:10, minRadius:0.7 },
   // ── B Grade (永續 sustainable) ────────────────────────────────
-  corn:       { name:'玉米',   icon:'🌽', grade:'B', stemColor:0x70A030, topColor:0xF0D040, shape:'tall',   growTime:14000, produceTime:8000,  sell:15, price:12, minRadius:0.8 },
+  corn:       { name:'玉米',   icon:'🌽', grade:'B', stemColor:0x4A8030, topColor:0xF0D040, shape:'corn',   growTime:14000, produceTime:8000,  sell:15, price:12, minRadius:0.8 },
   sunflowerB: { name:'向日葵', icon:'🌻', grade:'B', stemColor:0x80B030, topColor:0xF0C020, shape:'tall',   growTime:16000, produceTime:9000,  sell:18, price:15, minRadius:0.8 },
   pumpkin:    { name:'南瓜',   icon:'🎃', grade:'B', stemColor:0x5A8A40, topColor:0xFFA500, shape:'big',    growTime:18000, produceTime:10000, sell:25, price:20, minRadius:1.0 },
   // ── A Grade (昂貴永續 expensive sustainable) ──────────────────
@@ -513,6 +513,9 @@ function createPreviewMesh() {
     geo   = def.shape === 'big'    ? new THREE.SphereGeometry(r*1.2, 7, 5)
           : def.shape === 'sphere' ? new THREE.SphereGeometry(r, 7, 5)
           : def.shape === 'cone'   ? new THREE.ConeGeometry(r*0.8, r*2, 6)
+          : def.shape === 'carrot' ? new THREE.ConeGeometry(r*0.5, r*2, 6)
+          : def.shape === 'tomato' ? new THREE.SphereGeometry(r*0.8, 7, 5)
+          : def.shape === 'corn'   ? new THREE.CylinderGeometry(r*0.3, r*0.4, r*3, 6)
           : def.shape === 'tall'   ? new THREE.CylinderGeometry(r*0.5, r*0.6, r*2.5, 6)
           :                          new THREE.SphereGeometry(r, 7, 5);
   } else {
@@ -578,6 +581,145 @@ function buildPlantGroup(type) {
       top.userData.isPlantTop = true;
       jh(new THREE.SphereGeometry(0.08,5,4), varyColor(def.topColor), 0.18, stemH+0.14, 0.10);
       jh(new THREE.SphereGeometry(0.07,5,4), varyColor(def.topColor), -0.16, stemH+0.12, 0.08);
+      break;
+    }
+    // ═══ Grow-a-Garden 風格植物 ═══
+    case 'carrot': {
+      // 胡蘿蔔：橘色錐形根部半埋土中 + 綠色葉叢頂部
+      // 土塊底座
+      jh(new THREE.BoxGeometry(0.40, 0.12, 0.40),
+         varyColor(0x8B6840), 0, 0.06, 0);
+      jh(new THREE.BoxGeometry(0.34, 0.10, 0.34),
+         varyColor(0x9A7848), 0.05, 0.12, -0.03);
+      // 胡蘿蔔根部（3段漸細，從土裡露出一半）
+      jh(new THREE.BoxGeometry(0.18, 0.22, 0.18),
+         varyColor(0xF07030), 0, 0.22, 0);  // 粗段
+      jh(new THREE.BoxGeometry(0.14, 0.18, 0.14),
+         varyColor(0xE86828), 0, 0.38, 0);  // 中段
+      jh(new THREE.BoxGeometry(0.10, 0.14, 0.10),
+         varyColor(0xE06020), 0, 0.50, 0);  // 細段
+      // 根部頂端圓角
+      jh(new THREE.BoxGeometry(0.06, 0.08, 0.06),
+         varyColor(0xD85818), 0, 0.08, 0);  // 尖端（土裡）
+      // 橫紋環（胡蘿蔔表面紋路）
+      jh(new THREE.BoxGeometry(0.20, 0.02, 0.20),
+         varyColor(0xD06020), 0, 0.30, 0);
+      jh(new THREE.BoxGeometry(0.16, 0.02, 0.16),
+         varyColor(0xD06020), 0, 0.42, 0);
+      // 綠色葉叢（3-4片向外展開）
+      const leafG = 0x4A8838;
+      const top = jh(new THREE.BoxGeometry(0.06, 0.30, 0.04),
+         varyColor(leafG), 0, 0.72, 0);
+      top.userData.isPlantTop = true;
+      jh(new THREE.BoxGeometry(0.05, 0.26, 0.04),
+         varyColor(0x58A040), 0.10, 0.68, 0.06);
+      jh(new THREE.BoxGeometry(0.05, 0.24, 0.04),
+         varyColor(0x58A040), -0.08, 0.66, -0.05);
+      jh(new THREE.BoxGeometry(0.04, 0.20, 0.05),
+         varyColor(0x68B048), 0.04, 0.64, -0.09);
+      // 葉片頂端微彎（用小方塊偏移模擬）
+      jh(new THREE.BoxGeometry(0.05, 0.06, 0.04),
+         varyColor(leafG), 0.04, 0.88, 0.04);
+      jh(new THREE.BoxGeometry(0.04, 0.06, 0.04),
+         varyColor(0x58A040), 0.14, 0.82, 0.10);
+      jh(new THREE.BoxGeometry(0.04, 0.06, 0.04),
+         varyColor(0x58A040), -0.10, 0.80, -0.08);
+      break;
+    }
+    case 'tomato': {
+      // 番茄：綠色木架(支架) + 紅色圓果 + 小葉片
+      // 木支架（Y字型竹竿）
+      jh(new THREE.BoxGeometry(0.05, 0.70, 0.05),
+         varyColor(0x8B6840), 0, 0.35, 0);
+      jh(new THREE.BoxGeometry(0.05, 0.30, 0.05),
+         varyColor(0x8B6840), 0.12, 0.60, 0);
+      const stk = new THREE.Mesh(
+        new THREE.BoxGeometry(0.05, 0.30, 0.05),
+        varyColor(0x8B6840).clone()
+      );
+      stk.position.set(0.12, 0.60, 0);
+      stk.rotation.z = 0.4;
+      stk.castShadow = true; g.add(stk);
+      const stk2 = new THREE.Mesh(
+        new THREE.BoxGeometry(0.05, 0.28, 0.05),
+        varyColor(0x8B6840).clone()
+      );
+      stk2.position.set(-0.10, 0.58, 0);
+      stk2.rotation.z = -0.35;
+      stk2.castShadow = true; g.add(stk2);
+      // 藤蔓繞竿
+      jh(new THREE.BoxGeometry(0.03, 0.08, 0.03),
+         varyColor(0x4A8838), 0.04, 0.50, 0.04);
+      jh(new THREE.BoxGeometry(0.03, 0.08, 0.03),
+         varyColor(0x4A8838), -0.04, 0.40, -0.03);
+      jh(new THREE.BoxGeometry(0.03, 0.06, 0.03),
+         varyColor(0x58A040), 0.03, 0.30, 0.03);
+      // 番茄果實（主果 + 2小果）
+      const top = jh(new THREE.SphereGeometry(0.18, 8, 6),
+         varyColor(0xE83020), 0.05, 0.52, 0.10);
+      top.userData.isPlantTop = true;
+      jh(new THREE.SphereGeometry(0.12, 7, 5),
+         varyColor(0xE03828), -0.12, 0.42, -0.08);
+      jh(new THREE.SphereGeometry(0.09, 6, 5),
+         varyColor(0xD83018), 0.14, 0.38, -0.06);
+      // 果實頂部星形萼片
+      jh(new THREE.BoxGeometry(0.14, 0.02, 0.03),
+         varyColor(0x4A8838), 0.05, 0.68, 0.10);
+      jh(new THREE.BoxGeometry(0.03, 0.02, 0.14),
+         varyColor(0x4A8838), 0.05, 0.68, 0.10);
+      // 葉片（3片展開）
+      jh(new THREE.BoxGeometry(0.16, 0.03, 0.08),
+         varyColor(0x4A8838), 0.20, 0.55, 0.05);
+      jh(new THREE.BoxGeometry(0.16, 0.03, 0.08),
+         varyColor(0x58A040), -0.18, 0.50, -0.06);
+      jh(new THREE.BoxGeometry(0.08, 0.03, 0.16),
+         varyColor(0x4A8838), 0.02, 0.48, 0.18);
+      break;
+    }
+    case 'corn': {
+      // 玉米：高莖稈 + 黃色玉米棒 + 寬長葉片 + 棕色穗頂
+      // 主莖稈（粗壯方形）
+      jh(new THREE.BoxGeometry(0.08, 0.90, 0.08),
+         varyColor(0x4A8030), 0, 0.45, 0);
+      // 莖節環
+      jh(new THREE.BoxGeometry(0.10, 0.03, 0.10),
+         varyColor(0x3A7028), 0, 0.30, 0);
+      jh(new THREE.BoxGeometry(0.10, 0.03, 0.10),
+         varyColor(0x3A7028), 0, 0.55, 0);
+      // 玉米棒（黃色圓柱，稍偏側）
+      const cob = jh(new THREE.CylinderGeometry(0.10, 0.08, 0.30, 8),
+         varyColor(0xF0D040), 0.10, 0.55, 0.06);
+      // 玉米棒表面顆粒紋（小方塊）
+      [[0.08,0.48,0.14],[0.14,0.52,0.02],[0.06,0.58,0.12],[0.14,0.62,0.08]].forEach(([kx,ky,kz]) =>
+        jh(new THREE.BoxGeometry(0.03,0.03,0.03), varyColor(0xE8C830), kx,ky,kz)
+      );
+      // 玉米皮（部分剝開的綠色苞葉）
+      jh(new THREE.BoxGeometry(0.06, 0.22, 0.12),
+         varyColor(0x68A838), 0.20, 0.55, 0.06);
+      jh(new THREE.BoxGeometry(0.06, 0.18, 0.10),
+         varyColor(0x58A030), 0.02, 0.48, 0.14);
+      // 寬長葉片（4片交替，Grow-a-Garden 風格弧形大葉）
+      const leafMats = [0x4A8030, 0x58A038, 0x3A7028, 0x68B040];
+      [[ 0.30, 0.35,  0.05, -0.3],
+       [-0.28, 0.50, -0.06,  0.3],
+       [ 0.25, 0.65,  0.08, -0.25],
+       [-0.22, 0.25, -0.08,  0.25]].forEach(([lx,ly,lz,rot], li) => {
+        const leaf = new THREE.Mesh(
+          new THREE.BoxGeometry(0.28, 0.04, 0.10),
+          varyColor(leafMats[li])
+        );
+        leaf.position.set(lx, ly, lz);
+        leaf.rotation.z = rot;
+        leaf.castShadow = true; g.add(leaf);
+      });
+      // 穗頂（棕色鬚絲）
+      const top = jh(new THREE.BoxGeometry(0.04, 0.18, 0.04),
+         varyColor(0xA08040), 0, 0.95, 0);
+      top.userData.isPlantTop = true;
+      jh(new THREE.BoxGeometry(0.03, 0.14, 0.03),
+         varyColor(0xB09050), 0.04, 0.92, 0.03);
+      jh(new THREE.BoxGeometry(0.03, 0.12, 0.03),
+         varyColor(0xB09050), -0.03, 0.90, -0.02);
       break;
     }
     case 'big': {
