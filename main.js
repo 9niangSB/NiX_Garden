@@ -10,6 +10,7 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { OBJLoader }     from 'three/addons/loaders/OBJLoader.js';
 import { MTLLoader }     from 'three/addons/loaders/MTLLoader.js';
+import { OBJExporter }   from 'three/addons/exporters/OBJExporter.js';
 
 // ============================================================
 //  資料層
@@ -2062,10 +2063,27 @@ renderer.domElement.addEventListener('pointerup', e => {
       while (obj) { if (obj===p.mesh){target=p; break outer;} obj=obj.parent; }
     }
     if (target) {
+      if (currentMode === 'export') {
+        exportMeshToOBJ(target.mesh, target.type);
+        return;
+      }
       if (currentMode === 'delete')     deleteAt(target.gridX, target.gridZ);
       else if (target.hasFruit)         harvestPlant(target);
       else showToast(target.stage==='growing' ? '🌱 育っています...' : '🌿 もうすぐ実る...');
       return;
+    }
+  }
+
+  // ②b 家具 export 模式
+  if (currentMode === 'export') {
+    const allFM = [];
+    placedObjects.forEach(o => o.mesh.traverse(c => { if (c.isMesh) allFM.push(c); }));
+    const fHits = raycaster.intersectObjects(allFM);
+    if (fHits.length > 0) {
+      for (const o of placedObjects) {
+        let obj = fHits[0].object;
+        while (obj) { if (obj===o.mesh){ exportMeshToOBJ(o.mesh, o.furnId); return; } obj=obj.parent; }
+      }
     }
   }
 
@@ -2077,6 +2095,8 @@ renderer.domElement.addEventListener('pointerup', e => {
 
   if (currentMode === 'plant') {
     spawnPlant(hit.x, hit.z);
+  } else if (currentMode === 'export') {
+    // export 模式點地面不做任何事
   } else {
     const { x, z } = snapToGrid(hit);
     if (currentMode === 'build')       spawnFurniture(x, z);
@@ -2090,12 +2110,81 @@ renderer.domElement.addEventListener('pointerup', e => {
 window.setMode = function(mode) {
   currentMode = mode;
   document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
-  const map = { plant:'btn-plant', build:'btn-build', delete:'btn-delete' };
+  const map = { plant:'btn-plant', build:'btn-build', delete:'btn-delete', export:'btn-export' };
   document.getElementById(map[mode])?.classList.add('active');
-  const labels = { plant:'種植', build:'家具', delete:'移除' };
+  const labels = { plant:'種植', build:'家具', delete:'移除', export:'匯出' };
   document.getElementById('mode-label').textContent = `模式：${labels[mode]}`;
+  if (mode === 'export') showToast('📦 點擊任何植物或家具 → 下載 .obj');
   closeAllPanels();
   createPreviewMesh();
+};
+
+// ============================================================
+//  ═══ 匯出系統 ═══  OBJ Exporter (場上物件 → .obj 下載)
+// ============================================================
+const objExporter = new OBJExporter();
+
+/**
+ * 匯出單一物件為 .obj 下載
+ */
+function exportMeshToOBJ(group, filename) {
+  try {
+    const result = objExporter.parse(group);
+    const blob   = new Blob([result], { type: 'text/plain' });
+    const url    = URL.createObjectURL(blob);
+    const a      = document.createElement('a');
+    a.href       = url;
+    a.download   = filename + '.obj';
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast(`📦 ${filename}.obj 下載完成！`);
+  } catch (e) {
+    showToast('匯出失敗: ' + e.message);
+  }
+}
+
+/**
+ * 匯出圖鑑中的模型（不需要先種植）
+ */
+window.exportFromCatalog = function(type, category) {
+  let group, filename;
+  if (category === 'plant') {
+    group    = buildPlantGroup(type);
+    filename = type;
+  } else {
+    group    = buildFurnitureMesh(type);
+    filename = type;
+  }
+  exportMeshToOBJ(group, filename);
+  // 清理暫時生成的 mesh
+  group.traverse(c => {
+    if (c.isMesh) {
+      c.geometry.dispose();
+      (Array.isArray(c.material)?c.material:[c.material]).forEach(m=>m.dispose());
+    }
+  });
+};
+
+/**
+ * 一鍵匯出全部植物 + 全部家具圖鑑
+ */
+window.exportAllModels = function() {
+  let count = 0;
+  // 植物
+  Object.keys(plantCatalog).forEach(id => {
+    const g = buildPlantGroup(id);
+    exportMeshToOBJ(g, id);
+    g.traverse(c => { if (c.isMesh) { c.geometry.dispose(); [c.material].flat().forEach(m=>m.dispose()); }});
+    count++;
+  });
+  // 家具
+  furnitureCatalog.forEach(f => {
+    const g = buildFurnitureMesh(f.id);
+    exportMeshToOBJ(g, f.id);
+    g.traverse(c => { if (c.isMesh) { c.geometry.dispose(); [c.material].flat().forEach(m=>m.dispose()); }});
+    count++;
+  });
+  showToast(`📦 全部 ${count} 個模型匯出完成！`);
 };
 
 window.openCatalog = function(type) {
@@ -2111,8 +2200,13 @@ window.openCatalog = function(type) {
       const cnt = inventorySeeds[id] || 0;
       const btn = document.createElement('button');
       btn.className = 'catalog-item' + (id===selectedSeed ? ' selected' : '');
-      btn.innerHTML = `<span class="ci-icon">${def.icon}</span><span class="ci-name">${def.name}</span><span class="ci-stock">×${cnt}</span>`;
-      btn.onclick = () => {
+      btn.innerHTML = `<span class="ci-icon">${def.icon}</span><span class="ci-name">${def.name}</span><span class="ci-stock">×${cnt}</span><span class="ci-export" data-export="plant:${id}">📦</span>`;
+      btn.onclick = (e) => {
+        if (e.target.classList.contains('ci-export')) {
+          e.stopPropagation();
+          exportFromCatalog(e.target.dataset.export.split(':')[1], 'plant');
+          return;
+        }
         selectedSeed = id;
         window.setMode('plant');
         list.querySelectorAll('.catalog-item').forEach(b=>b.classList.remove('selected'));
@@ -2126,8 +2220,13 @@ window.openCatalog = function(type) {
     furnitureCatalog.forEach(def => {
       const btn = document.createElement('button');
       btn.className = 'catalog-item' + (def.id===selectedFurnId ? ' selected' : '');
-      btn.innerHTML = `<span class="ci-icon">${def.icon}</span><span class="ci-name">${def.name}</span>`;
-      btn.onclick = () => {
+      btn.innerHTML = `<span class="ci-icon">${def.icon}</span><span class="ci-name">${def.name}</span><span class="ci-export" data-export="build:${def.id}">📦</span>`;
+      btn.onclick = (e) => {
+        if (e.target.classList.contains('ci-export')) {
+          e.stopPropagation();
+          exportFromCatalog(e.target.dataset.export.split(':')[1], 'build');
+          return;
+        }
         selectedFurnId = def.id;
         window.setMode('build');
         list.querySelectorAll('.catalog-item').forEach(b=>b.classList.remove('selected'));
