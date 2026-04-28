@@ -43,19 +43,26 @@ const plantCatalog = {
 };
 
 const furnitureCatalog = [
-  { id:'chair',  name:'椅子',   icon:'🪑', color:0xC89B6D },
-  { id:'table',  name:'桌子',   icon:'🪵', color:0xA97C50 },
-  { id:'window', name:'窗戶',   icon:'🪟', color:0xA8C8E8 },
-  { id:'door',   name:'門',     icon:'🚪', color:0x8B6040 },
-  { id:'cobble', name:'石子路', icon:'🪨', color:0xB0A898 },
-  { id:'pond',   name:'池塘',   icon:'💧', color:0x5C8FB0 },
-  { id:'japanese_house', name:'和風小屋', icon:'🏯', color:0xC87060 },
-  { id:'tea_house',      name:'茶室',    icon:'🍵', color:0xB03020 },
-  { id:'jump_ramp',   name:'小跳台',  icon:'🎿', color:0xE8F0FF },
-  { id:'big_jump',    name:'大跳台',  icon:'🏔️', color:0xD0E8FF },
-  { id:'chairlift',   name:'纜車椅', icon:'🚡', color:0xC0C8D8 },
-  { id:'snow_cannon', name:'造雪機', icon:'💨', color:0x8090A8 },
-  { id:'frozen_tree', name:'冰結樹', icon:'🧊', color:0xE0F0FF },
+  { id:'chair',  name:'椅子',   icon:'🪑', color:0xC89B6D, price:10 },
+  { id:'table',  name:'桌子',   icon:'🪵', color:0xA97C50, price:15 },
+  { id:'window', name:'窗戶',   icon:'🪟', color:0xA8C8E8, price:20 },
+  { id:'door',   name:'門',     icon:'🚪', color:0x8B6040, price:20 },
+  { id:'cobble', name:'石子路', icon:'🪨', color:0xB0A898, price:10 },
+  { id:'pond',   name:'池塘',   icon:'💧', color:0x5C8FB0, price:50 },
+  { id:'japanese_house', name:'和風小屋', icon:'🏯', color:0xC87060, price:500 },
+  { id:'tea_house',      name:'茶室',    icon:'🍵', color:0xB03020, price:400 },
+  { id:'jump_ramp',   name:'小跳台',  icon:'🎿', color:0xE8F0FF, price:30 },
+  { id:'big_jump',    name:'大跳台',  icon:'🏔️', color:0xD0E8FF, price:80 },
+  { id:'chairlift',   name:'纜車椅', icon:'🚡', color:0xC0C8D8, price:100 },
+  { id:'snow_cannon', name:'造雪機', icon:'💨', color:0x8090A8, price:120 },
+  { id:'frozen_tree', name:'冰結樹', icon:'🧊', color:0xE0F0FF, price:200 },
+];
+
+const equipmentCatalog = [
+  { id:'board_black',   name:'黒板',   icon:'🏂', price:100 },
+  { id:'board_flame',   name:'炎板',   icon:'🔥', price:300 },
+  { id:'helmet_gold',   name:'金盔',   icon:'⛑️', price:500 },
+  { id:'goggle_rainbow', name:'虹鏡', icon:'🌈', price:200 },
 ];
 
 const SEASON_CFG = {
@@ -86,6 +93,28 @@ const placedObjects = [];   // furniture
 const occupiedCells = new Set();
 const groundTiles   = [];   // refs for season recolor
 const animals       = [];
+
+// ── Player & Ski system state ──
+let playerMesh       = null;
+let playerBoardMesh  = null;
+let playerState      = 'walking';   // walking | riding_lift | skiing
+const playerPos      = { x:0, y:0, z:0 };
+const playerVel      = { x:0, y:0, z:0 };
+let playerFacing     = 0;           // radians
+let playerBobT       = 0;
+const keysDown       = {};
+const PLAYER_SPEED   = 3.0;
+const SKI_ACCEL      = 8.0;
+const SKI_MAX_SPEED  = 12.0;
+let cameraFollowMode = true;
+
+// ── Shop: furniture & equipment inventory ──
+const furnitureInventory = {};   // { id: count }
+const equipmentInventory = {};  // { id: count }
+let equippedBoard  = 'board_black';
+let equippedHelmet = null;
+let equippedGoggle = null;
+let activeShopTab  = 'seeds';
 
 // ============================================================
 //  ═══ 地基層 ═══  OBJ 模型載入系統 (MagicaVoxel → Three.js)
@@ -238,6 +267,10 @@ controls.maxPolarAngle = Math.PI / 2.2;
 controls.minDistance   = 8;
 controls.maxDistance   = 35;
 controls.target.set(0, 0, 0);
+
+// ── Keyboard input for player movement ──
+window.addEventListener('keydown', e => { keysDown[e.key.toLowerCase()] = true; });
+window.addEventListener('keyup',   e => { keysDown[e.key.toLowerCase()] = false; });
 
 // ============================================================
 //  ═══ 地基層 ═══  Lights
@@ -2720,6 +2753,511 @@ function updateAnimals(delta, now) {
 }
 
 // ============================================================
+//  ═══ 一樓 ═══  Player Character (Chibi Snowboard Girl)
+// ============================================================
+function buildPlayerMesh() {
+  const g = new THREE.Group();
+  const V = 0.06; // voxel unit for player (~1.5 total height)
+  const jh = (geo, mat, x, y, z) => {
+    const m = new THREE.Mesh(geo, mat);
+    m.position.set(x, y, z); m.castShadow = true; g.add(m); return m;
+  };
+
+  // ── Head (chibi: ~0.6 units, 40% of 1.5) ──
+  const skinM  = new THREE.MeshLambertMaterial({ color: 0xFDE4C8 });
+  const helmM  = new THREE.MeshLambertMaterial({ color: 0x222222 });
+  const gogM   = new THREE.MeshLambertMaterial({ color: 0xF0F0F0 });
+  const gogL   = new THREE.MeshLambertMaterial({ color: 0xA0D0E8, transparent:true, opacity:0.7 });
+  const hairM  = new THREE.MeshLambertMaterial({ color: 0x6A3A20 });
+  const eyeM   = new THREE.MeshLambertMaterial({ color: 0x2A2020 });
+  const mouthM = new THREE.MeshLambertMaterial({ color: 0xD07060 });
+
+  // Head sphere (chibi large)
+  jh(new THREE.BoxGeometry(V*9, V*9, V*8), skinM, 0, 1.20, 0);
+  // Helmet (top of head)
+  jh(new THREE.BoxGeometry(V*10, V*5, V*9), helmM, 0, 1.42, 0);
+  // Goggles on helmet top
+  jh(new THREE.BoxGeometry(V*8, V*2.5, V*2), gogM, 0, 1.52, V*4);
+  jh(new THREE.BoxGeometry(V*3, V*2, V*1), gogL, -V*2, 1.52, V*5);
+  jh(new THREE.BoxGeometry(V*3, V*2, V*1), gogL,  V*2, 1.52, V*5);
+  // Eyes
+  jh(new THREE.BoxGeometry(V*1.5, V*1.5, V*1), eyeM, -V*2, 1.18, V*4.5);
+  jh(new THREE.BoxGeometry(V*1.5, V*1.5, V*1), eyeM,  V*2, 1.18, V*4.5);
+  // Mouth
+  jh(new THREE.BoxGeometry(V*2, V*0.8, V*0.5), mouthM, 0, 1.10, V*4.5);
+  // Braids (two brown braids hanging down)
+  [-V*4.5, V*4.5].forEach(bx => {
+    for (let i = 0; i < 5; i++) {
+      jh(new THREE.BoxGeometry(V*1.5, V*2, V*1.5), hairM, bx, 1.15 - i*V*2, -V*2);
+    }
+    // Braid tie
+    jh(new THREE.BoxGeometry(V*2, V*1, V*2), new THREE.MeshLambertMaterial({color:0xE06030}), bx, 1.15-5*V*2, -V*2);
+  });
+  // Hair bangs
+  jh(new THREE.BoxGeometry(V*9, V*2, V*2), hairM, 0, 1.35, V*4);
+
+  // ── Body (chibi: short ~0.5 units) ──
+  const jacketM = new THREE.MeshLambertMaterial({ color: 0xE86820 }); // orange
+  const shirtM  = new THREE.MeshLambertMaterial({ color: 0xF0E0C8 }); // cream
+  const zipM    = new THREE.MeshLambertMaterial({ color: 0xC8C8C8 }); // zip
+
+  // Torso
+  jh(new THREE.BoxGeometry(V*8, V*7, V*5), jacketM, 0, 0.78, 0);
+  // Shirt peek (under jacket)
+  jh(new THREE.BoxGeometry(V*3, V*2, V*1), shirtM, 0, 0.70, V*2.8);
+  // Zip line
+  jh(new THREE.BoxGeometry(V*0.8, V*6, V*0.5), zipM, 0, 0.78, V*2.6);
+
+  // ── Arms ──
+  [-V*5, V*5].forEach(ax => {
+    jh(new THREE.BoxGeometry(V*2.5, V*6, V*3), jacketM, ax, 0.76, 0);
+    // Hands (skin)
+    jh(new THREE.BoxGeometry(V*2, V*2, V*2.5), skinM, ax, 0.58, 0);
+  });
+
+  // ── Legs (orange pants) ──
+  const pantsM = new THREE.MeshLambertMaterial({ color: 0xE07020 });
+  const pantsD = new THREE.MeshLambertMaterial({ color: 0x3A3030 }); // dark accents
+  const bootM  = new THREE.MeshLambertMaterial({ color: 0x222222 });
+  [-V*2.5, V*2.5].forEach(lx => {
+    jh(new THREE.BoxGeometry(V*3, V*5, V*3.5), pantsM, lx, 0.45, 0);
+    jh(new THREE.BoxGeometry(V*3.2, V*1, V*0.8), pantsD, lx, 0.42, V*1.8); // dark accent stripe
+    // Boots
+    jh(new THREE.BoxGeometry(V*3.2, V*3, V*4), bootM, lx, 0.20, V*0.5);
+  });
+
+  // ── Snowboard (held at side, flat black) ──
+  const boardMat = new THREE.MeshLambertMaterial({ color: 0x1A1A1A });
+  const boardTextM = new THREE.MeshLambertMaterial({ color: 0xE0E0E0 });
+  const boardGrp = new THREE.Group();
+  const boardBody = new THREE.Mesh(new THREE.BoxGeometry(V*2, V*16, V*0.8), boardMat);
+  boardBody.position.set(0, 0.75, 0); boardBody.castShadow = true; boardGrp.add(boardBody);
+  // Board nose/tail curve
+  const boardNose = new THREE.Mesh(new THREE.BoxGeometry(V*1.5, V*1.5, V*0.8), boardMat);
+  boardNose.position.set(0, 1.23, 0); boardGrp.add(boardNose);
+  const boardTail = new THREE.Mesh(new THREE.BoxGeometry(V*1.5, V*1.2, V*0.8), boardMat);
+  boardTail.position.set(0, 0.27, 0); boardGrp.add(boardTail);
+  // "NOVEMBER" text marker (small white block)
+  const boardLabel = new THREE.Mesh(new THREE.BoxGeometry(V*1, V*3, V*0.3), boardTextM);
+  boardLabel.position.set(0, 0.80, V*0.5); boardGrp.add(boardLabel);
+  boardGrp.position.set(V*7, 0, -V*1);
+  boardGrp.rotation.z = 0.08;
+  g.add(boardGrp);
+
+  g.userData.boardGrp = boardGrp;
+  return g;
+}
+
+// ── Snowboard under feet (for skiing mode) ──
+function buildSkiBoard() {
+  const g = new THREE.Group();
+  const V = 0.06;
+  const boardMat = new THREE.MeshLambertMaterial({ color: 0x1A1A1A });
+  // Flat board under feet
+  const body = new THREE.Mesh(new THREE.BoxGeometry(V*4, V*0.8, V*18), boardMat);
+  body.position.set(0, -0.02, 0); body.castShadow = true; g.add(body);
+  // Nose curve
+  const nose = new THREE.Mesh(new THREE.BoxGeometry(V*3, V*0.8, V*2), boardMat);
+  nose.position.set(0, 0, V*9.5); g.add(nose);
+  // Tail curve
+  const tail = new THREE.Mesh(new THREE.BoxGeometry(V*3, V*0.8, V*1.5), boardMat);
+  tail.position.set(0, 0, -V*9.5); g.add(tail);
+  return g;
+}
+
+// Spawn the player
+function initPlayer() {
+  playerMesh = buildPlayerMesh();
+  playerMesh.position.set(0, 0, 2);
+  playerPos.x = 0; playerPos.y = 0; playerPos.z = 2;
+  scene.add(playerMesh);
+}
+initPlayer();
+
+// ── Mountain terrain height lookup ──
+const mountainHeightMap = [];   // will be filled by buildSkiMountain
+function getMountainHeight(x, z) {
+  // Approximate height from the ski mountain geometry
+  if (z > SNOW_ZONE_Z || z < -35) return 0;
+  // Mountain profile: gentle slope from z=-8 to peak at z=-28, Y=12
+  const peakZ = -28, peakY = 12, baseZ = SNOW_ZONE_Z, endZ = -35;
+  const halfW = 6; // mountain width
+  if (Math.abs(x) > halfW + 2) return 0;
+  const widthFactor = Math.max(0, 1 - Math.pow(Math.abs(x) / (halfW + 1), 2));
+  let h = 0;
+  if (z >= baseZ && z > peakZ) {
+    // ascending slope
+    const t = (baseZ - z) / (baseZ - peakZ);
+    h = peakY * Math.pow(t, 0.8);
+  } else if (z <= peakZ && z >= endZ) {
+    // descending back side (steep)
+    const t = (z - peakZ) / (endZ - peakZ);
+    h = peakY * (1 - t * t);
+  }
+  return h * widthFactor;
+}
+
+// ── Player update (called each frame) ──
+function updatePlayer(delta, now) {
+  if (!playerMesh) return;
+
+  if (playerState === 'walking') {
+    let dx = 0, dz = 0;
+    if (keysDown['w'] || keysDown['arrowup'])    dz -= 1;
+    if (keysDown['s'] || keysDown['arrowdown'])  dz += 1;
+    if (keysDown['a'] || keysDown['arrowleft'])  dx -= 1;
+    if (keysDown['d'] || keysDown['arrowright']) dx += 1;
+    const moving = dx !== 0 || dz !== 0;
+    if (moving) {
+      const len = Math.sqrt(dx*dx + dz*dz);
+      dx /= len; dz /= len;
+      playerPos.x += dx * PLAYER_SPEED * delta;
+      playerPos.z += dz * PLAYER_SPEED * delta;
+      playerFacing = Math.atan2(dx, dz);
+      playerBobT += delta * 8;
+    }
+    // Terrain height follow
+    const terrainH = getMountainHeight(playerPos.x, playerPos.z);
+    playerPos.y = terrainH;
+    // Bob while moving
+    const bobY = (dx !== 0 || dz !== 0) ? Math.abs(Math.sin(playerBobT)) * 0.08 : 0;
+    playerMesh.position.set(playerPos.x, playerPos.y + bobY, playerPos.z);
+    playerMesh.rotation.y = playerFacing;
+
+    // Check if reached mountain top → start skiing
+    if (playerPos.y > 10 && playerPos.z < -20) {
+      startSkiing();
+    }
+
+    // Show/hide held board based on state
+    if (playerMesh.userData.boardGrp) playerMesh.userData.boardGrp.visible = true;
+
+  } else if (playerState === 'skiing') {
+    // Auto-slide downhill (toward +Z, following mountain slope)
+    const slope = getMountainHeight(playerPos.x, playerPos.z) - getMountainHeight(playerPos.x, playerPos.z + 0.3);
+    const slopeFactor = Math.max(0.5, slope * 8);
+    playerVel.z += SKI_ACCEL * slopeFactor * delta;
+    playerVel.z = Math.min(playerVel.z, SKI_MAX_SPEED);
+
+    // Slight steering with A/D
+    if (keysDown['a'] || keysDown['arrowleft'])  playerVel.x -= 4 * delta;
+    if (keysDown['d'] || keysDown['arrowright']) playerVel.x += 4 * delta;
+    playerVel.x *= 0.95; // friction
+
+    playerPos.x += playerVel.x * delta;
+    playerPos.z += playerVel.z * delta;
+
+    // Y follows terrain
+    const terrainH = getMountainHeight(playerPos.x, playerPos.z);
+    // Jump ramp detection
+    let onRamp = false;
+    placedObjects.forEach(o => {
+      if (o.furnId !== 'jump_ramp' && o.furnId !== 'big_jump') return;
+      const ddx = playerPos.x - o.mesh.position.x;
+      const ddz = playerPos.z - o.mesh.position.z;
+      if (Math.abs(ddx) < 1.5 && Math.abs(ddz) < 1.5) {
+        onRamp = true;
+        const jumpPower = o.furnId === 'big_jump' ? 6 : 3;
+        if (playerVel.y <= 0) playerVel.y = jumpPower;
+      }
+    });
+
+    // Gravity for jumps
+    if (playerPos.y > terrainH + 0.1) {
+      playerVel.y -= 15 * delta;  // gravity
+    } else {
+      playerVel.y = 0;
+      playerPos.y = terrainH;
+    }
+    playerPos.y += playerVel.y * delta;
+    playerPos.y = Math.max(playerPos.y, terrainH);
+
+    playerFacing = Math.atan2(playerVel.x, playerVel.z);
+    playerMesh.position.set(playerPos.x, playerPos.y, playerPos.z);
+    playerMesh.rotation.y = playerFacing;
+    // Tilt forward slightly while skiing
+    playerMesh.rotation.x = -0.15;
+
+    // End skiing when back at flat ground
+    if (playerPos.z > SNOW_ZONE_Z - 1 && playerPos.y < 0.5) {
+      endSkiing();
+    }
+
+  } else if (playerState === 'riding_lift') {
+    // Simple auto-ride up the mountain
+    playerPos.z -= 2 * delta;
+    playerPos.y = getMountainHeight(playerPos.x, playerPos.z) + 2;
+    playerMesh.position.set(playerPos.x, playerPos.y, playerPos.z);
+    if (playerPos.z < -25) {
+      playerState = 'walking';
+      playerPos.y = getMountainHeight(playerPos.x, playerPos.z);
+      showToast('🏔️ 山頂到着！滑り出そう！');
+    }
+  }
+
+  // Camera follow
+  if (cameraFollowMode) {
+    const targetPos = new THREE.Vector3(playerPos.x, playerPos.y + 2, playerPos.z);
+    controls.target.lerp(targetPos, 0.05);
+    const camOffset = new THREE.Vector3(
+      playerPos.x + Math.sin(playerFacing + Math.PI) * 8,
+      playerPos.y + 8,
+      playerPos.z + Math.cos(playerFacing + Math.PI) * 8
+    );
+    camera.position.lerp(camOffset, 0.03);
+  }
+}
+
+function startSkiing() {
+  playerState = 'skiing';
+  playerVel.x = 0; playerVel.y = 0; playerVel.z = 1;  // start sliding toward +Z
+  // Attach snowboard under feet
+  if (!playerBoardMesh) {
+    playerBoardMesh = buildSkiBoard();
+  }
+  playerMesh.add(playerBoardMesh);
+  playerBoardMesh.position.set(0, 0.05, 0);
+  // Hide held board
+  if (playerMesh.userData.boardGrp) playerMesh.userData.boardGrp.visible = false;
+  showToast('🏂 滑降開始！');
+}
+
+function endSkiing() {
+  playerState = 'walking';
+  playerVel.x = 0; playerVel.y = 0; playerVel.z = 0;
+  playerMesh.rotation.x = 0;
+  // Remove board from feet
+  if (playerBoardMesh && playerBoardMesh.parent) {
+    playerMesh.remove(playerBoardMesh);
+  }
+  // Show held board again
+  if (playerMesh.userData.boardGrp) playerMesh.userData.boardGrp.visible = true;
+  showToast('🚶 歩行モードに戻った');
+}
+
+// ============================================================
+//  ═══ 一樓 ═══  Ski Mountain (playable terrain)
+// ============================================================
+function buildSkiMountain() {
+  const mtnGroup = new THREE.Group();
+  mtnGroup.name = 'skiMountain';
+
+  const snowA = new THREE.MeshLambertMaterial({ color: 0xF0F8FF });
+  const snowB = new THREE.MeshLambertMaterial({ color: 0xE0ECF8 });
+  const snowC = new THREE.MeshLambertMaterial({ color: 0xD0E0F0 });
+  const snowD = new THREE.MeshLambertMaterial({ color: 0xC8D8E8 });
+  const rockA = new THREE.MeshLambertMaterial({ color: 0x8898A8 });
+  const rockB = new THREE.MeshLambertMaterial({ color: 0x6A7888 });
+  const treeSnowA = new THREE.MeshLambertMaterial({ color: 0x3A6838 });
+  const treeSnowB = new THREE.MeshLambertMaterial({ color: 0xD0E8E0 });
+  const snows = [snowA, snowB, snowC, snowD];
+
+  // Build mountain as layered blocks
+  const peakZ = -28, peakY = 12;
+  const baseZ = SNOW_ZONE_Z; // -8
+  const endZ  = -35;
+  const halfW = 6;
+
+  // Generate terrain blocks
+  for (let z = baseZ; z >= endZ; z -= 0.8) {
+    for (let x = -halfW - 1; x <= halfW + 1; x += 0.8) {
+      const h = getMountainHeight(x, z);
+      if (h < 0.2) continue;
+      const blockH = Math.max(0.4, h * 0.3);
+      const mat = snows[Math.floor(Math.random() * snows.length)];
+      const block = new THREE.Mesh(
+        new THREE.BoxGeometry(0.85, blockH, 0.85),
+        mat
+      );
+      block.position.set(x, h - blockH/2, z);
+      block.receiveShadow = true;
+      block.castShadow = true;
+      mtnGroup.add(block);
+    }
+  }
+
+  // Snow surface layer (smoother top)
+  for (let z = baseZ; z >= endZ; z -= 1.2) {
+    for (let x = -halfW; x <= halfW; x += 1.2) {
+      const h = getMountainHeight(x, z);
+      if (h < 0.3) continue;
+      const mat = snows[Math.floor(Math.random() * snows.length)];
+      const slab = new THREE.Mesh(
+        new THREE.BoxGeometry(1.3, 0.15, 1.3),
+        mat
+      );
+      slab.position.set(x, h + 0.05, z);
+      slab.receiveShadow = true;
+      mtnGroup.add(slab);
+    }
+  }
+
+  // Slope path (darker, 3-4 units wide, winding)
+  const pathMat = new THREE.MeshLambertMaterial({ color: 0xD8E4F0 });
+  for (let z = baseZ - 1; z >= endZ + 2; z -= 0.6) {
+    const t = (baseZ - z) / (baseZ - peakZ);
+    const pathX = Math.sin(t * 4) * 2; // winding
+    const h = getMountainHeight(pathX, z);
+    if (h < 0.2) continue;
+    const pathBlock = new THREE.Mesh(
+      new THREE.BoxGeometry(3.5, 0.12, 0.7),
+      pathMat
+    );
+    pathBlock.position.set(pathX, h + 0.08, z);
+    pathBlock.receiveShadow = true;
+    mtnGroup.add(pathBlock);
+  }
+
+  // Rock outcroppings
+  [[-5, -15, 3], [4, -20, 4], [-3, -25, 5], [5, -12, 2.5], [-6, -30, 3]].forEach(([rx, rz, rh]) => {
+    const h = getMountainHeight(rx, rz);
+    const rock = new THREE.Mesh(
+      new THREE.BoxGeometry(1.5, rh, 1.2),
+      Math.random() > 0.5 ? rockA : rockB
+    );
+    rock.position.set(rx, h + rh/2 - 0.5, rz);
+    rock.castShadow = true;
+    mtnGroup.add(rock);
+  });
+
+  // Snow-dusted trees on slopes
+  [[-4, -12], [3, -14], [-5, -18], [4, -22], [-3, -26], [5, -10], [-6, -20]].forEach(([tx, tz]) => {
+    const h = getMountainHeight(tx, tz);
+    if (h < 0.5) return;
+    // Trunk
+    const trunk = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.08, 0.12, 1.2, 5),
+      new THREE.MeshLambertMaterial({ color: 0x5A3820 })
+    );
+    trunk.position.set(tx, h + 0.6, tz);
+    trunk.castShadow = true;
+    mtnGroup.add(trunk);
+    // Snow-covered foliage (3 layers)
+    [0.8, 1.2, 1.5].forEach((ly, i) => {
+      const r = 0.5 - i * 0.12;
+      const foliage = new THREE.Mesh(
+        new THREE.ConeGeometry(r, 0.5, 6),
+        i % 2 === 0 ? treeSnowA : treeSnowB
+      );
+      foliage.position.set(tx, h + ly, tz);
+      foliage.castShadow = true;
+      mtnGroup.add(foliage);
+    });
+  });
+
+  // Chairlift line (poles from bottom to top)
+  const liftX = -3;
+  const poleCount = 6;
+  const cableMat = new THREE.MeshLambertMaterial({ color: 0x808890 });
+  const poleMat  = new THREE.MeshLambertMaterial({ color: 0xA0A8B0 });
+  for (let i = 0; i <= poleCount; i++) {
+    const t = i / poleCount;
+    const pz = baseZ - t * (baseZ - (peakZ + 2));
+    const ph = getMountainHeight(liftX, pz);
+    // Pole
+    const poleH = 3;
+    const pole = new THREE.Mesh(
+      new THREE.BoxGeometry(0.15, poleH, 0.15),
+      poleMat
+    );
+    pole.position.set(liftX, ph + poleH/2, pz);
+    pole.castShadow = true;
+    mtnGroup.add(pole);
+    // Cross bar at top
+    const crossbar = new THREE.Mesh(
+      new THREE.BoxGeometry(1.2, 0.1, 0.1),
+      poleMat
+    );
+    crossbar.position.set(liftX, ph + poleH, pz);
+    mtnGroup.add(crossbar);
+  }
+  // Cable
+  for (let i = 0; i < poleCount; i++) {
+    const t0 = i / poleCount;
+    const t1 = (i + 1) / poleCount;
+    const z0 = baseZ - t0 * (baseZ - (peakZ + 2));
+    const z1 = baseZ - t1 * (baseZ - (peakZ + 2));
+    const h0 = getMountainHeight(liftX, z0) + 3;
+    const h1 = getMountainHeight(liftX, z1) + 3;
+    const midZ = (z0 + z1) / 2;
+    const cableLen = Math.sqrt(Math.pow(z1-z0,2) + Math.pow(h1-h0,2));
+    const cable = new THREE.Mesh(
+      new THREE.BoxGeometry(0.04, 0.04, Math.abs(z1 - z0)),
+      cableMat
+    );
+    cable.position.set(liftX, (h0 + h1) / 2, midZ);
+    mtnGroup.add(cable);
+  }
+
+  // Extend groundHitMesh to cover mountain area
+  const extendedHit = new THREE.Mesh(
+    new THREE.PlaneGeometry(20, 30),
+    new THREE.MeshBasicMaterial({ visible: false, side: THREE.DoubleSide })
+  );
+  extendedHit.rotation.x = -Math.PI / 2;
+  extendedHit.position.set(0, 0, -20);
+  extendedHit.name = 'mountainHit';
+  scene.add(extendedHit);
+
+  scene.add(mtnGroup);
+  return mtnGroup;
+}
+
+// Build mountain before background mountains
+buildSkiMountain();
+
+// ============================================================
+//  ═══ 二樓 ═══  Shop: Buy furniture & equipment
+// ============================================================
+function buyFurniture(id) {
+  const def = furnitureCatalog.find(f => f.id === id);
+  if (!def || !def.price) return;
+  if (money < def.price) { showToast(`💸 コイン不足！(${def.price} 必要)`); return; }
+  money -= def.price;
+  furnitureInventory[id] = (furnitureInventory[id] || 0) + 1;
+  updateUI();
+  updateShopUI();
+  showToast(`${def.icon} ${def.name} 購入！`);
+}
+window.buyFurniture = buyFurniture;
+
+function buyEquipment(id) {
+  const def = equipmentCatalog.find(e => e.id === id);
+  if (!def) return;
+  if (equipmentInventory[id]) { showToast('既に所持しています'); return; }
+  if (money < def.price) { showToast(`💸 コイン不足！(${def.price} 必要)`); return; }
+  money -= def.price;
+  equipmentInventory[id] = 1;
+  updateUI();
+  updateShopUI();
+  showToast(`${def.icon} ${def.name} 購入！`);
+}
+window.buyEquipment = buyEquipment;
+
+function equipItem(id) {
+  if (!equipmentInventory[id]) return;
+  const def = equipmentCatalog.find(e => e.id === id);
+  if (!def) return;
+  if (id.startsWith('board_'))  equippedBoard  = id;
+  if (id.startsWith('helmet_')) equippedHelmet = id;
+  if (id.startsWith('goggle_')) equippedGoggle = id;
+  showToast(`${def.icon} ${def.name} 装着！`);
+  // Cosmetic: change board color
+  if (playerMesh && id.startsWith('board_')) {
+    const colorMap = { board_black: 0x1A1A1A, board_flame: 0xC83010 };
+    const col = colorMap[id] || 0x1A1A1A;
+    playerMesh.userData.boardGrp?.traverse(c => {
+      if (c.isMesh && c.material.color) {
+        if (c.material.color.getHex() === 0x1A1A1A || c.material.color.getHex() === 0xC83010) {
+          c.material.color.setHex(col);
+        }
+      }
+    });
+  }
+}
+window.equipItem = equipItem;
+
+// ============================================================
 //  ═══ 一樓 ═══  季節系統
 // ============================================================
 function setSeason(s) {
@@ -3245,7 +3783,18 @@ function closeAllPanels() {
   document.getElementById('shop-panel')?.classList.add('hidden');
 }
 
+function setShopTab(tab) {
+  activeShopTab = tab;
+  document.querySelectorAll('.shop-tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelector(`.shop-tab-btn[data-tab="${tab}"]`)?.classList.add('active');
+  document.querySelectorAll('.shop-tab-content').forEach(d => d.classList.add('hidden'));
+  const target = document.getElementById(`shop-tab-${tab}`);
+  if (target) target.classList.remove('hidden');
+}
+window.setShopTab = setShopTab;
+
 function updateShopUI() {
+  // ── Sell section (always visible above tabs) ──
   const sellList = document.getElementById('sell-list');
   if (!sellList) return;
   sellList.innerHTML = '';
@@ -3263,10 +3812,10 @@ function updateShopUI() {
   const tot = document.getElementById('sell-total');
   if (tot) tot.textContent = `合計: ${total} コイン`;
 
-  // Grade-organized buy section
-  const buyList = document.getElementById('shop-buy-list');
-  if (buyList) {
-    buyList.innerHTML = '';
+  // ── Seeds tab ──
+  const seedsTab = document.getElementById('shop-tab-seeds');
+  if (seedsTab) {
+    seedsTab.innerHTML = '';
     const gradeOrder = ['D','C','B','A','S','SS'];
     const gradeEmoji = { D:'⚪', C:'🟢', B:'🔵', A:'🟣', S:'🟡', SS:'🔴' };
     gradeOrder.forEach(grade => {
@@ -3275,29 +3824,68 @@ function updateShopUI() {
       const hdr = document.createElement('div');
       hdr.className = 'shop-grade-header';
       hdr.textContent = `${gradeEmoji[grade]} ${grade} 等級`;
-      buyList.appendChild(hdr);
+      seedsTab.appendChild(hdr);
       items.forEach(([id, def]) => {
         const row = document.createElement('div');
         row.className = 'shop-buy-row';
         const stock = inventorySeeds[id] || 0;
         row.innerHTML = `<span>${def.icon} ${def.name}</span><span class="seed-stock">持有: ${stock}</span><button class="shop-buy-btn" onclick="buySeed('${id}')">${def.price} コイン</button>`;
-        buyList.appendChild(row);
+        seedsTab.appendChild(row);
       });
     });
+  }
 
-    // ── 寵物購買區 ──
-    const petHdr = document.createElement('div');
-    petHdr.className = 'shop-grade-header';
-    petHdr.textContent = '🐾 寵物';
-    buyList.appendChild(petHdr);
+  // ── Pets tab ──
+  const petsTab = document.getElementById('shop-tab-pets');
+  if (petsTab) {
+    petsTab.innerHTML = '';
     ANIMAL_TIER.filter(t => t.price > 0).forEach(t => {
       const row = document.createElement('div');
       row.className = 'shop-buy-row';
       const lvEmoji = ['','🐰','🦊','🦅','🦅'][t.lv] || '🐾';
       row.innerHTML = `<span>${lvEmoji} LV${t.lv} ${t.nameAdult}</span><span class="seed-stock">場上: ${animals.filter(a=>a.lv===t.lv).length}</span><button class="shop-buy-btn" onclick="buyAnimal(${t.lv})">${t.price} コイン</button>`;
-      buyList.appendChild(row);
+      petsTab.appendChild(row);
     });
   }
+
+  // ── Furniture tab ──
+  const furnTab = document.getElementById('shop-tab-furniture');
+  if (furnTab) {
+    furnTab.innerHTML = '';
+    furnitureCatalog.forEach(def => {
+      if (!def.price) return;
+      const row = document.createElement('div');
+      row.className = 'shop-buy-row';
+      const owned = furnitureInventory[def.id] || 0;
+      row.innerHTML = `<span>${def.icon} ${def.name}</span><span class="seed-stock">所持: ${owned}</span><button class="shop-buy-btn" onclick="buyFurniture('${def.id}')">${def.price} コイン</button>`;
+      furnTab.appendChild(row);
+    });
+  }
+
+  // ── Equipment tab ──
+  const equipTab = document.getElementById('shop-tab-equipment');
+  if (equipTab) {
+    equipTab.innerHTML = '';
+    equipmentCatalog.forEach(def => {
+      const row = document.createElement('div');
+      row.className = 'shop-buy-row';
+      const owned = equipmentInventory[def.id] ? '✅' : '—';
+      const isEquipped = (equippedBoard === def.id || equippedHelmet === def.id || equippedGoggle === def.id);
+      let btnHtml;
+      if (equipmentInventory[def.id]) {
+        btnHtml = isEquipped
+          ? `<button class="shop-buy-btn" disabled>装着中</button>`
+          : `<button class="shop-buy-btn" onclick="equipItem('${def.id}')">装着</button>`;
+      } else {
+        btnHtml = `<button class="shop-buy-btn" onclick="buyEquipment('${def.id}')">${def.price} コイン</button>`;
+      }
+      row.innerHTML = `<span>${def.icon} ${def.name}</span><span class="seed-stock">${owned}</span>${btnHtml}`;
+      equipTab.appendChild(row);
+    });
+  }
+
+  // Activate current tab
+  setShopTab(activeShopTab);
 }
 
 window.buyAnimal = function(lv) {
@@ -3386,6 +3974,7 @@ function animate() {
   updatePlants(now);
   updateAnimals(delta, now);
   updateParticles(delta);
+  updatePlayer(delta, now);
 
   if (previewMesh?.visible) {
     previewFloatT += delta * 2.5;

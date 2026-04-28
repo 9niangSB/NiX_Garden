@@ -199,6 +199,27 @@ html, body {
   cursor: pointer; transition: all 0.14s; white-space: nowrap;
 }
 .shop-buy-btn:active { transform: scale(0.95); }
+.shop-buy-btn:disabled { opacity:0.5; cursor:default; }
+
+/* ===== Shop Tabs ===== */
+#shop-tabs {
+  display: flex; gap: 4px; margin: 12px 0 8px;
+  border-bottom: 1px solid rgba(200,155,109,0.25);
+  padding-bottom: 8px;
+}
+.shop-tab-btn {
+  flex: 1; padding: 6px 4px; border: 1.5px solid rgba(200,155,109,0.25); border-radius: 10px;
+  background: rgba(255,248,243,0.7); backdrop-filter: blur(4px);
+  color: #7B4E3A; font-size: 11px; font-family: inherit; font-weight: 600;
+  cursor: pointer; transition: all 0.14s; white-space: nowrap;
+}
+.shop-tab-btn:active { transform: scale(0.95); }
+.shop-tab-btn.active {
+  background: rgba(246,198,200,0.88); border-color: rgba(220,120,100,0.45);
+  color: #6B2E22; box-shadow: 0 1px 6px rgba(220,120,100,0.18);
+}
+.shop-tab-content { max-height: 40vh; overflow-y: auto; }
+.shop-tab-content.hidden { display: none; }
 
 /* ===== Toast ===== */
 #toast {

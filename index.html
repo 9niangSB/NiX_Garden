@@ -79,8 +79,18 @@
       <div id="sell-total">合計: 0 コイン</div>
       <button class="shop-sell-btn" onclick="sellAll()">💰 全部賣出</button>
 
-      <div class="shop-section-title">🌱 購買種子</div>
-      <div id="shop-buy-list"></div>
+      <!-- Shop Tabs -->
+      <div id="shop-tabs">
+        <button class="shop-tab-btn active" data-tab="seeds" onclick="setShopTab('seeds')">🌱 植物</button>
+        <button class="shop-tab-btn" data-tab="pets" onclick="setShopTab('pets')">🐾 寵物</button>
+        <button class="shop-tab-btn" data-tab="furniture" onclick="setShopTab('furniture')">🪑 家具</button>
+        <button class="shop-tab-btn" data-tab="equipment" onclick="setShopTab('equipment')">⚔️ 裝備</button>
+      </div>
+
+      <div id="shop-tab-seeds" class="shop-tab-content"></div>
+      <div id="shop-tab-pets" class="shop-tab-content hidden"></div>
+      <div id="shop-tab-furniture" class="shop-tab-content hidden"></div>
+      <div id="shop-tab-equipment" class="shop-tab-content hidden"></div>
     </div>
 
     <!-- ===== Toast ===== -->
