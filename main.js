@@ -22,8 +22,8 @@ const plantCatalog = {
   onion:      { name:'洋蔥',   icon:'🧅', grade:'D', disposable:true,  stemColor:0xD0C8A0, topColor:0xC0A040, shape:'shroom',  growTime:6000,  produceTime:4000,  sell:3,  price:4,  minRadius:0.6 },
   // ── C Grade (永續 sustainable) ────────────────────────────────
   tomato:     { name:'番茄',   icon:'🍅', grade:'C', stemColor:0x4A8838, topColor:0xE83020, shape:'tomato', growTime:8000,  produceTime:6000,  sell:5,  minRadius:0.7 },
-  strawberry: { name:'草莓',   icon:'🍓', grade:'C', stemColor:0x6CA850, topColor:0xFF4D6D, shape:'cone',   growTime:10000, produceTime:6000,  sell:8,  minRadius:0.7 },
-  blueberry:  { name:'藍莓',   icon:'🫐', grade:'C', stemColor:0x6CA850, topColor:0x4F6DFF, shape:'sphere', growTime:10000, produceTime:6000,  sell:10, minRadius:0.7 },
+  strawberry: { name:'草莓',   icon:'🍓', grade:'C', stemColor:0x4A8838, topColor:0xE83050, shape:'strawberry', growTime:10000, produceTime:6000, sell:8,  minRadius:0.7 },
+  blueberry:  { name:'藍莓',   icon:'🫐', grade:'C', stemColor:0x4A8838, topColor:0x4060C0, shape:'blueberry', growTime:10000, produceTime:6000, sell:10, minRadius:0.7 },
   // ── B Grade (永續 sustainable) ────────────────────────────────
   corn:       { name:'玉米',   icon:'🌽', grade:'B', stemColor:0x4A8030, topColor:0xF0D040, shape:'corn',   growTime:14000, produceTime:8000,  sell:15, price:12, minRadius:0.8 },
   sunflowerB: { name:'向日葵', icon:'🌻', grade:'B', stemColor:0x80B030, topColor:0xF0C020, shape:'tall',   growTime:16000, produceTime:9000,  sell:18, price:15, minRadius:0.8 },
@@ -43,19 +43,26 @@ const plantCatalog = {
 };
 
 const furnitureCatalog = [
-  { id:'chair',  name:'椅子',   icon:'🪑', color:0xC89B6D },
-  { id:'table',  name:'桌子',   icon:'🪵', color:0xA97C50 },
-  { id:'window', name:'窗戶',   icon:'🪟', color:0xA8C8E8 },
-  { id:'door',   name:'門',     icon:'🚪', color:0x8B6040 },
-  { id:'cobble', name:'石子路', icon:'🪨', color:0xB0A898 },
-  { id:'pond',   name:'池塘',   icon:'💧', color:0x5C8FB0 },
-  { id:'japanese_house', name:'和風小屋', icon:'🏯', color:0xC87060 },
-  { id:'tea_house',      name:'茶室',    icon:'🍵', color:0xB03020 },
-  { id:'jump_ramp',   name:'小跳台',  icon:'🎿', color:0xE8F0FF },
-  { id:'big_jump',    name:'大跳台',  icon:'🏔️', color:0xD0E8FF },
-  { id:'chairlift',   name:'纜車椅', icon:'🚡', color:0xC0C8D8 },
-  { id:'snow_cannon', name:'造雪機', icon:'💨', color:0x8090A8 },
-  { id:'frozen_tree', name:'冰結樹', icon:'🧊', color:0xE0F0FF },
+  { id:'chair',  name:'椅子',   icon:'🪑', color:0xC89B6D, price:10 },
+  { id:'table',  name:'桌子',   icon:'🪵', color:0xA97C50, price:15 },
+  { id:'window', name:'窗戶',   icon:'🪟', color:0xA8C8E8, price:20 },
+  { id:'door',   name:'門',     icon:'🚪', color:0x8B6040, price:20 },
+  { id:'cobble', name:'石子路', icon:'🪨', color:0xB0A898, price:10 },
+  { id:'pond',   name:'池塘',   icon:'💧', color:0x5C8FB0, price:50 },
+  { id:'japanese_house', name:'和風小屋', icon:'🏯', color:0xC87060, price:500 },
+  { id:'tea_house',      name:'茶室',    icon:'🍵', color:0xB03020, price:400 },
+  { id:'jump_ramp',   name:'小跳台',  icon:'🎿', color:0xE8F0FF, price:30 },
+  { id:'big_jump',    name:'大跳台',  icon:'🏔️', color:0xD0E8FF, price:80 },
+  { id:'chairlift',   name:'纜車椅', icon:'🚡', color:0xC0C8D8, price:100 },
+  { id:'snow_cannon', name:'造雪機', icon:'💨', color:0x8090A8, price:120 },
+  { id:'frozen_tree', name:'冰結樹', icon:'🧊', color:0xE0F0FF, price:200 },
+];
+
+const equipmentCatalog = [
+  { id:'board_black',   name:'黒板',   icon:'🏂', price:100 },
+  { id:'board_flame',   name:'炎板',   icon:'🔥', price:300 },
+  { id:'helmet_gold',   name:'金盔',   icon:'⛑️', price:500 },
+  { id:'goggle_rainbow', name:'虹鏡', icon:'🌈', price:200 },
 ];
 
 const SEASON_CFG = {
@@ -86,6 +93,28 @@ const placedObjects = [];   // furniture
 const occupiedCells = new Set();
 const groundTiles   = [];   // refs for season recolor
 const animals       = [];
+
+// ── Player & Ski system state ──
+let playerMesh       = null;
+let playerBoardMesh  = null;
+let playerState      = 'walking';   // walking | riding_lift | skiing
+const playerPos      = { x:0, y:0, z:0 };
+const playerVel      = { x:0, y:0, z:0 };
+let playerFacing     = 0;           // radians
+let playerBobT       = 0;
+const keysDown       = {};
+const PLAYER_SPEED   = 3.0;
+const SKI_ACCEL      = 8.0;
+const SKI_MAX_SPEED  = 12.0;
+let cameraFollowMode = true;
+
+// ── Shop: furniture & equipment inventory ──
+const furnitureInventory = {};   // { id: count }
+const equipmentInventory = {};  // { id: count }
+let equippedBoard  = 'board_black';
+let equippedHelmet = null;
+let equippedGoggle = null;
+let activeShopTab  = 'seeds';
 
 // ============================================================
 //  ═══ 地基層 ═══  OBJ 模型載入系統 (MagicaVoxel → Three.js)
@@ -239,6 +268,10 @@ controls.minDistance   = 8;
 controls.maxDistance   = 35;
 controls.target.set(0, 0, 0);
 
+// ── Keyboard input for player movement ──
+window.addEventListener('keydown', e => { keysDown[e.key.toLowerCase()] = true; });
+window.addEventListener('keyup',   e => { keysDown[e.key.toLowerCase()] = false; });
+
 // ============================================================
 //  ═══ 地基層 ═══  Lights
 // ============================================================
@@ -386,39 +419,165 @@ function buildMountains() {
 const shopGroup  = new THREE.Group();
 const shopMeshes = [];
 
-function addShopPart(geo, color, px, py, pz) {
-  const m = new THREE.Mesh(geo, new THREE.MeshLambertMaterial({ color }));
-  m.position.set(px, py, pz);
-  m.castShadow = true;
-  m.userData.isShop = true;
-  shopGroup.add(m);
-  shopMeshes.push(m);
+// ═══ 日式露天攤位（參照 pngtree 和風市集攤） ═══
+{
+  const V = 0.08;
+  const sh = (geo, mat, x, y, z) => {
+    const m = new THREE.Mesh(geo, mat);
+    m.position.set(x, y, z); m.castShadow = true; m.receiveShadow = true;
+    m.userData.isShop = true;
+    shopGroup.add(m); shopMeshes.push(m);
+    return m;
+  };
+
+  // ── 色盤 ──
+  const wkD = new THREE.MeshLambertMaterial({ color: 0x5A3820 });  // 深木
+  const wkM = new THREE.MeshLambertMaterial({ color: 0x7A5030 });  // 中木
+  const wkL = new THREE.MeshLambertMaterial({ color: 0x9A6840 });  // 淺木
+  const wkP = new THREE.MeshLambertMaterial({ color: 0xC89060 });  // 木板淺
+  const rfD = new THREE.MeshLambertMaterial({ color: 0x5A4838 });  // 屋瓦深
+  const rfM = new THREE.MeshLambertMaterial({ color: 0x7A6050 });  // 屋瓦中
+  const rfL = new THREE.MeshLambertMaterial({ color: 0x8A7060 });  // 屋瓦淺
+  const rfH = new THREE.MeshLambertMaterial({ color: 0x9A8070 });  // 屋瓦高光
+  const awA = new THREE.MeshLambertMaterial({ color: 0xF0E0C0 });  // 遮棚白
+  const awB = new THREE.MeshLambertMaterial({ color: 0xD4A060 });  // 遮棚橙
+  const wallM = new THREE.MeshLambertMaterial({ color: 0xF5E8D0 }); // 牆面米
+  const wallD = new THREE.MeshLambertMaterial({ color: 0xE0D0B8 }); // 牆面深
+  const glsM = new THREE.MeshLambertMaterial({ color: 0xC8E0F0, transparent:true, opacity:0.55 }); // 玻璃
+  const glow = new THREE.MeshLambertMaterial({ color: 0xFFF0C0, emissive: new THREE.Color(0xFFDD80), emissiveIntensity: 0.4 });
+
+  // ── 石板底座（圓形攤位地基）──
+  for (let sx=-3; sx<=3; sx++) {
+    for (let sz=-3; sz<=3; sz++) {
+      if (sx*sx+sz*sz > 10) continue;
+      sh(new THREE.BoxGeometry(V*4, V*1, V*4),
+         new THREE.MeshLambertMaterial({ color: [0xD0C8B8,0xC8C0B0,0xD8D0C0][Math.abs(sx+sz)%3] }),
+         sx*V*4, V*0.5, sz*V*4);
+    }
+  }
+
+  // ── 後牆（三面圍，前面開放）──
+  sh(new THREE.BoxGeometry(V*28, V*16, V*2), wallM, 0, V*10, -V*12);  // 後牆
+  sh(new THREE.BoxGeometry(V*2, V*16, V*22), wallD, -V*14, V*10, 0);  // 左牆
+  sh(new THREE.BoxGeometry(V*28, V*1, V*2), wkD, 0, V*2, -V*12);     // 後牆踢腳
+  sh(new THREE.BoxGeometry(V*2, V*1, V*22), wkD, -V*14, V*2, 0);     // 左踢腳
+
+  // ── 木柱（4根，前面2根+後面2根）──
+  [[-V*13,V*12],[V*13,V*12],[-V*13,-V*11],[V*13,-V*11]].forEach(([px,pz]) => {
+    sh(new THREE.BoxGeometry(V*1.8, V*26, V*1.8), wkD, px, V*14, pz);
+    sh(new THREE.BoxGeometry(V*2.2, V*1, V*2.2), wkM, px, V*1.5, pz);   // 柱基
+    sh(new THREE.BoxGeometry(V*2.2, V*0.6, V*2.2), wkL, px, V*27.2, pz); // 柱頭
+  });
+
+  // ── 屋頂：多層瓦片（核心細節）──
+  const roofY = V*27;
+  // 第1層：大底板（最寬，深色）
+  sh(new THREE.BoxGeometry(V*36, V*1.2, V*30), rfD, 0, roofY, 0);
+  // 第2層：中板（稍窄）
+  sh(new THREE.BoxGeometry(V*34, V*1.0, V*28), rfM, 0, roofY+V*1.2, 0);
+  // 第3層：淺色
+  sh(new THREE.BoxGeometry(V*32, V*0.8, V*26), rfL, 0, roofY+V*2.2, 0);
+  // 第4層：高光
+  sh(new THREE.BoxGeometry(V*30, V*0.6, V*24), rfH, 0, roofY+V*3.0, 0);
+  // 屋脊（頂部深色條）
+  sh(new THREE.BoxGeometry(V*2, V*1.5, V*28), rfD, 0, roofY+V*4.2, 0);
+  sh(new THREE.BoxGeometry(V*1.2, V*0.5, V*28), rfM, 0, roofY+V*5.2, 0);
+  // 瓦片紋路（橫條 — 每隔一段深淺交替）
+  for (let ri=-4; ri<=4; ri++) {
+    const rz = ri * V*3;
+    sh(new THREE.BoxGeometry(V*34, V*0.3, V*1.5), ri%2===0 ? rfD : rfM, 0, roofY-V*0.1, rz);
+  }
+  // 屋簷下緣（出簷深色邊）
+  sh(new THREE.BoxGeometry(V*36, V*0.5, V*1.5), rfD, 0, roofY-V*0.6, V*15);
+  sh(new THREE.BoxGeometry(V*36, V*0.5, V*1.5), rfD, 0, roofY-V*0.6, -V*15);
+  sh(new THREE.BoxGeometry(V*1.5, V*0.5, V*30), rfD, V*18, roofY-V*0.6, 0);
+  sh(new THREE.BoxGeometry(V*1.5, V*0.5, V*30), rfD, -V*18, roofY-V*0.6, 0);
+
+  // ── 遮棚（白橙條紋布，正面垂掛）──
+  for (let ai=0; ai<8; ai++) {
+    const ax = -V*13 + ai*V*3.8;
+    sh(new THREE.BoxGeometry(V*3.6, V*3.5, V*0.5), ai%2===0 ? awA : awB,
+       ax, roofY-V*3.5, V*13);
+  }
+  // 側面遮棚
+  for (let ai=0; ai<6; ai++) {
+    const az = -V*10 + ai*V*3.8;
+    sh(new THREE.BoxGeometry(V*0.5, V*3.5, V*3.6), ai%2===0 ? awA : awB,
+       V*14, roofY-V*3.5, az);
+  }
+
+  // ── 前檯面（開放式攤位櫃台）──
+  sh(new THREE.BoxGeometry(V*26, V*1.2, V*5), wkM, 0, V*8, V*9);   // 檯面板
+  sh(new THREE.BoxGeometry(V*26, V*0.4, V*5), wkP, 0, V*8.8, V*9); // 淺色面板
+  // 檯面下方木板（簍空感 — 間隔木條）
+  for (let bi=0; bi<7; bi++) {
+    const bx = -V*11 + bi*V*3.8;
+    sh(new THREE.BoxGeometry(V*1.2, V*6, V*0.8), wkD, bx, V*4, V*11); // 直條
+  }
+  sh(new THREE.BoxGeometry(V*26, V*0.8, V*0.8), wkM, 0, V*1.5, V*11); // 底橫條
+  sh(new THREE.BoxGeometry(V*26, V*0.8, V*0.8), wkM, 0, V*5.0, V*11); // 中橫條
+
+  // ── 右側展台 ──
+  sh(new THREE.BoxGeometry(V*10, V*7, V*5), wkM, V*9, V*5, V*2);
+  sh(new THREE.BoxGeometry(V*10, V*0.4, V*5), wkP, V*9, V*8.2, V*2);
+
+  // ── 商品展示：碗盤杯子果實 ──
+  // 大碗
+  sh(new THREE.CylinderGeometry(V*2.5, V*2, V*1.5, 8),
+     new THREE.MeshLambertMaterial({ color: 0xF0E0C0 }), -V*5, V*10, V*9);
+  // 小碗排列
+  [[-V*8,V*9.5,V*9,0xE8D0B0],[V*2,V*9.5,V*9,0xD0B898],[V*6,V*9.5,V*9,0xC8A880]].forEach(([bx,by,bz,bc]) => {
+    sh(new THREE.CylinderGeometry(V*1.2, V*1, V*1, 7),
+       new THREE.MeshLambertMaterial({ color: bc }), bx, by, bz);
+  });
+  // 玻璃展示罩
+  sh(new THREE.BoxGeometry(V*6, V*5, V*4), glsM, -V*4, V*12, V*8.5);
+  // 罩內紅色糕點
+  sh(new THREE.BoxGeometry(V*4, V*1.5, V*2.5),
+     new THREE.MeshLambertMaterial({ color: 0xD04030 }), -V*4, V*10.5, V*8.5);
+  // 階梯展架（後方牆上）
+  for (let si=0; si<3; si++) {
+    sh(new THREE.BoxGeometry(V*8, V*0.6, V*3), wkL,
+       -V*4, V*12 + si*V*3, -V*9 + si*V*1.5);
+    // 架上小物
+    sh(new THREE.BoxGeometry(V*1.5, V*1.5, V*1.5),
+       new THREE.MeshLambertMaterial({ color: [0xE8C040,0xD09030,0xC07020][si] }),
+       -V*4 + si*V*2, V*13 + si*V*3, -V*9 + si*V*1.5);
+  }
+  // 右側醬料瓶排列
+  for (let ji=0; ji<4; ji++) {
+    sh(new THREE.CylinderGeometry(V*0.5, V*0.5, V*2.5, 6),
+       new THREE.MeshLambertMaterial({ color: [0xF0F0E8,0xE8E0D0,0xD8D0C0,0xC8C0B0][ji] }),
+       V*7+ji*V*2, V*9.8, V*2);
+  }
+
+  // ── 掛物：燈籠 + 木牌 ──
+  // 右側木招牌
+  sh(new THREE.BoxGeometry(V*4, V*6, V*0.6), wkP, V*15, V*18, V*10);
+  sh(new THREE.BoxGeometry(V*3, V*4, V*0.4), wallM, V*15, V*18.5, V*10.4);
+  // 正面掛物（魚乾/肉乾）
+  for (let hi=0; hi<3; hi++) {
+    sh(new THREE.BoxGeometry(V*0.6, V*3, V*0.4),
+       new THREE.MeshLambertMaterial({ color: [0xA06030,0x905028,0xB07038][hi] }),
+       V*6+hi*V*2.5, V*22, V*12);
+  }
+  // 左前盆栽
+  sh(new THREE.CylinderGeometry(V*1.5, V*1.2, V*2.5, 7),
+     new THREE.MeshLambertMaterial({ color: 0x9A7050 }), -V*16, V*2.5, V*10);
+  sh(new THREE.SphereGeometry(V*2.5, 6, 5),
+     new THREE.MeshLambertMaterial({ color: 0x50A038 }), -V*16, V*5.5, V*10);
+  // 前方小板凳
+  sh(new THREE.BoxGeometry(V*4, V*0.6, V*3), wkL, V*4, V*3, V*14);
+  [[-V*1.3,V*14],[V*1.3,V*14],[V*-1.3,V*11.5],[V*1.3,V*11.5]].forEach(([lx,lz]) => {
+    sh(new THREE.BoxGeometry(V*0.6, V*2.5, V*0.6), wkD, V*4+lx, V*1.5, lz);
+  });
+
+  // ── 光源 ──
+  const sL1 = new THREE.PointLight(0xFFDD88, 1.5, 5.0);
+  sL1.position.set(0, V*22, V*5); shopGroup.add(sL1);
+  const sL2 = new THREE.PointLight(0xFFF0C0, 0.8, 4.0);
+  sL2.position.set(-V*8, V*10, V*9); shopGroup.add(sL2);
 }
-// 主體
-addShopPart(new THREE.BoxGeometry(2.2,1.8,2.0), 0xF5E8C8, 0,0.9,0);
-// 屋頂
-addShopPart(new THREE.BoxGeometry(2.6,0.3,2.4), 0xC87040, 0,1.95,0);
-// 屋簷
-addShopPart(new THREE.BoxGeometry(2.8,0.08,2.6), 0xA05030, 0,1.8,0);
-// 門
-addShopPart(new THREE.BoxGeometry(0.6,1.0,0.06), 0x8B6040, 0,0.5,1.03);
-// 招牌
-addShopPart(new THREE.BoxGeometry(1.2,0.4,0.06), 0xD03020, 0,1.65,1.03);
-// 招牌金文字裝飾
-addShopPart(new THREE.BoxGeometry(0.9,0.22,0.08), 0xF5C030, 0,1.65,1.07);
-// 窗戶（透明）
-const shopWin = new THREE.Mesh(
-  new THREE.BoxGeometry(0.7,0.5,0.06),
-  new THREE.MeshLambertMaterial({ color:0xC8E8F8, transparent:true, opacity:0.72 })
-);
-shopWin.position.set(-0.7,0.9,1.03);
-shopWin.userData.isShop = true;
-shopGroup.add(shopWin);
-shopMeshes.push(shopWin);
-// 燈光
-const shopLight = new THREE.PointLight(0xFFDD88, 1.0, 5.0);
-shopLight.position.set(0,2.5,0);
-shopGroup.add(shopLight);
 
 shopGroup.position.set(9,0,8);
 shopGroup.rotation.y = -Math.PI / 5;
@@ -515,9 +674,11 @@ function createPreviewMesh() {
           : def.shape === 'cone'   ? new THREE.ConeGeometry(r*0.8, r*2, 6)
           : def.shape === 'carrot' ? new THREE.ConeGeometry(r*0.5, r*2, 6)
           : def.shape === 'tomato' ? new THREE.SphereGeometry(r*0.8, 7, 5)
-          : def.shape === 'corn'   ? new THREE.CylinderGeometry(r*0.3, r*0.4, r*3, 6)
-          : def.shape === 'tall'   ? new THREE.CylinderGeometry(r*0.5, r*0.6, r*2.5, 6)
-          :                          new THREE.SphereGeometry(r, 7, 5);
+          : def.shape === 'corn'       ? new THREE.CylinderGeometry(r*0.3, r*0.4, r*3, 6)
+          : def.shape === 'strawberry' ? new THREE.SphereGeometry(r*0.7, 7, 5)
+          : def.shape === 'blueberry'  ? new THREE.SphereGeometry(r*0.6, 7, 5)
+          : def.shape === 'tall'       ? new THREE.CylinderGeometry(r*0.5, r*0.6, r*2.5, 6)
+          :                              new THREE.SphereGeometry(r, 7, 5);
   } else {
     color = (furnitureCatalog.find(f=>f.id===selectedFurnId)||furnitureCatalog[0]).color;
     geo   = new THREE.BoxGeometry(0.75,0.55,0.75);
@@ -720,6 +881,63 @@ function buildPlantGroup(type) {
          varyColor(0xB09050), 0.04, 0.92, 0.03);
       jh(new THREE.BoxGeometry(0.03, 0.12, 0.03),
          varyColor(0xB09050), -0.03, 0.90, -0.02);
+      break;
+    }
+    case 'strawberry': {
+      // 草莓：低矮灌木 + 白花 + 紅色心形果實（Grow-a-Garden 風格）
+      // 灌木叢底座
+      jh(new THREE.SphereGeometry(0.22, 6, 5), varyColor(0x4A8838), 0, 0.24, 0);
+      jh(new THREE.SphereGeometry(0.18, 6, 5), varyColor(0x58A040), 0.16, 0.22, 0.10);
+      jh(new THREE.SphereGeometry(0.16, 6, 5), varyColor(0x58A040), -0.14, 0.20, -0.08);
+      // 展開葉片（3片鋸齒狀，Grow-a-Garden 三葉草造型）
+      jh(new THREE.BoxGeometry(0.20, 0.03, 0.10), varyColor(0x4A8838), 0.22, 0.28, 0.05);
+      jh(new THREE.BoxGeometry(0.18, 0.03, 0.10), varyColor(0x58A040), -0.20, 0.26, -0.06);
+      jh(new THREE.BoxGeometry(0.10, 0.03, 0.18), varyColor(0x4A8838), 0.04, 0.25, 0.20);
+      // 白色小花（2朵）
+      jh(new THREE.BoxGeometry(0.06, 0.06, 0.06), varyColor(0xF8F4F0), 0.14, 0.36, 0.12);
+      jh(new THREE.BoxGeometry(0.05, 0.05, 0.05), varyColor(0xF8F0E8), -0.10, 0.34, -0.10);
+      jh(new THREE.BoxGeometry(0.03, 0.03, 0.03), varyColor(0xF0D040), 0.14, 0.39, 0.12); // 花蕊
+      // 草莓果實（主果 — 心形近似：寬頂窄底）
+      const top = jh(new THREE.SphereGeometry(0.14, 7, 5), varyColor(0xE83050), 0.06, 0.18, 0.16);
+      top.scale.set(1, 1.3, 1); // 拉長成心形
+      top.userData.isPlantTop = true;
+      // 草莓表面顆粒（黃色種子點）
+      [[0.10,0.22,0.22],[0.02,0.16,0.24],[0.10,0.12,0.20]].forEach(([sx,sy,sz]) =>
+        jh(new THREE.BoxGeometry(0.02, 0.02, 0.02), varyColor(0xE0C030), sx, sy, sz));
+      // 果頂綠萼
+      jh(new THREE.BoxGeometry(0.10, 0.02, 0.06), varyColor(0x4A8838), 0.06, 0.30, 0.16);
+      // 小果實
+      jh(new THREE.SphereGeometry(0.08, 6, 4), varyColor(0xD02840), -0.12, 0.14, -0.10);
+      break;
+    }
+    case 'blueberry': {
+      // 藍莓：矮灌木 + 圓形藍紫小果實成串（Grow-a-Garden 風格）
+      // 灌木主體
+      jh(new THREE.SphereGeometry(0.20, 6, 5), varyColor(0x4A8838), 0, 0.22, 0);
+      jh(new THREE.SphereGeometry(0.16, 6, 5), varyColor(0x58A040), 0.14, 0.20, 0.08);
+      jh(new THREE.SphereGeometry(0.14, 6, 5), varyColor(0x489030), -0.12, 0.18, -0.06);
+      // 葉片
+      jh(new THREE.BoxGeometry(0.16, 0.03, 0.08), varyColor(0x4A8838), 0.20, 0.26, 0.04);
+      jh(new THREE.BoxGeometry(0.14, 0.03, 0.08), varyColor(0x58A040), -0.18, 0.24, -0.05);
+      jh(new THREE.BoxGeometry(0.08, 0.03, 0.14), varyColor(0x4A8838), 0.03, 0.23, 0.16);
+      // 藍莓果實成串（6-8顆小球）
+      const berryColors = [0x4060C0, 0x3050B0, 0x5070D0, 0x3848A0, 0x4868C8];
+      const berryPos = [
+        [0.08,0.34,0.10],[-0.06,0.32,0.12],[0.12,0.30,-0.04],
+        [-0.10,0.28,-0.08],[0.02,0.36,0.04],[-0.04,0.34,-0.02],
+        [0.14,0.26,0.08],[-0.12,0.30,0.06],
+      ];
+      let topBerry = null;
+      berryPos.forEach(([bx,by,bz], bi) => {
+        const berry = jh(new THREE.SphereGeometry(0.055, 6, 5), varyColor(berryColors[bi%5]), bx, by, bz);
+        // 每顆藍莓頂部有小十字萼痕
+        jh(new THREE.BoxGeometry(0.03, 0.01, 0.01), varyColor(0x3A5080), bx, by+0.055, bz);
+        if (bi === 4) { topBerry = berry; topBerry.userData.isPlantTop = true; }
+      });
+      // 果實白霜（藍莓表面特徵）
+      jh(new THREE.SphereGeometry(0.04, 5, 4),
+         new THREE.MeshLambertMaterial({ color: 0x8090C0, transparent: true, opacity: 0.35 }),
+         0.08, 0.35, 0.10);
       break;
     }
     case 'big': {
@@ -2111,17 +2329,15 @@ function buildFurnitureMesh(id) {
       const bh = V * (2.0 + Math.random()*1.5);
       jh(new THREE.BoxGeometry(V*4.5, bh, V*4.5), im, ix*V, layer2Y+bh/2, iz*V);
     });
-    const glowPos2 = [
-      [-6,0,glB],[0,0,glA],[6,0,glC],[-2,-6,glB],[2,6,glA],[0,-4,glC],
-    ];
-    glowPos2.forEach(([gx,gz,gm]) => {
+    // 第2層不發光，用冰塊代替
+    [[-6,0,iceB],[0,0,iceA],[6,0,iceC],[-2,-6,iceA],[2,6,iceB],[0,-4,iceC]].forEach(([gx,gz,gm]) => {
       const bh = V * (2.5 + Math.random()*1.0);
       jh(new THREE.BoxGeometry(V*4.5, bh, V*4.5), gm, gx*V, layer2Y+bh/2, gz*V);
     });
 
-    // ── 第3層（最上）：小頂冠 ──
+    // ── 第3層（最上）：小頂冠 — 樹頂不發光，只用冰塊 ──
     const layer3Y = crownY + V*8;
-    [[-4,-2,iceC],[0,-4,glA],[4,-2,iceA],[-2,2,glB],[2,4,iceB],[0,0,glC]].forEach(([ix,iz,im]) => {
+    [[-4,-2,iceC],[0,-4,iceA],[4,-2,iceB],[-2,2,iceC],[2,4,iceA],[0,0,iceB]].forEach(([ix,iz,im]) => {
       const bh = V * (2.0 + Math.random()*1.0);
       jh(new THREE.BoxGeometry(V*4.5, bh, V*4.5), im, ix*V, layer3Y+bh/2, iz*V);
     });
@@ -2535,6 +2751,511 @@ function updateAnimals(delta, now) {
   }
   toSpawn.forEach(({ lv, x, z }) => spawnAnimal(lv, x, z));
 }
+
+// ============================================================
+//  ═══ 一樓 ═══  Player Character (Chibi Snowboard Girl)
+// ============================================================
+function buildPlayerMesh() {
+  const g = new THREE.Group();
+  const V = 0.06; // voxel unit for player (~1.5 total height)
+  const jh = (geo, mat, x, y, z) => {
+    const m = new THREE.Mesh(geo, mat);
+    m.position.set(x, y, z); m.castShadow = true; g.add(m); return m;
+  };
+
+  // ── Head (chibi: ~0.6 units, 40% of 1.5) ──
+  const skinM  = new THREE.MeshLambertMaterial({ color: 0xFDE4C8 });
+  const helmM  = new THREE.MeshLambertMaterial({ color: 0x222222 });
+  const gogM   = new THREE.MeshLambertMaterial({ color: 0xF0F0F0 });
+  const gogL   = new THREE.MeshLambertMaterial({ color: 0xA0D0E8, transparent:true, opacity:0.7 });
+  const hairM  = new THREE.MeshLambertMaterial({ color: 0x6A3A20 });
+  const eyeM   = new THREE.MeshLambertMaterial({ color: 0x2A2020 });
+  const mouthM = new THREE.MeshLambertMaterial({ color: 0xD07060 });
+
+  // Head sphere (chibi large)
+  jh(new THREE.BoxGeometry(V*9, V*9, V*8), skinM, 0, 1.20, 0);
+  // Helmet (top of head)
+  jh(new THREE.BoxGeometry(V*10, V*5, V*9), helmM, 0, 1.42, 0);
+  // Goggles on helmet top
+  jh(new THREE.BoxGeometry(V*8, V*2.5, V*2), gogM, 0, 1.52, V*4);
+  jh(new THREE.BoxGeometry(V*3, V*2, V*1), gogL, -V*2, 1.52, V*5);
+  jh(new THREE.BoxGeometry(V*3, V*2, V*1), gogL,  V*2, 1.52, V*5);
+  // Eyes
+  jh(new THREE.BoxGeometry(V*1.5, V*1.5, V*1), eyeM, -V*2, 1.18, V*4.5);
+  jh(new THREE.BoxGeometry(V*1.5, V*1.5, V*1), eyeM,  V*2, 1.18, V*4.5);
+  // Mouth
+  jh(new THREE.BoxGeometry(V*2, V*0.8, V*0.5), mouthM, 0, 1.10, V*4.5);
+  // Braids (two brown braids hanging down)
+  [-V*4.5, V*4.5].forEach(bx => {
+    for (let i = 0; i < 5; i++) {
+      jh(new THREE.BoxGeometry(V*1.5, V*2, V*1.5), hairM, bx, 1.15 - i*V*2, -V*2);
+    }
+    // Braid tie
+    jh(new THREE.BoxGeometry(V*2, V*1, V*2), new THREE.MeshLambertMaterial({color:0xE06030}), bx, 1.15-5*V*2, -V*2);
+  });
+  // Hair bangs
+  jh(new THREE.BoxGeometry(V*9, V*2, V*2), hairM, 0, 1.35, V*4);
+
+  // ── Body (chibi: short ~0.5 units) ──
+  const jacketM = new THREE.MeshLambertMaterial({ color: 0xE86820 }); // orange
+  const shirtM  = new THREE.MeshLambertMaterial({ color: 0xF0E0C8 }); // cream
+  const zipM    = new THREE.MeshLambertMaterial({ color: 0xC8C8C8 }); // zip
+
+  // Torso
+  jh(new THREE.BoxGeometry(V*8, V*7, V*5), jacketM, 0, 0.78, 0);
+  // Shirt peek (under jacket)
+  jh(new THREE.BoxGeometry(V*3, V*2, V*1), shirtM, 0, 0.70, V*2.8);
+  // Zip line
+  jh(new THREE.BoxGeometry(V*0.8, V*6, V*0.5), zipM, 0, 0.78, V*2.6);
+
+  // ── Arms ──
+  [-V*5, V*5].forEach(ax => {
+    jh(new THREE.BoxGeometry(V*2.5, V*6, V*3), jacketM, ax, 0.76, 0);
+    // Hands (skin)
+    jh(new THREE.BoxGeometry(V*2, V*2, V*2.5), skinM, ax, 0.58, 0);
+  });
+
+  // ── Legs (orange pants) ──
+  const pantsM = new THREE.MeshLambertMaterial({ color: 0xE07020 });
+  const pantsD = new THREE.MeshLambertMaterial({ color: 0x3A3030 }); // dark accents
+  const bootM  = new THREE.MeshLambertMaterial({ color: 0x222222 });
+  [-V*2.5, V*2.5].forEach(lx => {
+    jh(new THREE.BoxGeometry(V*3, V*5, V*3.5), pantsM, lx, 0.45, 0);
+    jh(new THREE.BoxGeometry(V*3.2, V*1, V*0.8), pantsD, lx, 0.42, V*1.8); // dark accent stripe
+    // Boots
+    jh(new THREE.BoxGeometry(V*3.2, V*3, V*4), bootM, lx, 0.20, V*0.5);
+  });
+
+  // ── Snowboard (held at side, flat black) ──
+  const boardMat = new THREE.MeshLambertMaterial({ color: 0x1A1A1A });
+  const boardTextM = new THREE.MeshLambertMaterial({ color: 0xE0E0E0 });
+  const boardGrp = new THREE.Group();
+  const boardBody = new THREE.Mesh(new THREE.BoxGeometry(V*2, V*16, V*0.8), boardMat);
+  boardBody.position.set(0, 0.75, 0); boardBody.castShadow = true; boardGrp.add(boardBody);
+  // Board nose/tail curve
+  const boardNose = new THREE.Mesh(new THREE.BoxGeometry(V*1.5, V*1.5, V*0.8), boardMat);
+  boardNose.position.set(0, 1.23, 0); boardGrp.add(boardNose);
+  const boardTail = new THREE.Mesh(new THREE.BoxGeometry(V*1.5, V*1.2, V*0.8), boardMat);
+  boardTail.position.set(0, 0.27, 0); boardGrp.add(boardTail);
+  // "NOVEMBER" text marker (small white block)
+  const boardLabel = new THREE.Mesh(new THREE.BoxGeometry(V*1, V*3, V*0.3), boardTextM);
+  boardLabel.position.set(0, 0.80, V*0.5); boardGrp.add(boardLabel);
+  boardGrp.position.set(V*7, 0, -V*1);
+  boardGrp.rotation.z = 0.08;
+  g.add(boardGrp);
+
+  g.userData.boardGrp = boardGrp;
+  return g;
+}
+
+// ── Snowboard under feet (for skiing mode) ──
+function buildSkiBoard() {
+  const g = new THREE.Group();
+  const V = 0.06;
+  const boardMat = new THREE.MeshLambertMaterial({ color: 0x1A1A1A });
+  // Flat board under feet
+  const body = new THREE.Mesh(new THREE.BoxGeometry(V*4, V*0.8, V*18), boardMat);
+  body.position.set(0, -0.02, 0); body.castShadow = true; g.add(body);
+  // Nose curve
+  const nose = new THREE.Mesh(new THREE.BoxGeometry(V*3, V*0.8, V*2), boardMat);
+  nose.position.set(0, 0, V*9.5); g.add(nose);
+  // Tail curve
+  const tail = new THREE.Mesh(new THREE.BoxGeometry(V*3, V*0.8, V*1.5), boardMat);
+  tail.position.set(0, 0, -V*9.5); g.add(tail);
+  return g;
+}
+
+// Spawn the player
+function initPlayer() {
+  playerMesh = buildPlayerMesh();
+  playerMesh.position.set(0, 0, 2);
+  playerPos.x = 0; playerPos.y = 0; playerPos.z = 2;
+  scene.add(playerMesh);
+}
+initPlayer();
+
+// ── Mountain terrain height lookup ──
+const mountainHeightMap = [];   // will be filled by buildSkiMountain
+function getMountainHeight(x, z) {
+  // Approximate height from the ski mountain geometry
+  if (z > SNOW_ZONE_Z || z < -35) return 0;
+  // Mountain profile: gentle slope from z=-8 to peak at z=-28, Y=12
+  const peakZ = -28, peakY = 12, baseZ = SNOW_ZONE_Z, endZ = -35;
+  const halfW = 6; // mountain width
+  if (Math.abs(x) > halfW + 2) return 0;
+  const widthFactor = Math.max(0, 1 - Math.pow(Math.abs(x) / (halfW + 1), 2));
+  let h = 0;
+  if (z >= baseZ && z > peakZ) {
+    // ascending slope
+    const t = (baseZ - z) / (baseZ - peakZ);
+    h = peakY * Math.pow(t, 0.8);
+  } else if (z <= peakZ && z >= endZ) {
+    // descending back side (steep)
+    const t = (z - peakZ) / (endZ - peakZ);
+    h = peakY * (1 - t * t);
+  }
+  return h * widthFactor;
+}
+
+// ── Player update (called each frame) ──
+function updatePlayer(delta, now) {
+  if (!playerMesh) return;
+
+  if (playerState === 'walking') {
+    let dx = 0, dz = 0;
+    if (keysDown['w'] || keysDown['arrowup'])    dz -= 1;
+    if (keysDown['s'] || keysDown['arrowdown'])  dz += 1;
+    if (keysDown['a'] || keysDown['arrowleft'])  dx -= 1;
+    if (keysDown['d'] || keysDown['arrowright']) dx += 1;
+    const moving = dx !== 0 || dz !== 0;
+    if (moving) {
+      const len = Math.sqrt(dx*dx + dz*dz);
+      dx /= len; dz /= len;
+      playerPos.x += dx * PLAYER_SPEED * delta;
+      playerPos.z += dz * PLAYER_SPEED * delta;
+      playerFacing = Math.atan2(dx, dz);
+      playerBobT += delta * 8;
+    }
+    // Terrain height follow
+    const terrainH = getMountainHeight(playerPos.x, playerPos.z);
+    playerPos.y = terrainH;
+    // Bob while moving
+    const bobY = (dx !== 0 || dz !== 0) ? Math.abs(Math.sin(playerBobT)) * 0.08 : 0;
+    playerMesh.position.set(playerPos.x, playerPos.y + bobY, playerPos.z);
+    playerMesh.rotation.y = playerFacing;
+
+    // Check if reached mountain top → start skiing
+    if (playerPos.y > 10 && playerPos.z < -20) {
+      startSkiing();
+    }
+
+    // Show/hide held board based on state
+    if (playerMesh.userData.boardGrp) playerMesh.userData.boardGrp.visible = true;
+
+  } else if (playerState === 'skiing') {
+    // Auto-slide downhill (toward +Z, following mountain slope)
+    const slope = getMountainHeight(playerPos.x, playerPos.z) - getMountainHeight(playerPos.x, playerPos.z + 0.3);
+    const slopeFactor = Math.max(0.5, slope * 8);
+    playerVel.z += SKI_ACCEL * slopeFactor * delta;
+    playerVel.z = Math.min(playerVel.z, SKI_MAX_SPEED);
+
+    // Slight steering with A/D
+    if (keysDown['a'] || keysDown['arrowleft'])  playerVel.x -= 4 * delta;
+    if (keysDown['d'] || keysDown['arrowright']) playerVel.x += 4 * delta;
+    playerVel.x *= 0.95; // friction
+
+    playerPos.x += playerVel.x * delta;
+    playerPos.z += playerVel.z * delta;
+
+    // Y follows terrain
+    const terrainH = getMountainHeight(playerPos.x, playerPos.z);
+    // Jump ramp detection
+    let onRamp = false;
+    placedObjects.forEach(o => {
+      if (o.furnId !== 'jump_ramp' && o.furnId !== 'big_jump') return;
+      const ddx = playerPos.x - o.mesh.position.x;
+      const ddz = playerPos.z - o.mesh.position.z;
+      if (Math.abs(ddx) < 1.5 && Math.abs(ddz) < 1.5) {
+        onRamp = true;
+        const jumpPower = o.furnId === 'big_jump' ? 6 : 3;
+        if (playerVel.y <= 0) playerVel.y = jumpPower;
+      }
+    });
+
+    // Gravity for jumps
+    if (playerPos.y > terrainH + 0.1) {
+      playerVel.y -= 15 * delta;  // gravity
+    } else {
+      playerVel.y = 0;
+      playerPos.y = terrainH;
+    }
+    playerPos.y += playerVel.y * delta;
+    playerPos.y = Math.max(playerPos.y, terrainH);
+
+    playerFacing = Math.atan2(playerVel.x, playerVel.z);
+    playerMesh.position.set(playerPos.x, playerPos.y, playerPos.z);
+    playerMesh.rotation.y = playerFacing;
+    // Tilt forward slightly while skiing
+    playerMesh.rotation.x = -0.15;
+
+    // End skiing when back at flat ground
+    if (playerPos.z > SNOW_ZONE_Z - 1 && playerPos.y < 0.5) {
+      endSkiing();
+    }
+
+  } else if (playerState === 'riding_lift') {
+    // Simple auto-ride up the mountain
+    playerPos.z -= 2 * delta;
+    playerPos.y = getMountainHeight(playerPos.x, playerPos.z) + 2;
+    playerMesh.position.set(playerPos.x, playerPos.y, playerPos.z);
+    if (playerPos.z < -25) {
+      playerState = 'walking';
+      playerPos.y = getMountainHeight(playerPos.x, playerPos.z);
+      showToast('🏔️ 山頂到着！滑り出そう！');
+    }
+  }
+
+  // Camera follow
+  if (cameraFollowMode) {
+    const targetPos = new THREE.Vector3(playerPos.x, playerPos.y + 2, playerPos.z);
+    controls.target.lerp(targetPos, 0.05);
+    const camOffset = new THREE.Vector3(
+      playerPos.x + Math.sin(playerFacing + Math.PI) * 8,
+      playerPos.y + 8,
+      playerPos.z + Math.cos(playerFacing + Math.PI) * 8
+    );
+    camera.position.lerp(camOffset, 0.03);
+  }
+}
+
+function startSkiing() {
+  playerState = 'skiing';
+  playerVel.x = 0; playerVel.y = 0; playerVel.z = 1;  // start sliding toward +Z
+  // Attach snowboard under feet
+  if (!playerBoardMesh) {
+    playerBoardMesh = buildSkiBoard();
+  }
+  playerMesh.add(playerBoardMesh);
+  playerBoardMesh.position.set(0, 0.05, 0);
+  // Hide held board
+  if (playerMesh.userData.boardGrp) playerMesh.userData.boardGrp.visible = false;
+  showToast('🏂 滑降開始！');
+}
+
+function endSkiing() {
+  playerState = 'walking';
+  playerVel.x = 0; playerVel.y = 0; playerVel.z = 0;
+  playerMesh.rotation.x = 0;
+  // Remove board from feet
+  if (playerBoardMesh && playerBoardMesh.parent) {
+    playerMesh.remove(playerBoardMesh);
+  }
+  // Show held board again
+  if (playerMesh.userData.boardGrp) playerMesh.userData.boardGrp.visible = true;
+  showToast('🚶 歩行モードに戻った');
+}
+
+// ============================================================
+//  ═══ 一樓 ═══  Ski Mountain (playable terrain)
+// ============================================================
+function buildSkiMountain() {
+  const mtnGroup = new THREE.Group();
+  mtnGroup.name = 'skiMountain';
+
+  const snowA = new THREE.MeshLambertMaterial({ color: 0xF0F8FF });
+  const snowB = new THREE.MeshLambertMaterial({ color: 0xE0ECF8 });
+  const snowC = new THREE.MeshLambertMaterial({ color: 0xD0E0F0 });
+  const snowD = new THREE.MeshLambertMaterial({ color: 0xC8D8E8 });
+  const rockA = new THREE.MeshLambertMaterial({ color: 0x8898A8 });
+  const rockB = new THREE.MeshLambertMaterial({ color: 0x6A7888 });
+  const treeSnowA = new THREE.MeshLambertMaterial({ color: 0x3A6838 });
+  const treeSnowB = new THREE.MeshLambertMaterial({ color: 0xD0E8E0 });
+  const snows = [snowA, snowB, snowC, snowD];
+
+  // Build mountain as layered blocks
+  const peakZ = -28, peakY = 12;
+  const baseZ = SNOW_ZONE_Z; // -8
+  const endZ  = -35;
+  const halfW = 6;
+
+  // Generate terrain blocks
+  for (let z = baseZ; z >= endZ; z -= 0.8) {
+    for (let x = -halfW - 1; x <= halfW + 1; x += 0.8) {
+      const h = getMountainHeight(x, z);
+      if (h < 0.2) continue;
+      const blockH = Math.max(0.4, h * 0.3);
+      const mat = snows[Math.floor(Math.random() * snows.length)];
+      const block = new THREE.Mesh(
+        new THREE.BoxGeometry(0.85, blockH, 0.85),
+        mat
+      );
+      block.position.set(x, h - blockH/2, z);
+      block.receiveShadow = true;
+      block.castShadow = true;
+      mtnGroup.add(block);
+    }
+  }
+
+  // Snow surface layer (smoother top)
+  for (let z = baseZ; z >= endZ; z -= 1.2) {
+    for (let x = -halfW; x <= halfW; x += 1.2) {
+      const h = getMountainHeight(x, z);
+      if (h < 0.3) continue;
+      const mat = snows[Math.floor(Math.random() * snows.length)];
+      const slab = new THREE.Mesh(
+        new THREE.BoxGeometry(1.3, 0.15, 1.3),
+        mat
+      );
+      slab.position.set(x, h + 0.05, z);
+      slab.receiveShadow = true;
+      mtnGroup.add(slab);
+    }
+  }
+
+  // Slope path (darker, 3-4 units wide, winding)
+  const pathMat = new THREE.MeshLambertMaterial({ color: 0xD8E4F0 });
+  for (let z = baseZ - 1; z >= endZ + 2; z -= 0.6) {
+    const t = (baseZ - z) / (baseZ - peakZ);
+    const pathX = Math.sin(t * 4) * 2; // winding
+    const h = getMountainHeight(pathX, z);
+    if (h < 0.2) continue;
+    const pathBlock = new THREE.Mesh(
+      new THREE.BoxGeometry(3.5, 0.12, 0.7),
+      pathMat
+    );
+    pathBlock.position.set(pathX, h + 0.08, z);
+    pathBlock.receiveShadow = true;
+    mtnGroup.add(pathBlock);
+  }
+
+  // Rock outcroppings
+  [[-5, -15, 3], [4, -20, 4], [-3, -25, 5], [5, -12, 2.5], [-6, -30, 3]].forEach(([rx, rz, rh]) => {
+    const h = getMountainHeight(rx, rz);
+    const rock = new THREE.Mesh(
+      new THREE.BoxGeometry(1.5, rh, 1.2),
+      Math.random() > 0.5 ? rockA : rockB
+    );
+    rock.position.set(rx, h + rh/2 - 0.5, rz);
+    rock.castShadow = true;
+    mtnGroup.add(rock);
+  });
+
+  // Snow-dusted trees on slopes
+  [[-4, -12], [3, -14], [-5, -18], [4, -22], [-3, -26], [5, -10], [-6, -20]].forEach(([tx, tz]) => {
+    const h = getMountainHeight(tx, tz);
+    if (h < 0.5) return;
+    // Trunk
+    const trunk = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.08, 0.12, 1.2, 5),
+      new THREE.MeshLambertMaterial({ color: 0x5A3820 })
+    );
+    trunk.position.set(tx, h + 0.6, tz);
+    trunk.castShadow = true;
+    mtnGroup.add(trunk);
+    // Snow-covered foliage (3 layers)
+    [0.8, 1.2, 1.5].forEach((ly, i) => {
+      const r = 0.5 - i * 0.12;
+      const foliage = new THREE.Mesh(
+        new THREE.ConeGeometry(r, 0.5, 6),
+        i % 2 === 0 ? treeSnowA : treeSnowB
+      );
+      foliage.position.set(tx, h + ly, tz);
+      foliage.castShadow = true;
+      mtnGroup.add(foliage);
+    });
+  });
+
+  // Chairlift line (poles from bottom to top)
+  const liftX = -3;
+  const poleCount = 6;
+  const cableMat = new THREE.MeshLambertMaterial({ color: 0x808890 });
+  const poleMat  = new THREE.MeshLambertMaterial({ color: 0xA0A8B0 });
+  for (let i = 0; i <= poleCount; i++) {
+    const t = i / poleCount;
+    const pz = baseZ - t * (baseZ - (peakZ + 2));
+    const ph = getMountainHeight(liftX, pz);
+    // Pole
+    const poleH = 3;
+    const pole = new THREE.Mesh(
+      new THREE.BoxGeometry(0.15, poleH, 0.15),
+      poleMat
+    );
+    pole.position.set(liftX, ph + poleH/2, pz);
+    pole.castShadow = true;
+    mtnGroup.add(pole);
+    // Cross bar at top
+    const crossbar = new THREE.Mesh(
+      new THREE.BoxGeometry(1.2, 0.1, 0.1),
+      poleMat
+    );
+    crossbar.position.set(liftX, ph + poleH, pz);
+    mtnGroup.add(crossbar);
+  }
+  // Cable
+  for (let i = 0; i < poleCount; i++) {
+    const t0 = i / poleCount;
+    const t1 = (i + 1) / poleCount;
+    const z0 = baseZ - t0 * (baseZ - (peakZ + 2));
+    const z1 = baseZ - t1 * (baseZ - (peakZ + 2));
+    const h0 = getMountainHeight(liftX, z0) + 3;
+    const h1 = getMountainHeight(liftX, z1) + 3;
+    const midZ = (z0 + z1) / 2;
+    const cableLen = Math.sqrt(Math.pow(z1-z0,2) + Math.pow(h1-h0,2));
+    const cable = new THREE.Mesh(
+      new THREE.BoxGeometry(0.04, 0.04, Math.abs(z1 - z0)),
+      cableMat
+    );
+    cable.position.set(liftX, (h0 + h1) / 2, midZ);
+    mtnGroup.add(cable);
+  }
+
+  // Extend groundHitMesh to cover mountain area
+  const extendedHit = new THREE.Mesh(
+    new THREE.PlaneGeometry(20, 30),
+    new THREE.MeshBasicMaterial({ visible: false, side: THREE.DoubleSide })
+  );
+  extendedHit.rotation.x = -Math.PI / 2;
+  extendedHit.position.set(0, 0, -20);
+  extendedHit.name = 'mountainHit';
+  scene.add(extendedHit);
+
+  scene.add(mtnGroup);
+  return mtnGroup;
+}
+
+// Build mountain before background mountains
+buildSkiMountain();
+
+// ============================================================
+//  ═══ 二樓 ═══  Shop: Buy furniture & equipment
+// ============================================================
+function buyFurniture(id) {
+  const def = furnitureCatalog.find(f => f.id === id);
+  if (!def || !def.price) return;
+  if (money < def.price) { showToast(`💸 コイン不足！(${def.price} 必要)`); return; }
+  money -= def.price;
+  furnitureInventory[id] = (furnitureInventory[id] || 0) + 1;
+  updateUI();
+  updateShopUI();
+  showToast(`${def.icon} ${def.name} 購入！`);
+}
+window.buyFurniture = buyFurniture;
+
+function buyEquipment(id) {
+  const def = equipmentCatalog.find(e => e.id === id);
+  if (!def) return;
+  if (equipmentInventory[id]) { showToast('既に所持しています'); return; }
+  if (money < def.price) { showToast(`💸 コイン不足！(${def.price} 必要)`); return; }
+  money -= def.price;
+  equipmentInventory[id] = 1;
+  updateUI();
+  updateShopUI();
+  showToast(`${def.icon} ${def.name} 購入！`);
+}
+window.buyEquipment = buyEquipment;
+
+function equipItem(id) {
+  if (!equipmentInventory[id]) return;
+  const def = equipmentCatalog.find(e => e.id === id);
+  if (!def) return;
+  if (id.startsWith('board_'))  equippedBoard  = id;
+  if (id.startsWith('helmet_')) equippedHelmet = id;
+  if (id.startsWith('goggle_')) equippedGoggle = id;
+  showToast(`${def.icon} ${def.name} 装着！`);
+  // Cosmetic: change board color
+  if (playerMesh && id.startsWith('board_')) {
+    const colorMap = { board_black: 0x1A1A1A, board_flame: 0xC83010 };
+    const col = colorMap[id] || 0x1A1A1A;
+    playerMesh.userData.boardGrp?.traverse(c => {
+      if (c.isMesh && c.material.color) {
+        if (c.material.color.getHex() === 0x1A1A1A || c.material.color.getHex() === 0xC83010) {
+          c.material.color.setHex(col);
+        }
+      }
+    });
+  }
+}
+window.equipItem = equipItem;
 
 // ============================================================
 //  ═══ 一樓 ═══  季節系統
@@ -3062,7 +3783,18 @@ function closeAllPanels() {
   document.getElementById('shop-panel')?.classList.add('hidden');
 }
 
+function setShopTab(tab) {
+  activeShopTab = tab;
+  document.querySelectorAll('.shop-tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelector(`.shop-tab-btn[data-tab="${tab}"]`)?.classList.add('active');
+  document.querySelectorAll('.shop-tab-content').forEach(d => d.classList.add('hidden'));
+  const target = document.getElementById(`shop-tab-${tab}`);
+  if (target) target.classList.remove('hidden');
+}
+window.setShopTab = setShopTab;
+
 function updateShopUI() {
+  // ── Sell section (always visible above tabs) ──
   const sellList = document.getElementById('sell-list');
   if (!sellList) return;
   sellList.innerHTML = '';
@@ -3080,10 +3812,10 @@ function updateShopUI() {
   const tot = document.getElementById('sell-total');
   if (tot) tot.textContent = `合計: ${total} コイン`;
 
-  // Grade-organized buy section
-  const buyList = document.getElementById('shop-buy-list');
-  if (buyList) {
-    buyList.innerHTML = '';
+  // ── Seeds tab ──
+  const seedsTab = document.getElementById('shop-tab-seeds');
+  if (seedsTab) {
+    seedsTab.innerHTML = '';
     const gradeOrder = ['D','C','B','A','S','SS'];
     const gradeEmoji = { D:'⚪', C:'🟢', B:'🔵', A:'🟣', S:'🟡', SS:'🔴' };
     gradeOrder.forEach(grade => {
@@ -3092,29 +3824,68 @@ function updateShopUI() {
       const hdr = document.createElement('div');
       hdr.className = 'shop-grade-header';
       hdr.textContent = `${gradeEmoji[grade]} ${grade} 等級`;
-      buyList.appendChild(hdr);
+      seedsTab.appendChild(hdr);
       items.forEach(([id, def]) => {
         const row = document.createElement('div');
         row.className = 'shop-buy-row';
         const stock = inventorySeeds[id] || 0;
         row.innerHTML = `<span>${def.icon} ${def.name}</span><span class="seed-stock">持有: ${stock}</span><button class="shop-buy-btn" onclick="buySeed('${id}')">${def.price} コイン</button>`;
-        buyList.appendChild(row);
+        seedsTab.appendChild(row);
       });
     });
+  }
 
-    // ── 寵物購買區 ──
-    const petHdr = document.createElement('div');
-    petHdr.className = 'shop-grade-header';
-    petHdr.textContent = '🐾 寵物';
-    buyList.appendChild(petHdr);
+  // ── Pets tab ──
+  const petsTab = document.getElementById('shop-tab-pets');
+  if (petsTab) {
+    petsTab.innerHTML = '';
     ANIMAL_TIER.filter(t => t.price > 0).forEach(t => {
       const row = document.createElement('div');
       row.className = 'shop-buy-row';
       const lvEmoji = ['','🐰','🦊','🦅','🦅'][t.lv] || '🐾';
       row.innerHTML = `<span>${lvEmoji} LV${t.lv} ${t.nameAdult}</span><span class="seed-stock">場上: ${animals.filter(a=>a.lv===t.lv).length}</span><button class="shop-buy-btn" onclick="buyAnimal(${t.lv})">${t.price} コイン</button>`;
-      buyList.appendChild(row);
+      petsTab.appendChild(row);
     });
   }
+
+  // ── Furniture tab ──
+  const furnTab = document.getElementById('shop-tab-furniture');
+  if (furnTab) {
+    furnTab.innerHTML = '';
+    furnitureCatalog.forEach(def => {
+      if (!def.price) return;
+      const row = document.createElement('div');
+      row.className = 'shop-buy-row';
+      const owned = furnitureInventory[def.id] || 0;
+      row.innerHTML = `<span>${def.icon} ${def.name}</span><span class="seed-stock">所持: ${owned}</span><button class="shop-buy-btn" onclick="buyFurniture('${def.id}')">${def.price} コイン</button>`;
+      furnTab.appendChild(row);
+    });
+  }
+
+  // ── Equipment tab ──
+  const equipTab = document.getElementById('shop-tab-equipment');
+  if (equipTab) {
+    equipTab.innerHTML = '';
+    equipmentCatalog.forEach(def => {
+      const row = document.createElement('div');
+      row.className = 'shop-buy-row';
+      const owned = equipmentInventory[def.id] ? '✅' : '—';
+      const isEquipped = (equippedBoard === def.id || equippedHelmet === def.id || equippedGoggle === def.id);
+      let btnHtml;
+      if (equipmentInventory[def.id]) {
+        btnHtml = isEquipped
+          ? `<button class="shop-buy-btn" disabled>装着中</button>`
+          : `<button class="shop-buy-btn" onclick="equipItem('${def.id}')">装着</button>`;
+      } else {
+        btnHtml = `<button class="shop-buy-btn" onclick="buyEquipment('${def.id}')">${def.price} コイン</button>`;
+      }
+      row.innerHTML = `<span>${def.icon} ${def.name}</span><span class="seed-stock">${owned}</span>${btnHtml}`;
+      equipTab.appendChild(row);
+    });
+  }
+
+  // Activate current tab
+  setShopTab(activeShopTab);
 }
 
 window.buyAnimal = function(lv) {
@@ -3194,13 +3965,16 @@ updateUI();
 
 function animate() {
   requestAnimationFrame(animate);
-  const delta = clock.getDelta();
+  let delta = clock.getDelta();
+  // 跳離頁面回來時 delta 會暴增 → 鎖上限 0.1s，避免卡死
+  if (delta > 0.1) delta = 0.016;
   const now   = Date.now();
 
   controls.update();
   updatePlants(now);
   updateAnimals(delta, now);
   updateParticles(delta);
+  updatePlayer(delta, now);
 
   if (previewMesh?.visible) {
     previewFloatT += delta * 2.5;
