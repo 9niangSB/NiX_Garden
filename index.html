@@ -17,6 +17,7 @@
       <span id="title-text">🌸 NiX 庭院</span>
       <span id="season-label">春 🌸</span>
       <span id="mode-label">模式：種植</span>
+      <button class="title-shop-btn" onclick="openShop()">🏪</button>
     </div>
 
     <!-- ===== Season Bar (top-right) ===== -->
@@ -41,28 +42,13 @@
     <!-- ===== Toolbar (bottom-left) ===== -->
     <div id="toolbar">
       <button class="tool-btn active" id="btn-plant"  onclick="setMode('plant')">
-        <span class="btn-icon">🌱</span><span class="btn-label">種植</span>
+        <span class="btn-icon">🌱</span><span class="btn-label">植物</span>
       </button>
       <button class="tool-btn" id="btn-build"  onclick="setMode('build')">
         <span class="btn-icon">🪑</span><span class="btn-label">家具</span>
       </button>
       <button class="tool-btn" id="btn-delete" onclick="setMode('delete')">
         <span class="btn-icon">🗑️</span><span class="btn-label">移除</span>
-      </button>
-      <button class="tool-btn" onclick="openCatalog('plant')">
-        <span class="btn-icon">🌿</span><span class="btn-label">植物</span>
-      </button>
-      <button class="tool-btn" onclick="openCatalog('build')">
-        <span class="btn-icon">🪵</span><span class="btn-label">圖鑑</span>
-      </button>
-      <button class="tool-btn" onclick="openShop()">
-        <span class="btn-icon">🏪</span><span class="btn-label">商店</span>
-      </button>
-      <button class="tool-btn" id="btn-export" onclick="setMode('export')">
-        <span class="btn-icon">📦</span><span class="btn-label">匯出</span>
-      </button>
-      <button class="tool-btn" onclick="exportAllModels()">
-        <span class="btn-icon">💾</span><span class="btn-label">全部匯出</span>
       </button>
     </div>
 

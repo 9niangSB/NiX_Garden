@@ -29,9 +29,9 @@ const plantCatalog = {
   sunflowerB: { name:'向日葵', icon:'🌻', grade:'B', stemColor:0x80B030, topColor:0xF0C020, shape:'tall',   growTime:16000, produceTime:9000,  sell:18, price:15, minRadius:0.8 },
   pumpkin:    { name:'南瓜',   icon:'🎃', grade:'B', stemColor:0x5A8A40, topColor:0xFFA500, shape:'big',    growTime:18000, produceTime:10000, sell:25, price:20, minRadius:1.0 },
   // ── A Grade (昂貴永續 expensive sustainable) ──────────────────
-  sakura:     { name:'櫻花樹', icon:'🌸', grade:'A', stemColor:0x8B6040, topColor:0xF6C6C8, shape:'big',    growTime:22000, produceTime:12000, sell:40, price:30, minRadius:1.2 },
+  sakura:     { name:'櫻花樹', icon:'🌸', grade:'A', stemColor:0x5A3020, topColor:0xF8B0C0, shape:'sakura', growTime:22000, produceTime:12000, sell:40, price:30, minRadius:1.2 },
   pinecone:   { name:'松果',   icon:'🌲', grade:'A', stemColor:0x5A4020, topColor:0x4A7030, shape:'tall',   growTime:25000, produceTime:14000, sell:50, price:38, minRadius:1.1 },
-  willow:     { name:'柳樹',   icon:'🌳', grade:'A', stemColor:0x6A5030, topColor:0x608040, shape:'drape',  growTime:28000, produceTime:16000, sell:60, price:45, minRadius:1.2 },
+  willow:     { name:'柳樹',   icon:'🌳', grade:'A', stemColor:0x4A3018, topColor:0x58A040, shape:'willow', growTime:28000, produceTime:16000, sell:60, price:45, minRadius:1.2 },
   // ── S Grade (稀有昂貴永續 rare expensive) ─────────────────────
   giantSakura:{ name:'巨大櫻花樹', icon:'🌸', grade:'S', stemColor:0x3A1F12, topColor:0xFF9CCF, shape:'sakura_night', growTime:40000, produceTime:20000, sell:100, price:80, minRadius:1.5 },
   giantPine:  { name:'巨大松樹',   icon:'🌲', grade:'S', stemColor:0x4A3820, topColor:0x386030, shape:'big', growTime:45000, produceTime:22000, sell:120, price:95, minRadius:1.5 },
@@ -39,7 +39,7 @@ const plantCatalog = {
   // ── SS Grade (極稀有昂貴永續 ultra rare) ─────────────────────
   demonFruit: { name:'惡魔果實',icon:'🔴', grade:'SS', stemColor:0x802040, topColor:0xFF2060, shape:'crystal', growTime:60000, produceTime:30000, sell:250, price:180, minRadius:1.6 },
   moonLotus:  { name:'月蓮',   icon:'🪷', grade:'SS', stemColor:0x6080C0, topColor:0xC0D8FF, shape:'lotus',   growTime:55000, produceTime:28000, sell:200, price:150, minRadius:1.4 },
-  hemp:       { name:'大麻樹', icon:'🌿', grade:'SS', stemColor:0x507030, topColor:0x78C050, shape:'tall',    growTime:65000, produceTime:35000, sell:300, price:220, minRadius:1.6 },
+  hemp:       { name:'大麻樹', icon:'🌿', grade:'SS', stemColor:0x3A5020, topColor:0x68B040, shape:'hemp',    growTime:65000, produceTime:35000, sell:300, price:220, minRadius:1.6 },
 };
 
 const furnitureCatalog = [
@@ -558,7 +558,7 @@ function buildPlantGroup(type) {
     return m;
   };
 
-  const isBig = ['big','drape','rose','lotus','crystal'].includes(def.shape);
+  const isBig = ['big','drape','rose','lotus','crystal','sakura','willow','hemp','sakura_night'].includes(def.shape);
   const stemH = isBig ? 0.70 : 0.38;
 
   // Stem (shared by all shapes)
@@ -796,6 +796,169 @@ function buildPlantGroup(type) {
       top.material.transparent = true; top.material.opacity = 0.88;
       jh(new THREE.ConeGeometry(0.12,0.30,5), varyColor(def.topColor),  0.18, stemH+0.12, 0.10);
       jh(new THREE.ConeGeometry(0.10,0.26,5), varyColor(def.topColor), -0.16, stemH+0.10, -0.08);
+      break;
+    }
+    case 'sakura': {
+      // ═══ 櫻花樹：粗壯深色樹幹 + 粉色球狀樹冠(多層) + 飄落花瓣 ═══
+      const V = 0.04;  // 細緻 voxel 單位
+      // 樹幹（3色調深木）
+      jh(new THREE.CylinderGeometry(V*3.5, V*5, V*35, 7), varyColor(0x5A3020), 0, V*17.5, 0);
+      jh(new THREE.BoxGeometry(V*3, V*28, V*2.5), varyColor(0x4A2818), V*2.5, V*16, V*1.5);
+      jh(new THREE.BoxGeometry(V*2, V*24, V*2.5), varyColor(0x6A4030), -V*3, V*14, -V*1);
+      // 根部突起
+      [[V*5,V*2,V*2],[V*-4,V*2,V*3],[V*1,V*2,V*-5]].forEach(([rx,ry,rz]) =>
+        jh(new THREE.BoxGeometry(V*4, V*4, V*3), varyColor(0x4A2818), rx, ry, rz));
+      // 分枝（6支向外放射）
+      for (let bi=0; bi<6; bi++) {
+        const ba = bi*Math.PI/3 + Math.random()*0.3;
+        const bl = V*(12+Math.random()*8);
+        const bx = Math.cos(ba)*bl*0.5;
+        const bz = Math.sin(ba)*bl*0.5;
+        jh(new THREE.BoxGeometry(V*1.5, V*2, bl), varyColor(0x5A3020),
+           bx, V*30+Math.random()*V*8, bz);
+      }
+      // 粉色樹冠（多球堆疊，3色調 ±5% 偏移）
+      const pinks = [0xF8B0C0, 0xF0A0B8, 0xFFC0D0, 0xF090A8, 0xFFD0E0];
+      const crY = V*38;
+      // 主冠球群（18個不規則球）
+      for (let ci=0; ci<18; ci++) {
+        const ca = Math.random()*Math.PI*2;
+        const cr = V*(6+Math.random()*12);
+        const cx = Math.cos(ca)*cr;
+        const cz = Math.sin(ca)*cr;
+        const cy = crY + (Math.random()-0.4)*V*10;
+        const cs = V*(3+Math.random()*4);
+        jh(new THREE.SphereGeometry(cs,6,5), varyColor(pinks[ci%5]), cx, cy, cz);
+      }
+      // 頂部高光球
+      for (let ci=0; ci<6; ci++) {
+        const ca = Math.random()*Math.PI*2;
+        const cr = V*(4+Math.random()*6);
+        jh(new THREE.SphereGeometry(V*(2+Math.random()*2),5,4), varyColor(0xFFD0E0),
+           Math.cos(ca)*cr, crY+V*(5+Math.random()*5), Math.sin(ca)*cr);
+      }
+      const top = jh(new THREE.SphereGeometry(V*2,5,4), varyColor(0xF8B0C0), 0, crY+V*12, 0);
+      top.userData.isPlantTop = true;
+      // 飄落花瓣（小扁方塊）
+      for (let pi=0; pi<12; pi++) {
+        const px = (Math.random()-0.5)*V*30;
+        const py = crY - V*(5+Math.random()*25);
+        const pz = (Math.random()-0.5)*V*30;
+        jh(new THREE.BoxGeometry(V*1.2, V*0.3, V*1.0), varyColor(0xFFC0D0), px, py, pz);
+      }
+      break;
+    }
+    case 'willow': {
+      // ═══ 柳樹：高瘦深色樹幹 + 長條垂枝（綠色漸層）═══
+      const V = 0.04;
+      // 主幹（深色，微彎）
+      jh(new THREE.CylinderGeometry(V*2.5, V*4, V*45, 7), varyColor(0x4A3018), 0, V*22.5, 0);
+      jh(new THREE.BoxGeometry(V*2, V*38, V*2), varyColor(0x3A2010), V*2, V*20, V*1);
+      jh(new THREE.BoxGeometry(V*1.5, V*35, V*1.5), varyColor(0x5A4028), -V*2.5, V*18, -V*1);
+      // 根部
+      [[V*4,V*2,V*3],[V*-3,V*2,V*4],[V*2,V*1.5,V*-4]].forEach(([rx,ry,rz]) =>
+        jh(new THREE.BoxGeometry(V*3, V*3, V*3), varyColor(0x3A2010), rx, ry, rz));
+      // 頂部分枝基座
+      const crownY = V*42;
+      for (let bi=0; bi<8; bi++) {
+        const ba = bi*Math.PI/4 + Math.random()*0.2;
+        const bl = V*(8+Math.random()*6);
+        const bx = Math.cos(ba)*bl*0.5;
+        const bz = Math.sin(ba)*bl*0.5;
+        jh(new THREE.BoxGeometry(V*1.2, V*2, bl*0.6), varyColor(0x4A3018),
+           bx, crownY-V*2+Math.random()*V*4, bz);
+      }
+      // 垂枝（核心特徵：20+ 條長條從冠頂垂下）
+      const greens = [0x58A040, 0x489030, 0x68B050, 0x408028, 0x78C060];
+      for (let wi=0; wi<22; wi++) {
+        const wa = (wi/22)*Math.PI*2 + Math.random()*0.4;
+        const wr = V*(8+Math.random()*10);  // 展開半徑
+        const wLen = V*(20+Math.random()*18);  // 垂枝長度
+        const wx = Math.cos(wa)*wr;
+        const wz = Math.sin(wa)*wr;
+        // 垂枝：多段細長方塊
+        const segments = 4+Math.floor(Math.random()*3);
+        const segH = wLen/segments;
+        for (let si=0; si<segments; si++) {
+          const sx = wx + Math.sin(si*0.8+wi)*V*1.5;  // 微微搖曳偏移
+          const sy = crownY - si*segH;
+          const sz = wz + Math.cos(si*0.6+wi)*V*1.5;
+          jh(new THREE.BoxGeometry(V*1.0, segH, V*0.8),
+             varyColor(greens[si%5]), sx, sy-segH/2, sz);
+          // 葉片小球（間隔掛）
+          if (si % 2 === 0) {
+            jh(new THREE.SphereGeometry(V*(1.5+Math.random()), 5, 4),
+               varyColor(greens[(si+wi)%5]), sx+V*1.5, sy-segH*0.3, sz);
+          }
+        }
+      }
+      const top = jh(new THREE.SphereGeometry(V*3,5,4), varyColor(0x68B050), 0, crownY+V*3, 0);
+      top.userData.isPlantTop = true;
+      break;
+    }
+    case 'hemp': {
+      // ═══ 大麻：真實比例 — 主莖+對生掌狀葉+花穗頂 ═══
+      const V = 0.04;
+      // 主莖（綠色帶棱）
+      jh(new THREE.CylinderGeometry(V*1.5, V*2.5, V*50, 6), varyColor(0x3A5020), 0, V*25, 0);
+      jh(new THREE.BoxGeometry(V*1.0, V*45, V*0.8), varyColor(0x4A6030), V*1, V*24, V*0.5);
+      // 莖節
+      for (let ni=0; ni<7; ni++) {
+        const ny = V*(8+ni*6);
+        jh(new THREE.BoxGeometry(V*3.5, V*0.8, V*3.5), varyColor(0x3A5020), 0, ny, 0);
+      }
+      // 對生掌狀複葉（7對，從下往上逐漸變小）
+      const leafGreens = [0x3A6020, 0x4A7030, 0x5A8040, 0x68B040, 0x78C050];
+      for (let li=0; li<7; li++) {
+        const ly = V*(10+li*5.5);
+        const leafScale = 1.0 - li*0.08;  // 越高越小
+        const rot = li % 2 === 0 ? 0 : Math.PI/4;  // 交替 90°
+        // 每片葉 = 5-7 個細長指狀小葉
+        const fingers = 7 - Math.floor(li * 0.5);
+        for (let fi=0; fi<fingers; fi++) {
+          const fa = rot + (fi - fingers/2) * 0.28;
+          const fLen = V*(8+Math.random()*4) * leafScale;
+          const fx = Math.cos(fa) * fLen * 0.6;
+          const fz = Math.sin(fa) * fLen * 0.6;
+          // 指狀小葉（細長方塊）
+          jh(new THREE.BoxGeometry(V*0.6, V*0.3, fLen*0.8),
+             varyColor(leafGreens[fi%5]),
+             fx, ly, fz);
+          // 葉尖
+          jh(new THREE.BoxGeometry(V*0.4, V*0.2, V*1.2),
+             varyColor(leafGreens[(fi+1)%5]),
+             fx + Math.cos(fa)*fLen*0.3, ly, fz + Math.sin(fa)*fLen*0.3);
+        }
+        // 對面也長一組（180°翻轉）
+        for (let fi=0; fi<fingers; fi++) {
+          const fa = rot + Math.PI + (fi - fingers/2) * 0.28;
+          const fLen = V*(8+Math.random()*4) * leafScale;
+          const fx = Math.cos(fa) * fLen * 0.6;
+          const fz = Math.sin(fa) * fLen * 0.6;
+          jh(new THREE.BoxGeometry(V*0.6, V*0.3, fLen*0.8),
+             varyColor(leafGreens[fi%5]),
+             fx, ly, fz);
+        }
+      }
+      // 花穗頂部（密集圓錐形，淺綠+米黃毛刺）
+      const budY = V*48;
+      for (let bi=0; bi<8; bi++) {
+        const ba = Math.random()*Math.PI*2;
+        const br = V*(1+Math.random()*2);
+        jh(new THREE.SphereGeometry(V*(1.5+Math.random()), 5, 4),
+           varyColor(0x88C050),
+           Math.cos(ba)*br, budY+Math.random()*V*6, Math.sin(ba)*br);
+      }
+      // 花穗毛刺（細小突起）
+      for (let ti=0; ti<12; ti++) {
+        const ta = Math.random()*Math.PI*2;
+        const tr = V*(0.5+Math.random()*2.5);
+        jh(new THREE.BoxGeometry(V*0.3, V*(2+Math.random()*2), V*0.3),
+           varyColor(0xC8B880),
+           Math.cos(ta)*tr, budY+V*(2+Math.random()*6), Math.sin(ta)*tr);
+      }
+      const top = jh(new THREE.SphereGeometry(V*1.5,5,4), varyColor(0x78C050), 0, budY+V*8, 0);
+      top.userData.isPlantTop = true;
       break;
     }
     case 'sakura_night': {
@@ -2079,11 +2242,24 @@ window.buySeed = buySeed;
 // ============================================================
 //  ═══ 一樓 ═══  動物 (4-tier breeding lifecycle)
 // ============================================================
+const ANIMAL_CAP = 15;   // 地圖動物上限
 const ANIMAL_TIER = [
-  { lv:1, name:'小兔', nameAdult:'大兔',   color:0xF5F0EA, accent:0xE8DDD0, sx:0.45,sy:0.45,sz:0.50, speed:1.2, lifespan:180, breedTime:50,  nextLv:2 },
-  { lv:2, name:'狐仔', nameAdult:'狐狸',   color:0xE8904A, accent:0xC87030, sx:0.50,sy:0.42,sz:0.55, speed:1.5, lifespan:240, breedTime:70,  nextLv:3 },
-  { lv:3, name:'鷹',   nameAdult:'神鷹',   color:0x8090A0, accent:0xF5C030, sx:0.55,sy:0.35,sz:0.75, speed:1.8, lifespan:300, breedTime:90,  nextLv:4 },
-  { lv:4, name:'雪狼', nameAdult:'芬尼爾', color:0x9080C0, accent:0xE0D0FF, sx:0.80,sy:0.65,sz:0.90, speed:1.0, lifespan:600, breedTime:null,nextLv:null },
+  // lv1 兔: 存活 2hr, 每30min 交配, 每胎 3-6 隻, 商店價低
+  { lv:1, name:'小兔', nameAdult:'大兔',   color:0xF5F0EA, accent:0xF0D0D8, sx:0.45,sy:0.45,sz:0.50, speed:1.2,
+    lifespan:7200, breedTime:1800, minOffspring:3, maxOffspring:6, nextLv:null,
+    price:0, hungerMax:30, hungerRate:0.5 },
+  // lv2 狐: 商店可買, 較貴
+  { lv:2, name:'狐仔', nameAdult:'狐狸',   color:0xE8904A, accent:0xC87030, sx:0.50,sy:0.42,sz:0.55, speed:1.5,
+    lifespan:14400, breedTime:3600, minOffspring:1, maxOffspring:3, nextLv:null,
+    price:200, hungerMax:60, hungerRate:0.3 },
+  // lv3 鷹: 昂貴
+  { lv:3, name:'鷹',   nameAdult:'神鷹',   color:0x8090A0, accent:0xF5C030, sx:0.55,sy:0.35,sz:0.75, speed:1.8,
+    lifespan:28800, breedTime:7200, minOffspring:1, maxOffspring:2, nextLv:null,
+    price:800, hungerMax:120, hungerRate:0.2 },
+  // lv4 格里芬: 極昂貴
+  { lv:4, name:'幼獅鷲', nameAdult:'格里芬', color:0xC8A060, accent:0xE0D0A0, sx:0.80,sy:0.65,sz:0.90, speed:1.0,
+    lifespan:86400, breedTime:null, minOffspring:0, maxOffspring:0, nextLv:null,
+    price:5000, hungerMax:300, hungerRate:0.1 },
 ];
 function getTierDef(lv) { return ANIMAL_TIER.find(t=>t.lv===lv)||ANIMAL_TIER[0]; }
 
@@ -2107,25 +2283,93 @@ function buildAnimalMesh(tierDef, isBaby) {
   const acM = new THREE.MeshLambertMaterial({ color: tierDef.accent });
   const eym = new THREE.MeshLambertMaterial({ color: 0x222222 });
 
-  if (tierDef.lv === 3) {
+  if (tierDef.lv === 4) {
+    // ═══ 格里芬：鷹頭獅身有翼獸 ═══
+    // 鷹嘴
+    const beak = new THREE.Mesh(new THREE.ConeGeometry(0.06*sc, 0.18*sc, 4), new THREE.MeshLambertMaterial({ color:0xE0A830 }));
+    beak.rotation.x = -Math.PI/2;
+    beak.position.set(0, tierDef.sy*sc*0.15, tierDef.sz*sc*0.55); body.add(beak);
+    // 鷹冠（頭頂羽毛）
+    [-0.06,0,0.06].forEach((ox,i) => {
+      const crest = new THREE.Mesh(new THREE.BoxGeometry(0.04*sc, 0.12*sc, 0.03*sc),
+        new THREE.MeshLambertMaterial({ color:[0xC89040,0xD4A050,0xB88030][i] }));
+      crest.position.set(ox*sc, tierDef.sy*sc*0.65, 0.05*sc); body.add(crest);
+    });
+    // 大翅膀（展開，左右各一）
+    [-1,1].forEach(side => {
+      const wingM = new THREE.MeshLambertMaterial({ color: tierDef.accent });
+      // 內翼
+      const w1 = new THREE.Mesh(new THREE.BoxGeometry(0.30*sc, 0.04*sc, 0.20*sc), wingM);
+      w1.position.set(side*0.30*sc, tierDef.sy*sc*0.3, -0.05*sc);
+      w1.rotation.z = side*0.3; body.add(w1);
+      // 外翼
+      const w2 = new THREE.Mesh(new THREE.BoxGeometry(0.22*sc, 0.03*sc, 0.16*sc),
+        new THREE.MeshLambertMaterial({ color:0xD0C090 }));
+      w2.position.set(side*0.50*sc, tierDef.sy*sc*0.38, -0.08*sc);
+      w2.rotation.z = side*0.45; body.add(w2);
+      // 翼尖
+      const w3 = new THREE.Mesh(new THREE.BoxGeometry(0.14*sc, 0.02*sc, 0.10*sc),
+        new THREE.MeshLambertMaterial({ color:0xC0B080 }));
+      w3.position.set(side*0.65*sc, tierDef.sy*sc*0.44, -0.10*sc);
+      w3.rotation.z = side*0.55; body.add(w3);
+    });
+    // 獅尾
+    const tail = new THREE.Mesh(new THREE.BoxGeometry(0.05*sc, 0.05*sc, 0.22*sc), em);
+    tail.position.set(0, tierDef.sy*sc*0.1, -tierDef.sz*sc*0.5-0.08*sc); body.add(tail);
+    const tuft = new THREE.Mesh(new THREE.SphereGeometry(0.06*sc,5,4),
+      new THREE.MeshLambertMaterial({ color:0xC89040 }));
+    tuft.position.set(0, tierDef.sy*sc*0.1, -tierDef.sz*sc*0.5-0.20*sc); body.add(tuft);
+    // 前爪
+    [-0.15,0.15].forEach(ox => {
+      const claw = new THREE.Mesh(new THREE.BoxGeometry(0.06*sc, 0.12*sc, 0.06*sc),
+        new THREE.MeshLambertMaterial({ color:0xE0A830 }));
+      claw.position.set(ox*sc, -tierDef.sy*sc*0.35, tierDef.sz*sc*0.3); body.add(claw);
+    });
+    // 微發光
+    body.material.emissive = new THREE.Color(0x806020);
+    body.material.emissiveIntensity = 0.15;
+  } else if (tierDef.lv === 3) {
     // Hawks get wing stubs instead of ears
     [-0.1,0.1].forEach(ox => {
       const wing = new THREE.Mesh(new THREE.BoxGeometry(0.22*sc,0.05*sc,0.12*sc), acM);
       wing.position.set(ox, tierDef.sy*sc*0.2, 0); body.add(wing);
     });
+  } else if (tierDef.lv === 1) {
+    // ── 兔子 Grow-a-Garden 風格：圓潤 + 粉色內耳 + 圓尾 ──
+    [-0.08,0.08].forEach(ox => {
+      const ear = new THREE.Mesh(new THREE.BoxGeometry(0.08*sc, 0.22*sc, 0.06*sc), em);
+      ear.position.set(ox*sc, tierDef.sy*sc*0.65, 0.06*sc); body.add(ear);
+      // 粉色內耳
+      const inner = new THREE.Mesh(new THREE.BoxGeometry(0.04*sc, 0.16*sc, 0.03*sc),
+        new THREE.MeshLambertMaterial({ color: 0xF0B0C0 }));
+      inner.position.set(ox*sc, tierDef.sy*sc*0.65, 0.085*sc); body.add(inner);
+    });
+    // 粉紅鼻子
+    const nose = new THREE.Mesh(new THREE.BoxGeometry(0.04*sc, 0.03*sc, 0.04*sc),
+      new THREE.MeshLambertMaterial({ color: 0xF0A0B0 }));
+    nose.position.set(0, tierDef.sy*sc*0.08, tierDef.sz*sc*0.52); body.add(nose);
+    // 圓尾巴
+    const tail = new THREE.Mesh(new THREE.SphereGeometry(0.06*sc, 5, 4), em);
+    tail.position.set(0, tierDef.sy*sc*0.1, -tierDef.sz*sc*0.52); body.add(tail);
   } else {
     [-0.1,0.1].forEach(ox => {
       const ear = new THREE.Mesh(new THREE.BoxGeometry(0.10*sc,0.18*sc,0.08*sc), em);
       ear.position.set(ox, tierDef.sy*sc*0.6, 0.1*sc); body.add(ear);
     });
   }
-  [-0.1,0.1].forEach(ox => {
-    const eye = new THREE.Mesh(new THREE.BoxGeometry(0.06*sc,0.06*sc,0.06*sc), eym);
-    eye.position.set(ox, tierDef.sy*sc*0.15, tierDef.sz*sc*0.5+0.01); body.add(eye);
-  });
-  if (tierDef.lv === 4) {
-    body.material.emissive = new THREE.Color(0x4020A0);
-    body.material.emissiveIntensity = 0.20;
+  // 眼睛（格里芬已在上面處理嘴，其他動物加眼睛）
+  if (tierDef.lv !== 4) {
+    [-0.1,0.1].forEach(ox => {
+      const eye = new THREE.Mesh(new THREE.BoxGeometry(0.06*sc,0.06*sc,0.06*sc), eym);
+      eye.position.set(ox, tierDef.sy*sc*0.15, tierDef.sz*sc*0.5+0.01); body.add(eye);
+    });
+  } else {
+    // 格里芬鷹眼（金色/琥珀色）
+    const hawkEye = new THREE.MeshLambertMaterial({ color:0xE0A020, emissive:new THREE.Color(0xA07010), emissiveIntensity:0.3 });
+    [-0.08,0.08].forEach(ox => {
+      const eye = new THREE.Mesh(new THREE.BoxGeometry(0.05*sc,0.05*sc,0.05*sc), hawkEye);
+      eye.position.set(ox*sc, tierDef.sy*sc*0.25, tierDef.sz*sc*0.5+0.01); body.add(eye);
+    });
   }
   return body;
 }
@@ -2145,6 +2389,8 @@ function spawnAnimal(lv, spawnX, spawnZ) {
     isBaby:        true,
     age:           0,
     breedCooldown: 0,
+    hunger:        tierDef.hungerMax,  // 飽食度（滿 = hungerMax）
+    isHungry:      false,
     speed:         tierDef.speed * 0.6,
     targetX:       (Math.random()-0.5)*14,
     targetZ:       (Math.random()-0.5)*14,
@@ -2152,6 +2398,26 @@ function spawnAnimal(lv, spawnX, spawnZ) {
     changeInterval: 3+Math.random()*4,
     isIdle: false, idleTimer: 0,
   });
+}
+
+// 餵食寵物
+function feedAnimal(animalData) {
+  // 找倉庫裡最高級的作物餵食
+  const gradeOrder = ['SS','S','A','B','C','D'];
+  for (const grade of gradeOrder) {
+    for (const [k, def] of Object.entries(plantCatalog)) {
+      if (def.grade !== grade || (inventory[k]||0) <= 0) continue;
+      inventory[k]--;
+      const feedAmount = def.sell * 2;  // 越值錢的作物恢復越多飽食度
+      animalData.hunger = Math.min(animalData.tierDef.hungerMax, animalData.hunger + feedAmount);
+      animalData.isHungry = animalData.hunger > animalData.tierDef.hungerMax * 0.2;
+      updateUI();
+      showToast(`🍖 ${def.icon} → ${animalData.tierDef.nameAdult} 飽食度 +${feedAmount}`);
+      return true;
+    }
+  }
+  showToast('🍽️ 倉庫沒有作物可以餵食！');
+  return false;
 }
 for (let i=0;i<3;i++) spawnAnimal(1);
 
@@ -2164,6 +2430,15 @@ function updateAnimals(delta, now) {
     a.age           += delta;
     a.changeTimer   += delta;
     a.breedCooldown  = Math.max(0, a.breedCooldown - delta);
+
+    // ── 飽食度消耗 ──
+    a.hunger -= a.tierDef.hungerRate * delta;
+    if (a.hunger <= 0) {
+      a.hunger   = 0;
+      a.isHungry = true;
+    } else if (a.hunger > a.tierDef.hungerMax * 0.2) {
+      a.isHungry = false;
+    }
 
     // Baby → Adult
     if (a.isBaby && a.age >= GROW_AGE) {
@@ -2181,22 +2456,36 @@ function updateAnimals(delta, now) {
       continue;
     }
 
-    // Breeding: find nearby adult of same level
-    if (!a.isBaby && a.breedCooldown <= 0 && a.tierDef.nextLv !== null && animals.length < 20) {
+    // 飢餓罷工：不採收、不移動、原地晃動
+    if (a.isHungry) {
+      a.mesh.rotation.y += Math.sin(now*0.005)*0.03;
+      // 飢餓視覺：微微上下抖動
+      const halfH = a.tierDef.sy * (a.isBaby ? 0.4 : 1.0) / 2;
+      a.mesh.position.y = halfH + Math.sin(now*0.01)*0.02;
+      continue;
+    }
+
+    // Breeding: same-level adults nearby → spawn offspring (same level)
+    if (!a.isBaby && a.breedCooldown <= 0 && a.tierDef.breedTime !== null && animals.length < ANIMAL_CAP) {
       for (let bi = 0; bi < animals.length; bi++) {
         if (bi === ai) continue;
         const b = animals[bi];
-        if (b.lv !== a.lv || b.isBaby || b.breedCooldown > 0) continue;
+        if (b.lv !== a.lv || b.isBaby || b.breedCooldown > 0 || b.isHungry) continue;
         const dx = b.mesh.position.x - a.mesh.position.x;
         const dz = b.mesh.position.z - a.mesh.position.z;
         if (Math.sqrt(dx*dx+dz*dz) < 1.5) {
+          // 生 minOffspring ~ maxOffspring 隻同等級幼獸
+          const count = a.tierDef.minOffspring +
+            Math.floor(Math.random() * (a.tierDef.maxOffspring - a.tierDef.minOffspring + 1));
+          const spawnCount = Math.min(count, ANIMAL_CAP - animals.length);
           const nx = (a.mesh.position.x + b.mesh.position.x) / 2;
           const nz = (a.mesh.position.z + b.mesh.position.z) / 2;
-          toSpawn.push({ lv: a.tierDef.nextLv, x: nx, z: nz });
+          for (let si = 0; si < spawnCount; si++) {
+            toSpawn.push({ lv: a.lv, x: nx + (Math.random()-0.5)*2, z: nz + (Math.random()-0.5)*2 });
+          }
           a.breedCooldown = a.tierDef.breedTime;
           b.breedCooldown = a.tierDef.breedTime;
-          const nextDef = getTierDef(a.tierDef.nextLv);
-          showToast(`🐣 LV${a.tierDef.nextLv} ${nextDef.name} 誕生！`);
+          showToast(`🐣 ${a.tierDef.name} ×${spawnCount} 誕生！`);
           break;
         }
       }
@@ -2353,19 +2642,165 @@ let isDragging   = false;
 let pointerStart = { x:0, y:0 };
 const DRAG_THRESHOLD = 6;
 
+// ── 長按系統：移動/收納 ──
+let longPressTimer = null;
+let longPressTarget = null;    // { type:'plant'|'build', data, mesh }
+let isMovingObject = false;    // 正在拖動物件
+let movingObject = null;
+
+function startLongPress(e) {
+  getPointerNDC(e);
+  raycaster.setFromCamera(pointer, camera);
+
+  // 檢測植物
+  const allPM = [];
+  plants.forEach(p => p.mesh.traverse(c => { if (c.isMesh) allPM.push(c); }));
+  const pHits = raycaster.intersectObjects(allPM);
+  if (pHits.length > 0) {
+    for (const p of plants) {
+      let obj = pHits[0].object;
+      while (obj) {
+        if (obj === p.mesh) {
+          longPressTarget = { type:'plant', data:p, mesh:p.mesh };
+          return;
+        }
+        obj = obj.parent;
+      }
+    }
+  }
+  // 檢測家具
+  const allFM = [];
+  placedObjects.forEach(o => o.mesh.traverse(c => { if (c.isMesh) allFM.push(c); }));
+  const fHits = raycaster.intersectObjects(allFM);
+  if (fHits.length > 0) {
+    for (const o of placedObjects) {
+      let obj = fHits[0].object;
+      while (obj) {
+        if (obj === o.mesh) {
+          longPressTarget = { type:'build', data:o, mesh:o.mesh };
+          return;
+        }
+        obj = obj.parent;
+      }
+    }
+  }
+}
+
+function triggerLongPress() {
+  if (!longPressTarget) return;
+  isMovingObject = true;
+  movingObject   = longPressTarget;
+  controls.enabled = false;  // 拖動時禁用相機旋轉
+  // 視覺回饋：物件浮起 + 半透明
+  movingObject.mesh.position.y += 0.5;
+  movingObject.mesh.traverse(c => {
+    if (c.isMesh && c.material) {
+      const mats = Array.isArray(c.material) ? c.material : [c.material];
+      mats.forEach(m => { m.transparent = true; m.opacity = 0.6; });
+    }
+  });
+  showToast('🫳 拖動到新位置 · 點右鍵收納');
+}
+
+function finishMove(worldX, worldZ) {
+  if (!movingObject) return;
+  const obj = movingObject;
+
+  // 放置到新位置
+  if (obj.type === 'plant') {
+    obj.data.gridX = worldX;
+    obj.data.gridZ = worldZ;
+    obj.mesh.position.set(worldX, 0, worldZ);
+  } else {
+    // 家具：移除舊 key，建立新 key
+    const oldKey = `${obj.data.gridX},${obj.data.gridZ}`;
+    occupiedCells.delete(oldKey);
+    const nx = Math.round(worldX);
+    const nz = Math.round(worldZ);
+    obj.data.gridX = nx;
+    obj.data.gridZ = nz;
+    occupiedCells.add(`${nx},${nz}`);
+    obj.mesh.position.set(nx, 0, nz);
+  }
+
+  // 復原透明度
+  obj.mesh.traverse(c => {
+    if (c.isMesh && c.material) {
+      const mats = Array.isArray(c.material) ? c.material : [c.material];
+      mats.forEach(m => { m.opacity = 1.0; m.transparent = (m.userData?.origTransparent || false); });
+    }
+  });
+
+  isMovingObject = false;
+  movingObject   = null;
+  controls.enabled = true;
+  showToast('✅ 移動完成');
+}
+
+function storeObject() {
+  if (!movingObject) return;
+  const obj = movingObject;
+
+  if (obj.type === 'plant') {
+    // 收納植物 → 種子 +1
+    const def = plantCatalog[obj.data.type];
+    inventorySeeds[obj.data.type] = (inventorySeeds[obj.data.type]||0) + 1;
+    scene.remove(obj.mesh);
+    obj.mesh.traverse(c => {
+      if (!c.isMesh) return;
+      c.geometry.dispose();
+      (Array.isArray(c.material)?c.material:[c.material]).forEach(m=>m.dispose());
+    });
+    const idx = plants.indexOf(obj.data);
+    if (idx >= 0) plants.splice(idx, 1);
+    showToast(`📥 ${def.icon} ${def.name} 收納 → 種子 +1`);
+  } else {
+    // 收納家具 → 消失（歸還）
+    const key = `${obj.data.gridX},${obj.data.gridZ}`;
+    occupiedCells.delete(key);
+    scene.remove(obj.mesh);
+    obj.mesh.traverse(c => {
+      if (!c.isMesh) return;
+      c.geometry.dispose();
+      (Array.isArray(c.material)?c.material:[c.material]).forEach(m=>m.dispose());
+    });
+    const idx = placedObjects.indexOf(obj.data);
+    if (idx >= 0) placedObjects.splice(idx, 1);
+    showToast('📥 家具已收納');
+  }
+
+  isMovingObject = false;
+  movingObject   = null;
+  controls.enabled = true;
+  updateUI();
+}
+
 renderer.domElement.addEventListener('pointerdown', e => {
   pointerStart.x = e.clientX;
   pointerStart.y = e.clientY;
   isDragging = false;
+  longPressTarget = null;
+  startLongPress(e);
+  longPressTimer = setTimeout(() => triggerLongPress(), 600);  // 600ms 長按
 });
 
 renderer.domElement.addEventListener('pointermove', e => {
   const dx = e.clientX - pointerStart.x;
   const dy = e.clientY - pointerStart.y;
-  if (Math.sqrt(dx*dx+dy*dy) > DRAG_THRESHOLD) isDragging = true;
+  if (Math.sqrt(dx*dx+dy*dy) > DRAG_THRESHOLD) {
+    isDragging = true;
+    if (longPressTimer) { clearTimeout(longPressTimer); longPressTimer = null; }
+  }
 
   getPointerNDC(e);
   const hit = raycastGround();
+
+  // 長按拖動中：物件跟隨滑鼠
+  if (isMovingObject && movingObject && hit) {
+    movingObject.mesh.position.set(hit.x, 0.5, hit.z);
+    return;
+  }
+
   if (hit && previewMesh) {
     if (currentMode === 'plant') {
       previewMesh.position.set(hit.x, 0.6, hit.z);
@@ -2379,13 +2814,50 @@ renderer.domElement.addEventListener('pointermove', e => {
   }
 });
 
+// 右鍵 → 收納（長按拖動中）
+renderer.domElement.addEventListener('contextmenu', e => {
+  e.preventDefault();
+  if (isMovingObject) storeObject();
+});
+
 renderer.domElement.addEventListener('pointerup', e => {
+  if (longPressTimer) { clearTimeout(longPressTimer); longPressTimer = null; }
+
+  // 長按拖動放下
+  if (isMovingObject) {
+    const hit = raycastGround();
+    if (hit) finishMove(hit.x, hit.z);
+    else finishMove(movingObject.mesh.position.x, movingObject.mesh.position.z);
+    return;
+  }
+
   if (isDragging) return;
   getPointerNDC(e);
   raycaster.setFromCamera(pointer, camera);
 
   // ① 便利屋
   if (raycaster.intersectObjects(shopMeshes).length > 0) { openShop(); return; }
+
+  // ①b 動物（點擊餵食）
+  const allAM = [];
+  animals.forEach(a => { if (a.mesh.isMesh) allAM.push(a.mesh); else a.mesh.traverse(c => { if (c.isMesh) allAM.push(c); }); });
+  const aHits = raycaster.intersectObjects(allAM);
+  if (aHits.length > 0) {
+    for (const a of animals) {
+      let obj = aHits[0].object;
+      while (obj) {
+        if (obj === a.mesh) {
+          if (a.isHungry) { feedAnimal(a); }
+          else {
+            const pct = Math.round(a.hunger / a.tierDef.hungerMax * 100);
+            showToast(`${a.tierDef.nameAdult} 飽食度: ${pct}%`);
+          }
+          return;
+        }
+        obj = obj.parent;
+      }
+    }
+  }
 
   // ② 植物（採收 / 刪除）
   const allPM = [];
@@ -2449,9 +2921,11 @@ window.setMode = function(mode) {
   document.getElementById(map[mode])?.classList.add('active');
   const labels = { plant:'種植', build:'家具', delete:'移除', export:'匯出' };
   document.getElementById('mode-label').textContent = `模式：${labels[mode]}`;
-  if (mode === 'export') showToast('📦 點擊任何植物或家具 → 下載 .obj');
   closeAllPanels();
   createPreviewMesh();
+  // 點植物/家具 mode 自動開圖鑑
+  if (mode === 'plant') window.openCatalog('plant');
+  else if (mode === 'build') window.openCatalog('build');
 };
 
 // ============================================================
@@ -2627,8 +3101,32 @@ function updateShopUI() {
         buyList.appendChild(row);
       });
     });
+
+    // ── 寵物購買區 ──
+    const petHdr = document.createElement('div');
+    petHdr.className = 'shop-grade-header';
+    petHdr.textContent = '🐾 寵物';
+    buyList.appendChild(petHdr);
+    ANIMAL_TIER.filter(t => t.price > 0).forEach(t => {
+      const row = document.createElement('div');
+      row.className = 'shop-buy-row';
+      const lvEmoji = ['','🐰','🦊','🦅','🦅'][t.lv] || '🐾';
+      row.innerHTML = `<span>${lvEmoji} LV${t.lv} ${t.nameAdult}</span><span class="seed-stock">場上: ${animals.filter(a=>a.lv===t.lv).length}</span><button class="shop-buy-btn" onclick="buyAnimal(${t.lv})">${t.price} コイン</button>`;
+      buyList.appendChild(row);
+    });
   }
 }
+
+window.buyAnimal = function(lv) {
+  const def = getTierDef(lv);
+  if (!def?.price || def.price <= 0) return;
+  if (money < def.price) { showToast(`💸 コイン不足！(${def.price} 必要)`); return; }
+  if (animals.length >= ANIMAL_CAP) { showToast(`🐾 寵物已達上限 ${ANIMAL_CAP} 隻`); return; }
+  money -= def.price;
+  spawnAnimal(lv);
+  updateUI();
+  showToast(`🐾 LV${lv} ${def.nameAdult} 購入！`);
+};
 
 // ============================================================
 //  ═══ UI ═══
