@@ -8,21 +8,24 @@
  */
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { OBJLoader }     from 'three/addons/loaders/OBJLoader.js';
+import { MTLLoader }     from 'three/addons/loaders/MTLLoader.js';
+import { OBJExporter }   from 'three/addons/exporters/OBJExporter.js';
 
 // ============================================================
 //  資料層
 // ============================================================
 const plantCatalog = {
   // ── D Grade (disposable — dies after first harvest) ───────────
-  carrot:     { name:'胡蘿蔔', icon:'🥕', grade:'D', disposable:true,  stemColor:0x5A8840, topColor:0xFF7040, shape:'cone',    growTime:5000,  produceTime:4000,  sell:2,  price:3,  minRadius:0.6 },
+  carrot:     { name:'胡蘿蔔', icon:'🥕', grade:'D', disposable:true,  stemColor:0x4A8838, topColor:0xF07030, shape:'carrot',  growTime:5000,  produceTime:4000,  sell:2,  price:3,  minRadius:0.6 },
   scallion:   { name:'蔥',     icon:'🌿', grade:'D', disposable:true,  stemColor:0x50A040, topColor:0x78D060, shape:'flat',    growTime:4000,  produceTime:3000,  sell:1,  price:2,  minRadius:0.5 },
   onion:      { name:'洋蔥',   icon:'🧅', grade:'D', disposable:true,  stemColor:0xD0C8A0, topColor:0xC0A040, shape:'shroom',  growTime:6000,  produceTime:4000,  sell:3,  price:4,  minRadius:0.6 },
   // ── C Grade (永續 sustainable) ────────────────────────────────
-  tomato:     { name:'番茄',   icon:'🍅', grade:'C', stemColor:0x6CA850, topColor:0xFF6347, shape:'sphere', growTime:8000,  produceTime:6000,  sell:5,  minRadius:0.7 },
+  tomato:     { name:'番茄',   icon:'🍅', grade:'C', stemColor:0x4A8838, topColor:0xE83020, shape:'tomato', growTime:8000,  produceTime:6000,  sell:5,  minRadius:0.7 },
   strawberry: { name:'草莓',   icon:'🍓', grade:'C', stemColor:0x6CA850, topColor:0xFF4D6D, shape:'cone',   growTime:10000, produceTime:6000,  sell:8,  minRadius:0.7 },
   blueberry:  { name:'藍莓',   icon:'🫐', grade:'C', stemColor:0x6CA850, topColor:0x4F6DFF, shape:'sphere', growTime:10000, produceTime:6000,  sell:10, minRadius:0.7 },
   // ── B Grade (永續 sustainable) ────────────────────────────────
-  corn:       { name:'玉米',   icon:'🌽', grade:'B', stemColor:0x70A030, topColor:0xF0D040, shape:'tall',   growTime:14000, produceTime:8000,  sell:15, price:12, minRadius:0.8 },
+  corn:       { name:'玉米',   icon:'🌽', grade:'B', stemColor:0x4A8030, topColor:0xF0D040, shape:'corn',   growTime:14000, produceTime:8000,  sell:15, price:12, minRadius:0.8 },
   sunflowerB: { name:'向日葵', icon:'🌻', grade:'B', stemColor:0x80B030, topColor:0xF0C020, shape:'tall',   growTime:16000, produceTime:9000,  sell:18, price:15, minRadius:0.8 },
   pumpkin:    { name:'南瓜',   icon:'🎃', grade:'B', stemColor:0x5A8A40, topColor:0xFFA500, shape:'big',    growTime:18000, produceTime:10000, sell:25, price:20, minRadius:1.0 },
   // ── A Grade (昂貴永續 expensive sustainable) ──────────────────
@@ -30,7 +33,7 @@ const plantCatalog = {
   pinecone:   { name:'松果',   icon:'🌲', grade:'A', stemColor:0x5A4020, topColor:0x4A7030, shape:'tall',   growTime:25000, produceTime:14000, sell:50, price:38, minRadius:1.1 },
   willow:     { name:'柳樹',   icon:'🌳', grade:'A', stemColor:0x6A5030, topColor:0x608040, shape:'drape',  growTime:28000, produceTime:16000, sell:60, price:45, minRadius:1.2 },
   // ── S Grade (稀有昂貴永續 rare expensive) ─────────────────────
-  giantSakura:{ name:'巨大櫻花樹', icon:'🌸', grade:'S', stemColor:0x7A5030, topColor:0xF0B0C8, shape:'big', growTime:40000, produceTime:20000, sell:100, price:80, minRadius:1.5 },
+  giantSakura:{ name:'巨大櫻花樹', icon:'🌸', grade:'S', stemColor:0x3A1F12, topColor:0xFF9CCF, shape:'sakura_night', growTime:40000, produceTime:20000, sell:100, price:80, minRadius:1.5 },
   giantPine:  { name:'巨大松樹',   icon:'🌲', grade:'S', stemColor:0x4A3820, topColor:0x386030, shape:'big', growTime:45000, produceTime:22000, sell:120, price:95, minRadius:1.5 },
   butterfly:  { name:'蝴蝶草',     icon:'🦋', grade:'S', stemColor:0x9060B0, topColor:0xD080E0, shape:'rose', growTime:35000, produceTime:18000, sell:90, price:70, minRadius:1.3 },
   // ── SS Grade (極稀有昂貴永續 ultra rare) ─────────────────────
@@ -52,6 +55,7 @@ const furnitureCatalog = [
   { id:'big_jump',    name:'大跳台',  icon:'🏔️', color:0xD0E8FF },
   { id:'chairlift',   name:'纜車椅', icon:'🚡', color:0xC0C8D8 },
   { id:'snow_cannon', name:'造雪機', icon:'💨', color:0x8090A8 },
+  { id:'frozen_tree', name:'冰結樹', icon:'🧊', color:0xE0F0FF },
 ];
 
 const SEASON_CFG = {
@@ -82,6 +86,118 @@ const placedObjects = [];   // furniture
 const occupiedCells = new Set();
 const groundTiles   = [];   // refs for season recolor
 const animals       = [];
+
+// ============================================================
+//  ═══ 地基層 ═══  OBJ 模型載入系統 (MagicaVoxel → Three.js)
+// ============================================================
+const MODEL_PATH  = './models/';
+const modelCache  = {};            // { id: THREE.Group } — preloaded meshes
+let   modelsReady = false;
+
+// 所有可被 .obj 取代的模型 ID 清單
+const ALL_MODEL_IDS = [
+  // 植物
+  ...Object.keys(plantCatalog),
+  // 家具
+  ...furnitureCatalog.map(f => f.id),
+  // 動物
+  'animal_lv1','animal_lv2','animal_lv3','animal_lv4',
+];
+
+/**
+ * 嘗試載入單一 .obj（帶 .mtl 材質）
+ * 成功 → 存入 modelCache[id]
+ * 失敗 → 靜默跳過（fallback 回程式碼版本）
+ */
+async function tryLoadModel(id) {
+  try {
+    const mtlPath = MODEL_PATH + id + '.mtl';
+    const objPath = MODEL_PATH + id + '.obj';
+
+    // 先確認檔案存在（避免 404 噪音）
+    const check = await fetch(objPath, { method: 'HEAD' }).catch(() => null);
+    if (!check || !check.ok) return;
+
+    const mtlLoader = new MTLLoader();
+    mtlLoader.setPath(MODEL_PATH);
+
+    let materials = null;
+    try {
+      materials = await mtlLoader.loadAsync(id + '.mtl');
+      materials.preload();
+    } catch (_) { /* .mtl 不存在也沒關係 */ }
+
+    const objLoader = new OBJLoader();
+    if (materials) objLoader.setMaterials(materials);
+
+    const obj = await objLoader.loadAsync(objPath);
+
+    // 自動置中 + 縮放到合理尺寸
+    const box  = new THREE.Box3().setFromObject(obj);
+    const size = new THREE.Vector3();
+    box.getSize(size);
+    const center = new THREE.Vector3();
+    box.getCenter(center);
+
+    // 將模型底部對齊 Y=0，水平居中
+    obj.position.sub(center);
+    obj.position.y += size.y / 2;
+
+    // 縮放：讓最大維度 = 1.0 遊戲單位
+    const maxDim    = Math.max(size.x, size.y, size.z);
+    const normScale = 1.0 / maxDim;
+    obj.scale.setScalar(normScale);
+
+    // 啟用陰影
+    obj.traverse(c => {
+      if (c.isMesh) {
+        c.castShadow    = true;
+        c.receiveShadow = true;
+      }
+    });
+
+    // 包成 Group 方便後續操作
+    const wrapper = new THREE.Group();
+    wrapper.add(obj);
+    modelCache[id] = wrapper;
+    console.log(`[NiX] Loaded custom model: ${id}`);
+  } catch (_) {
+    // 靜默失敗 — 使用程式碼 fallback
+  }
+}
+
+/**
+ * 啟動時掃描所有可能的 .obj，載入存在的
+ */
+async function preloadAllModels() {
+  await Promise.all(ALL_MODEL_IDS.map(id => tryLoadModel(id)));
+  modelsReady = true;
+  const loaded = Object.keys(modelCache);
+  if (loaded.length > 0) {
+    console.log(`[NiX] Custom models loaded: ${loaded.join(', ')}`);
+  }
+}
+
+/**
+ * 取得自訂模型的 clone（如果存在）
+ * @returns {THREE.Group|null}
+ */
+function getCustomModel(id) {
+  if (!modelCache[id]) return null;
+  const clone = modelCache[id].clone(true);
+  // 深拷貝材質（避免共用材質互相干擾）
+  clone.traverse(c => {
+    if (c.isMesh && c.material) {
+      c.material = Array.isArray(c.material)
+        ? c.material.map(m => m.clone())
+        : c.material.clone();
+    }
+  });
+  return clone;
+}
+
+// 啟動預載（非阻塞）
+preloadAllModels();
 
 // ── Per-voxel colour variation helper (±5% brightness noise) ──
 function varyColor(hex, pct = 0.05) {
@@ -397,6 +513,9 @@ function createPreviewMesh() {
     geo   = def.shape === 'big'    ? new THREE.SphereGeometry(r*1.2, 7, 5)
           : def.shape === 'sphere' ? new THREE.SphereGeometry(r, 7, 5)
           : def.shape === 'cone'   ? new THREE.ConeGeometry(r*0.8, r*2, 6)
+          : def.shape === 'carrot' ? new THREE.ConeGeometry(r*0.5, r*2, 6)
+          : def.shape === 'tomato' ? new THREE.SphereGeometry(r*0.8, 7, 5)
+          : def.shape === 'corn'   ? new THREE.CylinderGeometry(r*0.3, r*0.4, r*3, 6)
           : def.shape === 'tall'   ? new THREE.CylinderGeometry(r*0.5, r*0.6, r*2.5, 6)
           :                          new THREE.SphereGeometry(r, 7, 5);
   } else {
@@ -414,6 +533,20 @@ function createPreviewMesh() {
 //  ═══ 二樓 ═══  植物：視覺構建
 // ============================================================
 function buildPlantGroup(type) {
+  // ── 優先使用 MagicaVoxel 自訂模型 ──
+  const custom = getCustomModel(type);
+  if (custom) {
+    // 標記頂部以供果實定位
+    let topY = 0;
+    custom.traverse(c => { if (c.isMesh) topY = Math.max(topY, c.position.y); });
+    const marker = new THREE.Object3D();
+    marker.position.y = topY + 0.3;
+    marker.userData.isPlantTop = true;
+    custom.add(marker);
+    return custom;
+  }
+
+  // ── Fallback: 程式碼生成 ──
   const def = plantCatalog[type];
   const g   = new THREE.Group();
 
@@ -448,6 +581,145 @@ function buildPlantGroup(type) {
       top.userData.isPlantTop = true;
       jh(new THREE.SphereGeometry(0.08,5,4), varyColor(def.topColor), 0.18, stemH+0.14, 0.10);
       jh(new THREE.SphereGeometry(0.07,5,4), varyColor(def.topColor), -0.16, stemH+0.12, 0.08);
+      break;
+    }
+    // ═══ Grow-a-Garden 風格植物 ═══
+    case 'carrot': {
+      // 胡蘿蔔：橘色錐形根部半埋土中 + 綠色葉叢頂部
+      // 土塊底座
+      jh(new THREE.BoxGeometry(0.40, 0.12, 0.40),
+         varyColor(0x8B6840), 0, 0.06, 0);
+      jh(new THREE.BoxGeometry(0.34, 0.10, 0.34),
+         varyColor(0x9A7848), 0.05, 0.12, -0.03);
+      // 胡蘿蔔根部（3段漸細，從土裡露出一半）
+      jh(new THREE.BoxGeometry(0.18, 0.22, 0.18),
+         varyColor(0xF07030), 0, 0.22, 0);  // 粗段
+      jh(new THREE.BoxGeometry(0.14, 0.18, 0.14),
+         varyColor(0xE86828), 0, 0.38, 0);  // 中段
+      jh(new THREE.BoxGeometry(0.10, 0.14, 0.10),
+         varyColor(0xE06020), 0, 0.50, 0);  // 細段
+      // 根部頂端圓角
+      jh(new THREE.BoxGeometry(0.06, 0.08, 0.06),
+         varyColor(0xD85818), 0, 0.08, 0);  // 尖端（土裡）
+      // 橫紋環（胡蘿蔔表面紋路）
+      jh(new THREE.BoxGeometry(0.20, 0.02, 0.20),
+         varyColor(0xD06020), 0, 0.30, 0);
+      jh(new THREE.BoxGeometry(0.16, 0.02, 0.16),
+         varyColor(0xD06020), 0, 0.42, 0);
+      // 綠色葉叢（3-4片向外展開）
+      const leafG = 0x4A8838;
+      const top = jh(new THREE.BoxGeometry(0.06, 0.30, 0.04),
+         varyColor(leafG), 0, 0.72, 0);
+      top.userData.isPlantTop = true;
+      jh(new THREE.BoxGeometry(0.05, 0.26, 0.04),
+         varyColor(0x58A040), 0.10, 0.68, 0.06);
+      jh(new THREE.BoxGeometry(0.05, 0.24, 0.04),
+         varyColor(0x58A040), -0.08, 0.66, -0.05);
+      jh(new THREE.BoxGeometry(0.04, 0.20, 0.05),
+         varyColor(0x68B048), 0.04, 0.64, -0.09);
+      // 葉片頂端微彎（用小方塊偏移模擬）
+      jh(new THREE.BoxGeometry(0.05, 0.06, 0.04),
+         varyColor(leafG), 0.04, 0.88, 0.04);
+      jh(new THREE.BoxGeometry(0.04, 0.06, 0.04),
+         varyColor(0x58A040), 0.14, 0.82, 0.10);
+      jh(new THREE.BoxGeometry(0.04, 0.06, 0.04),
+         varyColor(0x58A040), -0.10, 0.80, -0.08);
+      break;
+    }
+    case 'tomato': {
+      // 番茄：綠色木架(支架) + 紅色圓果 + 小葉片
+      // 木支架（Y字型竹竿）
+      jh(new THREE.BoxGeometry(0.05, 0.70, 0.05),
+         varyColor(0x8B6840), 0, 0.35, 0);
+      jh(new THREE.BoxGeometry(0.05, 0.30, 0.05),
+         varyColor(0x8B6840), 0.12, 0.60, 0);
+      const stk = new THREE.Mesh(
+        new THREE.BoxGeometry(0.05, 0.30, 0.05),
+        varyColor(0x8B6840).clone()
+      );
+      stk.position.set(0.12, 0.60, 0);
+      stk.rotation.z = 0.4;
+      stk.castShadow = true; g.add(stk);
+      const stk2 = new THREE.Mesh(
+        new THREE.BoxGeometry(0.05, 0.28, 0.05),
+        varyColor(0x8B6840).clone()
+      );
+      stk2.position.set(-0.10, 0.58, 0);
+      stk2.rotation.z = -0.35;
+      stk2.castShadow = true; g.add(stk2);
+      // 藤蔓繞竿
+      jh(new THREE.BoxGeometry(0.03, 0.08, 0.03),
+         varyColor(0x4A8838), 0.04, 0.50, 0.04);
+      jh(new THREE.BoxGeometry(0.03, 0.08, 0.03),
+         varyColor(0x4A8838), -0.04, 0.40, -0.03);
+      jh(new THREE.BoxGeometry(0.03, 0.06, 0.03),
+         varyColor(0x58A040), 0.03, 0.30, 0.03);
+      // 番茄果實（主果 + 2小果）
+      const top = jh(new THREE.SphereGeometry(0.18, 8, 6),
+         varyColor(0xE83020), 0.05, 0.52, 0.10);
+      top.userData.isPlantTop = true;
+      jh(new THREE.SphereGeometry(0.12, 7, 5),
+         varyColor(0xE03828), -0.12, 0.42, -0.08);
+      jh(new THREE.SphereGeometry(0.09, 6, 5),
+         varyColor(0xD83018), 0.14, 0.38, -0.06);
+      // 果實頂部星形萼片
+      jh(new THREE.BoxGeometry(0.14, 0.02, 0.03),
+         varyColor(0x4A8838), 0.05, 0.68, 0.10);
+      jh(new THREE.BoxGeometry(0.03, 0.02, 0.14),
+         varyColor(0x4A8838), 0.05, 0.68, 0.10);
+      // 葉片（3片展開）
+      jh(new THREE.BoxGeometry(0.16, 0.03, 0.08),
+         varyColor(0x4A8838), 0.20, 0.55, 0.05);
+      jh(new THREE.BoxGeometry(0.16, 0.03, 0.08),
+         varyColor(0x58A040), -0.18, 0.50, -0.06);
+      jh(new THREE.BoxGeometry(0.08, 0.03, 0.16),
+         varyColor(0x4A8838), 0.02, 0.48, 0.18);
+      break;
+    }
+    case 'corn': {
+      // 玉米：高莖稈 + 黃色玉米棒 + 寬長葉片 + 棕色穗頂
+      // 主莖稈（粗壯方形）
+      jh(new THREE.BoxGeometry(0.08, 0.90, 0.08),
+         varyColor(0x4A8030), 0, 0.45, 0);
+      // 莖節環
+      jh(new THREE.BoxGeometry(0.10, 0.03, 0.10),
+         varyColor(0x3A7028), 0, 0.30, 0);
+      jh(new THREE.BoxGeometry(0.10, 0.03, 0.10),
+         varyColor(0x3A7028), 0, 0.55, 0);
+      // 玉米棒（黃色圓柱，稍偏側）
+      const cob = jh(new THREE.CylinderGeometry(0.10, 0.08, 0.30, 8),
+         varyColor(0xF0D040), 0.10, 0.55, 0.06);
+      // 玉米棒表面顆粒紋（小方塊）
+      [[0.08,0.48,0.14],[0.14,0.52,0.02],[0.06,0.58,0.12],[0.14,0.62,0.08]].forEach(([kx,ky,kz]) =>
+        jh(new THREE.BoxGeometry(0.03,0.03,0.03), varyColor(0xE8C830), kx,ky,kz)
+      );
+      // 玉米皮（部分剝開的綠色苞葉）
+      jh(new THREE.BoxGeometry(0.06, 0.22, 0.12),
+         varyColor(0x68A838), 0.20, 0.55, 0.06);
+      jh(new THREE.BoxGeometry(0.06, 0.18, 0.10),
+         varyColor(0x58A030), 0.02, 0.48, 0.14);
+      // 寬長葉片（4片交替，Grow-a-Garden 風格弧形大葉）
+      const leafMats = [0x4A8030, 0x58A038, 0x3A7028, 0x68B040];
+      [[ 0.30, 0.35,  0.05, -0.3],
+       [-0.28, 0.50, -0.06,  0.3],
+       [ 0.25, 0.65,  0.08, -0.25],
+       [-0.22, 0.25, -0.08,  0.25]].forEach(([lx,ly,lz,rot], li) => {
+        const leaf = new THREE.Mesh(
+          new THREE.BoxGeometry(0.28, 0.04, 0.10),
+          varyColor(leafMats[li])
+        );
+        leaf.position.set(lx, ly, lz);
+        leaf.rotation.z = rot;
+        leaf.castShadow = true; g.add(leaf);
+      });
+      // 穗頂（棕色鬚絲）
+      const top = jh(new THREE.BoxGeometry(0.04, 0.18, 0.04),
+         varyColor(0xA08040), 0, 0.95, 0);
+      top.userData.isPlantTop = true;
+      jh(new THREE.BoxGeometry(0.03, 0.14, 0.03),
+         varyColor(0xB09050), 0.04, 0.92, 0.03);
+      jh(new THREE.BoxGeometry(0.03, 0.12, 0.03),
+         varyColor(0xB09050), -0.03, 0.90, -0.02);
       break;
     }
     case 'big': {
@@ -524,6 +796,105 @@ function buildPlantGroup(type) {
       top.material.transparent = true; top.material.opacity = 0.88;
       jh(new THREE.ConeGeometry(0.12,0.30,5), varyColor(def.topColor),  0.18, stemH+0.12, 0.10);
       jh(new THREE.ConeGeometry(0.10,0.26,5), varyColor(def.topColor), -0.16, stemH+0.10, -0.08);
+      break;
+    }
+    case 'sakura_night': {
+      // ═══ VOXEL_SCENE: 夜景發光櫻花樹 ═══
+      // palette: wood 3-tone #3A1F12/#5A2E1B/#7A4A2A
+      //          leaf 3-tone #FF9CCF/#FFB6E0/#FFD1EC
+      //          emissive   #FF80D5 (1.8) / #FFC2F0 (2.8)
+      const wD = new THREE.MeshLambertMaterial({ color: 0x3A1F12 });
+      const wM = new THREE.MeshLambertMaterial({ color: 0x5A2E1B });
+      const wL = new THREE.MeshLambertMaterial({ color: 0x7A4A2A });
+      const lB = new THREE.MeshLambertMaterial({ color: 0xFF9CCF });
+      const lM = new THREE.MeshLambertMaterial({ color: 0xFFB6E0 });
+      const lL = new THREE.MeshLambertMaterial({ color: 0xFFD1EC });
+      const eP = new THREE.MeshLambertMaterial({ color: 0xFF80D5, emissive: new THREE.Color(0xFF80D5), emissiveIntensity: 0.60 });
+      const eC = new THREE.MeshLambertMaterial({ color: 0xFFC2F0, emissive: new THREE.Color(0xFFC2F0), emissiveIntensity: 0.85 });
+
+      // ── Trunk: base_radius 4V, height 28V, taper 0.65 ──
+      const V = 0.05;
+      const trunkH = 28 * V;
+      // Main trunk (tapered cylinder)
+      jh(new THREE.CylinderGeometry(4*V*0.65, 4*V, trunkH, 8), wM, 0, trunkH/2, 0);
+      // Bark noise strips (SKILL D edge breakup)
+      jh(new THREE.BoxGeometry(V*1.5, trunkH*0.7, V*1.2), wD, V*3.8, trunkH*0.4, V*0.5);
+      jh(new THREE.BoxGeometry(V*1.2, trunkH*0.6, V*1.0), wL, -V*3.5, trunkH*0.45, -V*1.0);
+      jh(new THREE.BoxGeometry(V*1.0, trunkH*0.5, V*1.5), wD, V*0.5, trunkH*0.35, V*3.6);
+
+      // ── Roots: 6 spreading roots ──
+      const rootSpread = 10 * V;
+      for (let ri = 0; ri < 6; ri++) {
+        const ra = (ri / 6) * Math.PI * 2 + Math.random() * 0.3;
+        const rx = Math.cos(ra) * rootSpread * (0.6 + Math.random()*0.4);
+        const rz = Math.sin(ra) * rootSpread * (0.6 + Math.random()*0.4);
+        jh(new THREE.BoxGeometry(V*2.5, V*2.0, V*2.0), [wD,wM,wL][ri%3],
+           rx*0.5, V*1.0, rz*0.5);
+        jh(new THREE.BoxGeometry(V*1.5, V*1.2, V*1.5), wD, rx*0.8, V*0.5, rz*0.8);
+      }
+
+      // ── Branches: 12 branches, length 10-18V ──
+      for (let bi = 0; bi < 12; bi++) {
+        const ba  = (bi / 12) * Math.PI * 2 + Math.random() * 0.35;
+        const bLen = (10 + Math.random() * 8) * V;
+        const bThk = (1 + Math.random() * 2) * V;
+        const bUp  = 0.6 + Math.random() * 0.3;
+        const bx = Math.cos(ba) * bLen * 0.5;
+        const bz = Math.sin(ba) * bLen * 0.5;
+        const by = trunkH * (0.55 + Math.random()*0.35) + bLen * bUp * 0.3;
+        jh(new THREE.BoxGeometry(bThk, bLen*0.15, bThk), [wM,wL,wD][bi%3],
+           bx, by, bz);
+      }
+
+      // ── Canopy: sphere_cluster, radius 16-20V, density 0.85 ──
+      const canopyY = trunkH + 4*V;
+      const canopyR = 18 * V;  // avg of 16-20
+
+      // Layer 1: leaf_base (65%) — main foliage mass
+      for (let ci = 0; ci < 18; ci++) {
+        const ca = Math.random() * Math.PI * 2;
+        const cr = canopyR * (0.3 + Math.random()*0.7);
+        const cx = Math.cos(ca) * cr;
+        const cz = Math.sin(ca) * cr;
+        const cy = canopyY + (Math.random()-0.3) * canopyR * 0.8;
+        const cs = V * (3 + Math.random()*4);
+        jh(new THREE.SphereGeometry(cs, 6, 5), lB, cx, cy, cz);
+      }
+
+      // Layer 2: leaf_light (20%) — highlight clusters
+      for (let ci = 0; ci < 6; ci++) {
+        const ca = Math.random() * Math.PI * 2;
+        const cr = canopyR * (0.4 + Math.random()*0.5);
+        const cx = Math.cos(ca) * cr;
+        const cz = Math.sin(ca) * cr;
+        const cy = canopyY + (Math.random()-0.2) * canopyR * 0.6;
+        const cs = V * (2.5 + Math.random()*3);
+        jh(new THREE.SphereGeometry(cs, 6, 4), lL, cx, cy, cz);
+      }
+
+      // Layer 3: emissive_pink (15%) — glowing leaf clusters
+      for (let ci = 0; ci < 5; ci++) {
+        const ca = Math.random() * Math.PI * 2;
+        const cr = canopyR * (0.3 + Math.random()*0.6);
+        const cx = Math.cos(ca) * cr;
+        const cz = Math.sin(ca) * cr;
+        const cy = canopyY + (Math.random()-0.3) * canopyR * 0.5;
+        const cs = V * (2 + Math.random()*3);
+        jh(new THREE.SphereGeometry(cs, 6, 4), eP, cx, cy, cz);
+      }
+
+      // ── Core glow: emissive_core, radius 6V ──
+      const core = jh(new THREE.SphereGeometry(6*V, 7, 6), eC, 0, canopyY, 0);
+
+      // ── Top marker ──
+      const top = jh(new THREE.SphereGeometry(V*2, 5, 4), lM, 0, canopyY + canopyR*0.5, 0);
+      top.userData.isPlantTop = true;
+
+      // ── Point light for glow effect ──
+      const glow = new THREE.PointLight(0xFF80D5, 1.5, 5.0);
+      glow.position.set(0, canopyY, 0);
+      g.add(glow);
+
       break;
     }
     default: {
@@ -662,6 +1033,11 @@ function harvestPlant(pData) {
 //  ═══ 一樓 ═══  家具：視覺構建
 // ============================================================
 function buildFurnitureMesh(id) {
+  // ── 優先使用 MagicaVoxel 自訂模型 ──
+  const custom = getCustomModel(id);
+  if (custom) return custom;
+
+  // ── Fallback: 程式碼生成 ──
   const def = furnitureCatalog.find(f=>f.id===id) || furnitureCatalog[0];
   const g   = new THREE.Group();
   const mat = new THREE.MeshLambertMaterial({ color: def.color });
@@ -1458,6 +1834,198 @@ function buildFurnitureMesh(id) {
     // Control box
     jh(new THREE.BoxGeometry(V*1.8, V*2.2, V*1.0), mtC, -0.52, V*5.5, 0.35);
     jh(new THREE.BoxGeometry(V*1.6, V*0.3, V*0.8), acA, -0.52, V*6.6, 0.35);
+
+  } else if (id === 'frozen_tree') {
+    // ═══════════════════════════════════════════════════════════════
+    //  Frozen Tree — 冰結樹 (ref: @mc_builds27)
+    //  粗壯木+冰紋幹 → 寬扁冰冠(3層) → 垂掛發光冰柱 → 暖光核心
+    //  尺寸: 比茶室更高更寬 (約 5.5 寬 × 6.0 高)
+    // ═══════════════════════════════════════════════════════════════
+    const V = 0.22;
+    // ── 木材 3色調 ──
+    const wkD = new THREE.MeshLambertMaterial({ color: 0x3A2010 });  // dark oak
+    const wkM = new THREE.MeshLambertMaterial({ color: 0x5A3820 });  // mid oak
+    const wkL = new THREE.MeshLambertMaterial({ color: 0x7A5030 });  // light oak
+    // ── 冰紋石塊 3色調（半透明）──
+    const iceA = new THREE.MeshLambertMaterial({ color: 0xA0C0D0, transparent: true, opacity: 0.80 });
+    const iceB = new THREE.MeshLambertMaterial({ color: 0x88AAB8, transparent: true, opacity: 0.75 });
+    const iceC = new THREE.MeshLambertMaterial({ color: 0xC0D8E8, transparent: true, opacity: 0.85 });
+    // ── 樹冠發光塊（暖白 emission）──
+    const glA = new THREE.MeshLambertMaterial({ color: 0xFFF0D0, emissive: new THREE.Color(0xFFE8B0), emissiveIntensity: 0.55 });
+    const glB = new THREE.MeshLambertMaterial({ color: 0xFFF8E8, emissive: new THREE.Color(0xFFF0C0), emissiveIntensity: 0.70 });
+    const glC = new THREE.MeshLambertMaterial({ color: 0xFFFFFF, emissive: new THREE.Color(0xFFFFE0), emissiveIntensity: 0.45 });
+    // ── 冰柱發光（強 emission）──
+    const icG = new THREE.MeshLambertMaterial({ color: 0xFFF8F0, emissive: new THREE.Color(0xFFE8C0), emissiveIntensity: 0.90, transparent: true, opacity: 0.85 });
+    // ── 草地 ──
+    const grA = new THREE.MeshLambertMaterial({ color: 0x6AAA40 });
+    const grB = new THREE.MeshLambertMaterial({ color: 0x88C850 });
+    const grC = new THREE.MeshLambertMaterial({ color: 0xA0D060 });
+    // ── 泥土/路徑 ──
+    const drM = new THREE.MeshLambertMaterial({ color: 0xC8A870 });
+    // ── 紅蘑菇 ──
+    const msR = new THREE.MeshLambertMaterial({ color: 0xD03020 });
+    const msW = new THREE.MeshLambertMaterial({ color: 0xF0E8E0 });
+
+    const jh = (geo, mat, x, y, z) => {
+      const m = new THREE.Mesh(geo, mat);
+      m.position.set(x, y, z); m.castShadow = true; m.receiveShadow = true; g.add(m);
+      return m;
+    };
+
+    // ═══ 基座：草地方塊（不規則棋盤格）═══
+    const baseY = V * 0.5;
+    const grassMats = [grA, grB, grC, drM];
+    for (let gx = -3; gx <= 3; gx++) {
+      for (let gz = -3; gz <= 3; gz++) {
+        const dist = Math.sqrt(gx*gx + gz*gz);
+        if (dist > 3.5) continue;
+        const gh = V * (1.5 + Math.random() * 1.2);
+        const gm = grassMats[(gx+gz+8) % grassMats.length];
+        jh(new THREE.BoxGeometry(V*4.2, gh, V*4.2), gm,
+           gx*V*4.2, gh/2, gz*V*4.2);
+      }
+    }
+
+    // ═══ 小紅蘑菇（基座裝飾）═══
+    jh(new THREE.BoxGeometry(V*1.0, V*1.8, V*1.0), msW, V*5, V*1.4, V*3);
+    jh(new THREE.BoxGeometry(V*2.0, V*1.0, V*2.0), msR, V*5, V*2.5, V*3);
+
+    // ═══ 樹幹：粗壯方塊（木材+冰紋交錯）═══
+    const trunkH = V * 24;   // ~5.3 voxel units tall
+    const trunkW = V * 5;
+
+    // 主幹核心（3段疊加，交錯材質）
+    jh(new THREE.BoxGeometry(trunkW, trunkH*0.35, trunkW), wkD, 0, trunkH*0.175 + baseY, 0);
+    jh(new THREE.BoxGeometry(trunkW, trunkH*0.35, trunkW), wkM, 0, trunkH*0.525 + baseY, 0);
+    jh(new THREE.BoxGeometry(trunkW*0.85, trunkH*0.30, trunkW*0.85), wkL, 0, trunkH*0.80 + baseY, 0);
+
+    // 冰紋石塊鑲嵌在幹面（SKILL D 邊緣破碎）
+    jh(new THREE.BoxGeometry(V*4.8, V*5.0, V*1.5), iceA, 0, trunkH*0.35+baseY, trunkW*0.48);
+    jh(new THREE.BoxGeometry(V*1.5, V*6.0, V*4.8), iceB, trunkW*0.48, trunkH*0.55+baseY, 0);
+    jh(new THREE.BoxGeometry(V*4.8, V*4.0, V*1.5), iceC, 0, trunkH*0.65+baseY, -trunkW*0.45);
+    jh(new THREE.BoxGeometry(V*1.5, V*5.5, V*4.8), iceA, -trunkW*0.48, trunkH*0.45+baseY, 0);
+
+    // 幹頂冰塊突出
+    jh(new THREE.BoxGeometry(V*3.5, V*3.0, V*3.5), iceB, V*1.5, trunkH*0.88+baseY, V*1.5);
+    jh(new THREE.BoxGeometry(V*3.0, V*3.5, V*3.0), iceC, -V*2.0, trunkH*0.82+baseY, -V*1.0);
+
+    // ═══ 樹冠：寬扁蘑菇形（3層堆疊）═══
+    const crownY = trunkH + baseY;
+    const crownW = V * 28;   // 寬度 ~6.2 units
+    const crownD = V * 26;
+
+    // ── 第1層（最下）：大面積半透明冰+發光塊 ──
+    const layer1Y = crownY + V*1;
+    // 冰塊 — 不規則排列
+    const icePos1 = [
+      [-10,-8,iceA],[-6,-6,iceC],[-2,-10,iceB],[2,-8,iceA],[6,-6,iceC],[10,-8,iceB],
+      [-10,-2,iceC],[-6, 0,iceA],[-2,-4,iceB],[2, 0,iceC],[6,-2,iceA],[10,-4,iceB],
+      [-10, 4,iceA],[-6, 6,iceB],[-2, 4,iceC],[2, 6,iceA],[6, 4,iceB],[10, 6,iceC],
+      [-8, 8,iceB],[-4, 10,iceA],[0, 8,iceC],[4, 10,iceB],[8, 8,iceA],
+    ];
+    icePos1.forEach(([ix, iz, im]) => {
+      const bh = V * (2.5 + Math.random()*1.5);
+      jh(new THREE.BoxGeometry(V*4.5, bh, V*4.5), im, ix*V, layer1Y+bh/2, iz*V);
+    });
+    // 發光暖塊穿插
+    const glowPos1 = [
+      [-8,-4,glA],[-4,-8,glB],[0,-2,glA],[4,-6,glC],[8,0,glB],
+      [-6,4,glA],[2,4,glC],[6,8,glB],[-2,8,glA],
+    ];
+    glowPos1.forEach(([gx,gz,gm]) => {
+      const bh = V * (3.0 + Math.random()*1.5);
+      jh(new THREE.BoxGeometry(V*4.5, bh, V*4.5), gm, gx*V, layer1Y+bh/2, gz*V);
+    });
+
+    // ── 第2層（中間）：稍窄，更多發光塊 ──
+    const layer2Y = crownY + V*5;
+    const icePos2 = [
+      [-8,-6,iceC],[-4,-4,iceA],[0,-8,iceB],[4,-4,iceC],[8,-6,iceA],
+      [-8, 2,iceB],[-4, 4,iceC],[0, 2,iceA],[4, 4,iceB],[8, 2,iceC],
+      [-4, 8,iceA],[4, 8,iceB],
+    ];
+    icePos2.forEach(([ix,iz,im]) => {
+      const bh = V * (2.0 + Math.random()*1.5);
+      jh(new THREE.BoxGeometry(V*4.5, bh, V*4.5), im, ix*V, layer2Y+bh/2, iz*V);
+    });
+    const glowPos2 = [
+      [-6,0,glB],[0,0,glA],[6,0,glC],[-2,-6,glB],[2,6,glA],[0,-4,glC],
+    ];
+    glowPos2.forEach(([gx,gz,gm]) => {
+      const bh = V * (2.5 + Math.random()*1.0);
+      jh(new THREE.BoxGeometry(V*4.5, bh, V*4.5), gm, gx*V, layer2Y+bh/2, gz*V);
+    });
+
+    // ── 第3層（最上）：小頂冠 ──
+    const layer3Y = crownY + V*8;
+    [[-4,-2,iceC],[0,-4,glA],[4,-2,iceA],[-2,2,glB],[2,4,iceB],[0,0,glC]].forEach(([ix,iz,im]) => {
+      const bh = V * (2.0 + Math.random()*1.0);
+      jh(new THREE.BoxGeometry(V*4.5, bh, V*4.5), im, ix*V, layer3Y+bh/2, iz*V);
+    });
+
+    // ═══ 垂掛冰柱（最關鍵特徵）：從樹冠邊緣垂下 ═══
+    const iciclePositions = [
+      // 外圈（長冰柱）
+      [-12,-8, 18],[-8,-10, 22],[0,-10, 20],[8,-10, 24],[12,-8, 19],
+      [-12, 0, 21],[-12, 6, 17],[12, 2, 23],[12, 8, 18],
+      [-8, 10, 20],[-4, 12, 22],[4, 12, 19],[8, 10, 24],
+      // 中圈（中等冰柱）
+      [-6,-6, 14],[-2,-8, 16],[4,-6, 13],[8,-4, 15],
+      [-6, 4, 12],[6, 6, 14],[-2, 8, 16],[2, 6, 13],
+      // 內圈（短冰柱）
+      [-4,-2, 8],[0,-4, 10],[4, 0, 9],[-2, 4, 11],[2, 2, 7],
+    ];
+    iciclePositions.forEach(([ix, iz, len]) => {
+      const icicleH = len * V;
+      const topY    = layer1Y;
+      // 冰柱主體（細長方塊，強發光）
+      const icicle = jh(
+        new THREE.BoxGeometry(V*0.6, icicleH, V*0.6),
+        icG, ix*V, topY - icicleH/2, iz*V
+      );
+      // 冰柱頂端稍粗（連接點）
+      jh(new THREE.BoxGeometry(V*1.2, V*1.5, V*1.2), icG, ix*V, topY - V*0.5, iz*V);
+      // 冰柱尖端更細
+      jh(new THREE.BoxGeometry(V*0.3, V*2.0, V*0.3), icG, ix*V, topY - icicleH - V*1.0, iz*V);
+    });
+
+    // ═══ 光源系統 ═══
+    // 樹冠中心暖光
+    const mainLight = new THREE.PointLight(0xFFE8C0, 3.0, 8.0);
+    mainLight.position.set(0, crownY + V*4, 0);
+    g.add(mainLight);
+    // 樹冠邊緣補光（4個方向）
+    [[V*-20, V*2, 0],[V*20, V*2, 0],[0, V*2, V*-20],[0, V*2, V*20]].forEach(([lx,ly,lz]) => {
+      const edgeLight = new THREE.PointLight(0xFFF0D0, 1.2, 5.0);
+      edgeLight.position.set(lx, crownY + ly, lz);
+      g.add(edgeLight);
+    });
+    // 冰柱底部微光
+    const bottomGlow = new THREE.PointLight(0xFFF8E8, 1.5, 4.0);
+    bottomGlow.position.set(0, crownY - V*14, 0);
+    g.add(bottomGlow);
+
+    // ═══ 空氣微粒（sparkle 小方塊散佈在樹冠周圍）═══
+    for (let si = 0; si < 35; si++) {
+      const sx = (Math.random()-0.5) * crownW * 1.2;
+      const sy = crownY + (Math.random()-0.5) * V * 20;
+      const sz = (Math.random()-0.5) * crownD * 1.2;
+      const sparkSize = V * (0.3 + Math.random()*0.5);
+      const sparkle = jh(
+        new THREE.BoxGeometry(sparkSize, sparkSize, sparkSize),
+        new THREE.MeshLambertMaterial({
+          color: 0xFFFFFF,
+          emissive: new THREE.Color(0xFFFFE0),
+          emissiveIntensity: 0.6 + Math.random()*0.4,
+          transparent: true,
+          opacity: 0.5 + Math.random()*0.4,
+        }),
+        sx, sy, sz
+      );
+    }
+
+    // ═══ 搖曳動畫標記 ═══
+    g.userData.frozenTreeSway = true;
   }
   return g;
 }
@@ -1520,6 +2088,16 @@ const ANIMAL_TIER = [
 function getTierDef(lv) { return ANIMAL_TIER.find(t=>t.lv===lv)||ANIMAL_TIER[0]; }
 
 function buildAnimalMesh(tierDef, isBaby) {
+  // ── 優先使用 MagicaVoxel 自訂模型 ──
+  const modelId = `animal_lv${tierDef.lv}`;
+  const custom  = getCustomModel(modelId);
+  if (custom) {
+    const sc = isBaby ? 0.4 : 1.0;
+    custom.scale.setScalar(sc);
+    return custom;
+  }
+
+  // ── Fallback: 程式碼生成 ──
   const sc   = isBaby ? 0.4 : 1.0;
   const body = new THREE.Mesh(
     new THREE.BoxGeometry(tierDef.sx*sc, tierDef.sy*sc, tierDef.sz*sc),
@@ -1820,10 +2398,27 @@ renderer.domElement.addEventListener('pointerup', e => {
       while (obj) { if (obj===p.mesh){target=p; break outer;} obj=obj.parent; }
     }
     if (target) {
+      if (currentMode === 'export') {
+        exportMeshToOBJ(target.mesh, target.type);
+        return;
+      }
       if (currentMode === 'delete')     deleteAt(target.gridX, target.gridZ);
       else if (target.hasFruit)         harvestPlant(target);
       else showToast(target.stage==='growing' ? '🌱 育っています...' : '🌿 もうすぐ実る...');
       return;
+    }
+  }
+
+  // ②b 家具 export 模式
+  if (currentMode === 'export') {
+    const allFM = [];
+    placedObjects.forEach(o => o.mesh.traverse(c => { if (c.isMesh) allFM.push(c); }));
+    const fHits = raycaster.intersectObjects(allFM);
+    if (fHits.length > 0) {
+      for (const o of placedObjects) {
+        let obj = fHits[0].object;
+        while (obj) { if (obj===o.mesh){ exportMeshToOBJ(o.mesh, o.furnId); return; } obj=obj.parent; }
+      }
     }
   }
 
@@ -1835,6 +2430,8 @@ renderer.domElement.addEventListener('pointerup', e => {
 
   if (currentMode === 'plant') {
     spawnPlant(hit.x, hit.z);
+  } else if (currentMode === 'export') {
+    // export 模式點地面不做任何事
   } else {
     const { x, z } = snapToGrid(hit);
     if (currentMode === 'build')       spawnFurniture(x, z);
@@ -1848,12 +2445,81 @@ renderer.domElement.addEventListener('pointerup', e => {
 window.setMode = function(mode) {
   currentMode = mode;
   document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
-  const map = { plant:'btn-plant', build:'btn-build', delete:'btn-delete' };
+  const map = { plant:'btn-plant', build:'btn-build', delete:'btn-delete', export:'btn-export' };
   document.getElementById(map[mode])?.classList.add('active');
-  const labels = { plant:'種植', build:'家具', delete:'移除' };
+  const labels = { plant:'種植', build:'家具', delete:'移除', export:'匯出' };
   document.getElementById('mode-label').textContent = `模式：${labels[mode]}`;
+  if (mode === 'export') showToast('📦 點擊任何植物或家具 → 下載 .obj');
   closeAllPanels();
   createPreviewMesh();
+};
+
+// ============================================================
+//  ═══ 匯出系統 ═══  OBJ Exporter (場上物件 → .obj 下載)
+// ============================================================
+const objExporter = new OBJExporter();
+
+/**
+ * 匯出單一物件為 .obj 下載
+ */
+function exportMeshToOBJ(group, filename) {
+  try {
+    const result = objExporter.parse(group);
+    const blob   = new Blob([result], { type: 'text/plain' });
+    const url    = URL.createObjectURL(blob);
+    const a      = document.createElement('a');
+    a.href       = url;
+    a.download   = filename + '.obj';
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast(`📦 ${filename}.obj 下載完成！`);
+  } catch (e) {
+    showToast('匯出失敗: ' + e.message);
+  }
+}
+
+/**
+ * 匯出圖鑑中的模型（不需要先種植）
+ */
+window.exportFromCatalog = function(type, category) {
+  let group, filename;
+  if (category === 'plant') {
+    group    = buildPlantGroup(type);
+    filename = type;
+  } else {
+    group    = buildFurnitureMesh(type);
+    filename = type;
+  }
+  exportMeshToOBJ(group, filename);
+  // 清理暫時生成的 mesh
+  group.traverse(c => {
+    if (c.isMesh) {
+      c.geometry.dispose();
+      (Array.isArray(c.material)?c.material:[c.material]).forEach(m=>m.dispose());
+    }
+  });
+};
+
+/**
+ * 一鍵匯出全部植物 + 全部家具圖鑑
+ */
+window.exportAllModels = function() {
+  let count = 0;
+  // 植物
+  Object.keys(plantCatalog).forEach(id => {
+    const g = buildPlantGroup(id);
+    exportMeshToOBJ(g, id);
+    g.traverse(c => { if (c.isMesh) { c.geometry.dispose(); [c.material].flat().forEach(m=>m.dispose()); }});
+    count++;
+  });
+  // 家具
+  furnitureCatalog.forEach(f => {
+    const g = buildFurnitureMesh(f.id);
+    exportMeshToOBJ(g, f.id);
+    g.traverse(c => { if (c.isMesh) { c.geometry.dispose(); [c.material].flat().forEach(m=>m.dispose()); }});
+    count++;
+  });
+  showToast(`📦 全部 ${count} 個模型匯出完成！`);
 };
 
 window.openCatalog = function(type) {
@@ -1869,8 +2535,13 @@ window.openCatalog = function(type) {
       const cnt = inventorySeeds[id] || 0;
       const btn = document.createElement('button');
       btn.className = 'catalog-item' + (id===selectedSeed ? ' selected' : '');
-      btn.innerHTML = `<span class="ci-icon">${def.icon}</span><span class="ci-name">${def.name}</span><span class="ci-stock">×${cnt}</span>`;
-      btn.onclick = () => {
+      btn.innerHTML = `<span class="ci-icon">${def.icon}</span><span class="ci-name">${def.name}</span><span class="ci-stock">×${cnt}</span><span class="ci-export" data-export="plant:${id}">📦</span>`;
+      btn.onclick = (e) => {
+        if (e.target.classList.contains('ci-export')) {
+          e.stopPropagation();
+          exportFromCatalog(e.target.dataset.export.split(':')[1], 'plant');
+          return;
+        }
         selectedSeed = id;
         window.setMode('plant');
         list.querySelectorAll('.catalog-item').forEach(b=>b.classList.remove('selected'));
@@ -1884,8 +2555,13 @@ window.openCatalog = function(type) {
     furnitureCatalog.forEach(def => {
       const btn = document.createElement('button');
       btn.className = 'catalog-item' + (def.id===selectedFurnId ? ' selected' : '');
-      btn.innerHTML = `<span class="ci-icon">${def.icon}</span><span class="ci-name">${def.name}</span>`;
-      btn.onclick = () => {
+      btn.innerHTML = `<span class="ci-icon">${def.icon}</span><span class="ci-name">${def.name}</span><span class="ci-export" data-export="build:${def.id}">📦</span>`;
+      btn.onclick = (e) => {
+        if (e.target.classList.contains('ci-export')) {
+          e.stopPropagation();
+          exportFromCatalog(e.target.dataset.export.split(':')[1], 'build');
+          return;
+        }
         selectedFurnId = def.id;
         window.setMode('build');
         list.querySelectorAll('.catalog-item').forEach(b=>b.classList.remove('selected'));
@@ -2033,6 +2709,15 @@ function animate() {
     previewMesh.position.y += Math.sin(previewFloatT) * 0.003;
     previewMesh.rotation.y += delta * 1.2;
   }
+
+  // ── Frozen Tree 搖曳動畫 ──
+  const swayT = now * 0.001;
+  placedObjects.forEach(o => {
+    if (!o.mesh.userData.frozenTreeSway) return;
+    // 樹冠微幅搖擺（wind sway）
+    o.mesh.rotation.z = Math.sin(swayT * 0.6) * 0.012;
+    o.mesh.rotation.x = Math.cos(swayT * 0.45 + 0.5) * 0.008;
+  });
 
   renderer.render(scene, camera);
 }

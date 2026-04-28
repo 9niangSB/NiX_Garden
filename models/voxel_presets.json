@@ -1,0 +1,70 @@
+{
+  "sakura_night": {
+    "description": "夜景發光櫻花樹 — 粉色冠層 + 自發光核心 + 花瓣粒子",
+    "grid_size": [48, 64, 48],
+
+    "palette": {
+      "wood_dark":   "#3A1F12",
+      "wood_mid":    "#5A2E1B",
+      "wood_light":  "#7A4A2A",
+      "leaf_base":   "#FF9CCF",
+      "leaf_mid":    "#FFB6E0",
+      "leaf_light":  "#FFD1EC",
+      "emissive_pink": "#FF80D5",
+      "emissive_core": "#FFC2F0"
+    },
+
+    "tree": {
+      "trunk": {
+        "base_radius": 4,
+        "height": 28,
+        "taper": 0.65,
+        "noise": 0.2,
+        "roots": { "spread": 10, "count": 6, "curvature": 0.4 }
+      },
+      "branches": {
+        "count": 12,
+        "length": [10, 18],
+        "thickness": [1, 3],
+        "upward_bias": 0.6,
+        "randomness": 0.35
+      },
+      "canopy": {
+        "shape": "sphere_cluster",
+        "radius": [16, 20],
+        "density": 0.85,
+        "layers": [
+          { "type": "leaf",     "ratio": 0.65, "color": "leaf_base" },
+          { "type": "leaf",     "ratio": 0.20, "color": "leaf_light" },
+          { "type": "emissive", "ratio": 0.15, "color": "emissive_pink", "emission": 1.8 }
+        ],
+        "core_glow": {
+          "enabled": true,
+          "radius": 6,
+          "color": "emissive_core",
+          "emission": 2.8
+        }
+      }
+    },
+
+    "animation": {
+      "sway": { "strength": 0.8, "speed": 0.6, "turbulence": 0.3 }
+    },
+
+    "particles": {
+      "petals": {
+        "count": 120,
+        "size": [0.3, 0.8],
+        "fall_speed": [0.2, 0.6],
+        "drift": 0.5,
+        "color": "#FFD1EC",
+        "emissive": 0.3
+      }
+    },
+
+    "render": {
+      "bloom": { "intensity": 1.4, "threshold": 0.6 },
+      "moonlight": { "direction": [-1, -1, -0.5], "intensity": 0.4, "color": "#CCD8FF" }
+    }
+  }
+}
