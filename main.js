@@ -2483,6 +2483,14 @@ const ANIMAL_TIER = [
   { lv:4, name:'幼獅鷲', nameAdult:'格里芬', color:0xC8A060, accent:0xE0D0A0, sx:0.80,sy:0.65,sz:0.90, speed:1.0,
     lifespan:86400, breedTime:null, minOffspring:0, maxOffspring:0, nextLv:null,
     price:5000, hungerMax:300, hungerRate:0.1 },
+  // lv5 紫狐: 大型，發光
+  { lv:5, name:'幼紫狐', nameAdult:'妖紫狐', color:0x9060C0, accent:0x4A1880, sx:0.70,sy:0.60,sz:0.75, speed:1.6,
+    lifespan:86400, breedTime:null, minOffspring:0, maxOffspring:0, nextLv:null,
+    price:8000, hungerMax:200, hungerRate:0.1 },
+  // lv6 紅蜘蛛: 大型，中二
+  { lv:6, name:'幼紅蛛', nameAdult:'血蛛王', color:0xC02020, accent:0x1A1A1A, sx:0.85,sy:0.45,sz:0.90, speed:1.3,
+    lifespan:86400, breedTime:null, minOffspring:0, maxOffspring:0, nextLv:null,
+    price:12000, hungerMax:250, hungerRate:0.1 },
 ];
 function getTierDef(lv) { return ANIMAL_TIER.find(t=>t.lv===lv)||ANIMAL_TIER[0]; }
 
@@ -2506,7 +2514,119 @@ function buildAnimalMesh(tierDef, isBaby) {
   const acM = new THREE.MeshLambertMaterial({ color: tierDef.accent });
   const eym = new THREE.MeshLambertMaterial({ color: 0x222222 });
 
-  if (tierDef.lv === 4) {
+  if (tierDef.lv === 5) {
+    // ═══ 紫狐：大型發光狐狸 — 紫色身體，深紫耳尖/尾巴/手腳，全身發光 ═══
+    body.material.emissive = new THREE.Color(0x6030A0);
+    body.material.emissiveIntensity = 0.35;
+    const deepP = new THREE.MeshLambertMaterial({ color:0x4A1880, emissive:new THREE.Color(0x3A1060), emissiveIntensity:0.5 });
+    const glowP = new THREE.MeshLambertMaterial({ color:0xB080E0, emissive:new THREE.Color(0x8050C0), emissiveIntensity:0.6 });
+    // 大尖耳（深紫色耳尖 + 發光內耳）
+    [-0.12,0.12].forEach(ox => {
+      const ear = new THREE.Mesh(new THREE.BoxGeometry(0.10*sc, 0.28*sc, 0.08*sc), em);
+      ear.position.set(ox*sc, tierDef.sy*sc*0.70, 0.08*sc); body.add(ear);
+      // 深紫耳尖
+      const tip = new THREE.Mesh(new THREE.BoxGeometry(0.06*sc, 0.10*sc, 0.05*sc), deepP);
+      tip.position.set(ox*sc, tierDef.sy*sc*0.88, 0.08*sc); body.add(tip);
+      // 內耳發光
+      const inner = new THREE.Mesh(new THREE.BoxGeometry(0.05*sc, 0.18*sc, 0.03*sc), glowP);
+      inner.position.set(ox*sc, tierDef.sy*sc*0.72, 0.10*sc); body.add(inner);
+    });
+    // 深紫手腳（4隻）
+    [[-0.14,-0.22,0.18],[ 0.14,-0.22,0.18],[-0.14,-0.22,-0.16],[ 0.14,-0.22,-0.16]].forEach(([px,py,pz]) => {
+      const paw = new THREE.Mesh(new THREE.BoxGeometry(0.10*sc, 0.12*sc, 0.10*sc), deepP);
+      paw.position.set(px*sc, py*sc, pz*sc); body.add(paw);
+    });
+    // 大尾巴（深紫色，發光）
+    const tail1 = new THREE.Mesh(new THREE.BoxGeometry(0.10*sc, 0.10*sc, 0.22*sc), em);
+    tail1.position.set(0, tierDef.sy*sc*0.08, -tierDef.sz*sc*0.52); body.add(tail1);
+    const tail2 = new THREE.Mesh(new THREE.BoxGeometry(0.14*sc, 0.14*sc, 0.18*sc), deepP);
+    tail2.position.set(0, tierDef.sy*sc*0.12, -tierDef.sz*sc*0.68); body.add(tail2);
+    const tailGlow = new THREE.Mesh(new THREE.SphereGeometry(0.10*sc, 6, 5), glowP);
+    tailGlow.position.set(0, tierDef.sy*sc*0.14, -tierDef.sz*sc*0.80); body.add(tailGlow);
+    // 狐狸尖嘴
+    const snout = new THREE.Mesh(new THREE.BoxGeometry(0.08*sc, 0.06*sc, 0.10*sc), em);
+    snout.position.set(0, tierDef.sy*sc*0.02, tierDef.sz*sc*0.52); body.add(snout);
+    // 發光眼睛（紫色）
+    const eyeGlow = new THREE.MeshLambertMaterial({ color:0xD0A0FF, emissive:new THREE.Color(0xA060E0), emissiveIntensity:0.7 });
+    [-0.08,0.08].forEach(ox => {
+      const eye = new THREE.Mesh(new THREE.BoxGeometry(0.06*sc, 0.06*sc, 0.05*sc), eyeGlow);
+      eye.position.set(ox*sc, tierDef.sy*sc*0.18, tierDef.sz*sc*0.50); body.add(eye);
+    });
+    // 身體周圍發光光點
+    const ptLight = new THREE.PointLight(0x8050C0, 1.2, 3.0);
+    ptLight.position.set(0, tierDef.sy*sc*0.3, 0); body.add(ptLight);
+
+  } else if (tierDef.lv === 6) {
+    // ═══ 血蛛王：大型紅蜘蛛 — 紅身黑紋，8 隻腳，屁股有中二黑色圖案 ═══
+    body.material.emissive = new THREE.Color(0x600808);
+    body.material.emissiveIntensity = 0.15;
+    const blkM = new THREE.MeshLambertMaterial({ color:0x1A1A1A });
+    const redD = new THREE.MeshLambertMaterial({ color:0x901818 });
+    const redL = new THREE.MeshLambertMaterial({ color:0xD03030 });
+    const eyeR = new THREE.MeshLambertMaterial({ color:0xFF2020, emissive:new THREE.Color(0xCC0000), emissiveIntensity:0.6 });
+    // 腹部（後面大球）
+    const abdomen = new THREE.Mesh(
+      new THREE.SphereGeometry(tierDef.sz*sc*0.55, 8, 6), redD);
+    abdomen.position.set(0, tierDef.sy*sc*0.1, -tierDef.sz*sc*0.42);
+    abdomen.castShadow = true; body.add(abdomen);
+    // 腹部黑色中二圖案（骷髏形：V字+圓）
+    const mark1 = new THREE.Mesh(new THREE.BoxGeometry(0.16*sc, 0.04*sc, 0.12*sc), blkM);
+    mark1.position.set(0, tierDef.sy*sc*0.22, -tierDef.sz*sc*0.68); body.add(mark1);
+    const mark2 = new THREE.Mesh(new THREE.BoxGeometry(0.08*sc, 0.08*sc, 0.04*sc), blkM);
+    mark2.position.set(0, tierDef.sy*sc*0.14, -tierDef.sz*sc*0.70); body.add(mark2);
+    // V 字紋
+    const markV1 = new THREE.Mesh(new THREE.BoxGeometry(0.04*sc, 0.12*sc, 0.04*sc), blkM);
+    markV1.position.set(-0.06*sc, tierDef.sy*sc*0.28, -tierDef.sz*sc*0.66);
+    markV1.rotation.z = 0.4; body.add(markV1);
+    const markV2 = new THREE.Mesh(new THREE.BoxGeometry(0.04*sc, 0.12*sc, 0.04*sc), blkM);
+    markV2.position.set(0.06*sc, tierDef.sy*sc*0.28, -tierDef.sz*sc*0.66);
+    markV2.rotation.z = -0.4; body.add(markV2);
+    // 黑色條紋（腹部側面）
+    [-0.10,0.10].forEach(ox => {
+      const stripe = new THREE.Mesh(new THREE.BoxGeometry(0.03*sc, 0.04*sc, 0.20*sc), blkM);
+      stripe.position.set(ox*sc, tierDef.sy*sc*0.08, -tierDef.sz*sc*0.42); body.add(stripe);
+    });
+    // 8 隻腳（左4右4，交錯彎曲）
+    for (let li=0; li<4; li++) {
+      [-1,1].forEach(side => {
+        const angle = (li-1.5) * 0.35;
+        const legLen = (0.22 + li*0.04) * sc;
+        // 上段（靠身體）
+        const upper = new THREE.Mesh(new THREE.BoxGeometry(0.04*sc, legLen, 0.04*sc), blkM);
+        upper.position.set(
+          side * (tierDef.sx*sc*0.48 + 0.02),
+          tierDef.sy*sc*0.05,
+          (li-1.5)*0.12*sc
+        );
+        upper.rotation.z = side * 0.6;
+        upper.rotation.y = angle; body.add(upper);
+        // 下段（接地）
+        const lower = new THREE.Mesh(new THREE.BoxGeometry(0.03*sc, legLen*0.8, 0.03*sc), redD);
+        lower.position.set(
+          side * (tierDef.sx*sc*0.48 + legLen*0.5),
+          -tierDef.sy*sc*0.15,
+          (li-1.5)*0.12*sc
+        );
+        lower.rotation.z = side * -0.3; body.add(lower);
+      });
+    }
+    // 螯牙（前面 2 顆）
+    [-0.06,0.06].forEach(ox => {
+      const fang = new THREE.Mesh(new THREE.BoxGeometry(0.04*sc, 0.10*sc, 0.04*sc), blkM);
+      fang.position.set(ox*sc, -tierDef.sy*sc*0.15, tierDef.sz*sc*0.50);
+      fang.rotation.z = ox > 0 ? -0.3 : 0.3; body.add(fang);
+    });
+    // 8 顆紅眼（蜘蛛經典排列：2大+6小）
+    [-0.06,0.06].forEach(ox => {
+      const eye = new THREE.Mesh(new THREE.BoxGeometry(0.06*sc, 0.06*sc, 0.04*sc), eyeR);
+      eye.position.set(ox*sc, tierDef.sy*sc*0.18, tierDef.sz*sc*0.48); body.add(eye);
+    });
+    [[-0.10,0.24],[-0.04,0.26],[0.04,0.26],[0.10,0.24],[-0.08,0.12],[0.08,0.12]].forEach(([ex,ey]) => {
+      const eye = new THREE.Mesh(new THREE.BoxGeometry(0.03*sc, 0.03*sc, 0.03*sc), eyeR);
+      eye.position.set(ex*sc, tierDef.sy*sc*ey, tierDef.sz*sc*0.49); body.add(eye);
+    });
+
+  } else if (tierDef.lv === 4) {
     // ═══ 格里芬：鷹頭獅身有翼獸 ═══
     // 鷹嘴
     const beak = new THREE.Mesh(new THREE.ConeGeometry(0.06*sc, 0.18*sc, 4), new THREE.MeshLambertMaterial({ color:0xE0A830 }));
@@ -3921,7 +4041,7 @@ function updateShopUI() {
     ANIMAL_TIER.filter(t => t.price > 0).forEach(t => {
       const row = document.createElement('div');
       row.className = 'shop-buy-row';
-      const lvEmoji = ['','🐰','🦊','🦅','🦅'][t.lv] || '🐾';
+      const lvEmoji = ['','🐰','🦊','🦅','🦁','🦊','🕷️'][t.lv] || '🐾';
       row.innerHTML = `<span>${lvEmoji} LV${t.lv} ${t.nameAdult}</span><span class="seed-stock">場上: ${animals.filter(a=>a.lv===t.lv).length}</span><button class="shop-buy-btn" onclick="buyAnimal(${t.lv})">${t.price} コイン</button>`;
       petsTab.appendChild(row);
     });
