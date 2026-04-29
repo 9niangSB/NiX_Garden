@@ -17,29 +17,29 @@ import { OBJExporter }   from 'three/addons/exporters/OBJExporter.js';
 // ============================================================
 const plantCatalog = {
   // ── D Grade (disposable — dies after first harvest) ───────────
-  carrot:     { name:'胡蘿蔔', icon:'🥕', grade:'D', disposable:true,  stemColor:0x4A8838, topColor:0xF07030, shape:'carrot',  growTime:5000,  produceTime:4000,  sell:2,  price:3,  minRadius:0.6 },
-  scallion:   { name:'蔥',     icon:'🌿', grade:'D', disposable:true,  stemColor:0x50A040, topColor:0x78D060, shape:'flat',    growTime:4000,  produceTime:3000,  sell:1,  price:2,  minRadius:0.5 },
-  onion:      { name:'洋蔥',   icon:'🧅', grade:'D', disposable:true,  stemColor:0xD0C8A0, topColor:0xC0A040, shape:'shroom',  growTime:6000,  produceTime:4000,  sell:3,  price:4,  minRadius:0.6 },
+  carrot:     { name:'胡蘿蔔', icon:'🥕', grade:'D', disposable:true,  stemColor:0x4A8838, topColor:0xF07030, shape:'carrot',  growTime:5000,  produceTime:4000,  sell:2,  price:3,  minRadius:0.08 },
+  scallion:   { name:'蔥',     icon:'🌿', grade:'D', disposable:true,  stemColor:0x50A040, topColor:0x78D060, shape:'flat',    growTime:4000,  produceTime:3000,  sell:1,  price:2,  minRadius:0.05 },
+  onion:      { name:'洋蔥',   icon:'🧅', grade:'D', disposable:true,  stemColor:0xD0C8A0, topColor:0xC0A040, shape:'shroom',  growTime:6000,  produceTime:4000,  sell:3,  price:4,  minRadius:0.08 },
   // ── C Grade (永續 sustainable) ────────────────────────────────
-  tomato:     { name:'番茄',   icon:'🍅', grade:'C', stemColor:0x4A8838, topColor:0xE83020, shape:'tomato', growTime:8000,  produceTime:6000,  sell:5,  minRadius:0.7 },
-  strawberry: { name:'草莓',   icon:'🍓', grade:'C', stemColor:0x4A8838, topColor:0xE83050, shape:'strawberry', growTime:10000, produceTime:6000, sell:8,  minRadius:0.7 },
-  blueberry:  { name:'藍莓',   icon:'🫐', grade:'C', stemColor:0x4A8838, topColor:0x4060C0, shape:'blueberry', growTime:10000, produceTime:6000, sell:10, minRadius:0.7 },
-  // ── B Grade (永續 sustainable) ────────────────────────────────
-  corn:       { name:'玉米',   icon:'🌽', grade:'B', stemColor:0x4A8030, topColor:0xF0D040, shape:'corn',   growTime:14000, produceTime:8000,  sell:15, price:12, minRadius:0.8 },
-  sunflowerB: { name:'向日葵', icon:'🌻', grade:'B', stemColor:0x80B030, topColor:0xF0C020, shape:'tall',   growTime:16000, produceTime:9000,  sell:18, price:15, minRadius:0.8 },
-  pumpkin:    { name:'南瓜',   icon:'🎃', grade:'B', stemColor:0x5A8A40, topColor:0xFFA500, shape:'big',    growTime:18000, produceTime:10000, sell:25, price:20, minRadius:1.0 },
+  tomato:     { name:'番茄',   icon:'🍅', grade:'C', stemColor:0x4A8838, topColor:0xE83020, shape:'tomato', growTime:8000,  produceTime:6000,  sell:5,  minRadius:0.12 },
+  strawberry: { name:'草莓',   icon:'🍓', grade:'C', stemColor:0x4A8838, topColor:0xE83050, shape:'strawberry', growTime:10000, produceTime:6000, sell:8,  minRadius:0.10 },
+  blueberry:  { name:'藍莓',   icon:'🫐', grade:'C', stemColor:0x4A8838, topColor:0x4060C0, shape:'blueberry', growTime:10000, produceTime:6000, sell:10, minRadius:0.12 },
+  // ── B Grade (永續 sustainable) — 可密植 ───────────────────────
+  corn:       { name:'玉米',   icon:'🌽', grade:'B', stemColor:0x4A8030, topColor:0xF0D040, shape:'corn',   growTime:14000, produceTime:8000,  sell:15, price:12, minRadius:0.12 },
+  sunflowerB: { name:'向日葵', icon:'🌻', grade:'B', stemColor:0x80B030, topColor:0xF0C020, shape:'tall',   growTime:16000, produceTime:9000,  sell:18, price:15, minRadius:0.12 },
+  pumpkin:    { name:'南瓜',   icon:'🎃', grade:'B', stemColor:0x5A8A40, topColor:0xFFA500, shape:'big',    growTime:18000, produceTime:10000, sell:25, price:20, minRadius:0.18 },
   // ── A Grade (昂貴永續 expensive sustainable) ──────────────────
-  sakura:     { name:'櫻花樹', icon:'🌸', grade:'A', stemColor:0x5A3020, topColor:0xF8B0C0, shape:'sakura', growTime:22000, produceTime:12000, sell:40, price:30, minRadius:1.2 },
-  pinecone:   { name:'松果',   icon:'🌲', grade:'A', stemColor:0x5A4020, topColor:0x4A7030, shape:'tall',   growTime:25000, produceTime:14000, sell:50, price:38, minRadius:1.1 },
-  willow:     { name:'柳樹',   icon:'🌳', grade:'A', stemColor:0x4A3018, topColor:0x58A040, shape:'willow', growTime:28000, produceTime:16000, sell:60, price:45, minRadius:1.2 },
+  sakura:     { name:'櫻花樹', icon:'🌸', grade:'A', stemColor:0x5A3020, topColor:0xF8B0C0, shape:'sakura', growTime:22000, produceTime:12000, sell:40, price:30, minRadius:0.30, baseScale:1.8 },
+  pinecone:   { name:'松果',   icon:'🌲', grade:'A', stemColor:0x5A4020, topColor:0x4A7030, shape:'tall',   growTime:25000, produceTime:14000, sell:50, price:38, minRadius:0.25, baseScale:1.6 },
+  willow:     { name:'柳樹',   icon:'🌳', grade:'A', stemColor:0x4A3018, topColor:0x58A040, shape:'willow', growTime:28000, produceTime:16000, sell:60, price:45, minRadius:0.28, baseScale:1.8 },
   // ── S Grade (稀有昂貴永續 rare expensive) ─────────────────────
-  giantSakura:{ name:'巨大櫻花樹', icon:'🌸', grade:'S', stemColor:0x3A1F12, topColor:0xFF9CCF, shape:'sakura_night', growTime:40000, produceTime:20000, sell:100, price:80, minRadius:1.5 },
-  giantPine:  { name:'巨大松樹',   icon:'🌲', grade:'S', stemColor:0x4A3820, topColor:0x386030, shape:'big', growTime:45000, produceTime:22000, sell:120, price:95, minRadius:1.5 },
-  butterfly:  { name:'蝴蝶草',     icon:'🦋', grade:'S', stemColor:0x9060B0, topColor:0xD080E0, shape:'rose', growTime:35000, produceTime:18000, sell:90, price:70, minRadius:1.3 },
+  giantSakura:{ name:'巨大櫻花樹', icon:'🌸', grade:'S', stemColor:0x3A1F12, topColor:0xFF9CCF, shape:'sakura_night', growTime:40000, produceTime:20000, sell:100, price:80, minRadius:0.38, baseScale:2.2 },
+  giantPine:  { name:'巨大松樹',   icon:'🌲', grade:'S', stemColor:0x4A3820, topColor:0x386030, shape:'big', growTime:45000, produceTime:22000, sell:120, price:95, minRadius:0.38, baseScale:2.2 },
+  butterfly:  { name:'蝴蝶草',     icon:'🦋', grade:'S', stemColor:0x9060B0, topColor:0xD080E0, shape:'rose', growTime:35000, produceTime:18000, sell:90, price:70, minRadius:0.35 },
   // ── SS Grade (極稀有昂貴永續 ultra rare) ─────────────────────
-  demonFruit: { name:'惡魔果實',icon:'🔴', grade:'SS', stemColor:0x802040, topColor:0xFF2060, shape:'crystal', growTime:60000, produceTime:30000, sell:250, price:180, minRadius:1.6 },
-  moonLotus:  { name:'月蓮',   icon:'🪷', grade:'SS', stemColor:0x6080C0, topColor:0xC0D8FF, shape:'lotus',   growTime:55000, produceTime:28000, sell:200, price:150, minRadius:1.4 },
-  hemp:       { name:'大麻樹', icon:'🌿', grade:'SS', stemColor:0x3A5020, topColor:0x68B040, shape:'hemp',    growTime:65000, produceTime:35000, sell:300, price:220, minRadius:1.6 },
+  demonFruit: { name:'惡魔果實',icon:'🔴', grade:'SS', stemColor:0x802040, topColor:0xFF2060, shape:'crystal', growTime:60000, produceTime:30000, sell:250, price:180, minRadius:0.48 },
+  moonLotus:  { name:'月蓮',   icon:'🪷', grade:'SS', stemColor:0x6080C0, topColor:0xC0D8FF, shape:'lotus',   growTime:55000, produceTime:28000, sell:200, price:150, minRadius:0.45 },
+  hemp:       { name:'大麻樹', icon:'🌿', grade:'SS', stemColor:0x3A5020, topColor:0x68B040, shape:'hemp',    growTime:65000, produceTime:35000, sell:300, price:220, minRadius:0.48, baseScale:2.0 },
 };
 
 const furnitureCatalog = [
@@ -56,6 +56,10 @@ const furnitureCatalog = [
   { id:'chairlift',   name:'纜車椅', icon:'🚡', color:0xC0C8D8, price:100 },
   { id:'snow_cannon', name:'造雪機', icon:'💨', color:0x8090A8, price:120 },
   { id:'frozen_tree', name:'冰結樹', icon:'🧊', color:0xE0F0FF, price:200 },
+  { id:'jp_pavilion',  name:'和風涼亭',  icon:'⛩️', color:0xC83030, price:350, scale:0.14 },
+  { id:'jp_gate',      name:'山門',      icon:'🏯', color:0xB82828, price:450, scale:0.14 },
+  { id:'jp_bridge',    name:'和橋',      icon:'🌉', color:0xC04030, price:280, scale:0.14 },
+  { id:'jp_gate_bridge', name:'門橋',    icon:'🎌', color:0xC83838, price:650, scale:0.14 },
 ];
 
 const equipmentCatalog = [
@@ -257,9 +261,9 @@ document.getElementById('canvas-container').appendChild(renderer.domElement);
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0xF2E9E4);
-scene.fog        = new THREE.Fog(0xF2E9E4, 40, 80);
+scene.fog        = new THREE.Fog(0xF2E9E4, 50, 120);
 
-const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 200);
+const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 300);
 camera.position.set(0, 14, 20);
 
 // ============================================================
@@ -272,7 +276,7 @@ controls.dampingFactor = 0.08;
 controls.minPolarAngle = Math.PI / 4;
 controls.maxPolarAngle = Math.PI / 2.2;
 controls.minDistance   = 8;
-controls.maxDistance   = 35;
+controls.maxDistance   = 80;
 controls.target.set(0, 0, 0);
 
 // ── Keyboard input for player movement ──
@@ -594,24 +598,43 @@ scene.add(shopGroup);
 //  ═══ 一樓 ═══  粒子效果
 // ============================================================
 let particleSystem   = null;
-const PARTICLE_COUNT = 280;
+const PARTICLE_COUNT = 500;
+
+// ── 粒子色彩池（每種類型多色混合，增加細緻度）──
+const PARTICLE_COLORS = {
+  petal: [0xF6C6C8, 0xF0A8B0, 0xFFD4DC, 0xE89CA8, 0xFFC0C8, 0xF8B8C0],
+  snow:  [0xEEF4FF, 0xD8E8F8, 0xFFFFFF, 0xE0F0FF, 0xC8DCF0, 0xF0F8FF],
+  maple: [0xE85520, 0xD04010, 0xF07030, 0xC83808, 0xF09040, 0xE06028],
+  leaf:  [0x88C860, 0x68B040, 0xA0D878, 0x58A030, 0x78C050, 0xB0E088],
+};
 
 function buildParticles(type) {
   if (particleSystem) { scene.remove(particleSystem); particleSystem = null; }
-  const pos = new Float32Array(PARTICLE_COUNT * 3);
+  const pos   = new Float32Array(PARTICLE_COUNT * 3);
+  const colors = new Float32Array(PARTICLE_COUNT * 3);
+  const palette = PARTICLE_COLORS[type] || PARTICLE_COLORS.snow;
   for (let i = 0; i < PARTICLE_COUNT; i++) {
-    pos[i*3]   = (Math.random()-0.5) * 24;
-    pos[i*3+1] = Math.random() * 12 + 1;
-    pos[i*3+2] = (Math.random()-0.5) * 24;
+    pos[i*3]   = (Math.random()-0.5) * 28;
+    pos[i*3+1] = Math.random() * 14 + 1;
+    pos[i*3+2] = (Math.random()-0.5) * 28;
+    // 隨機從色彩池挑色
+    const c = new THREE.Color(palette[Math.floor(Math.random() * palette.length)]);
+    // 微幅偏移增加自然感
+    c.r += (Math.random()-0.5) * 0.06;
+    c.g += (Math.random()-0.5) * 0.06;
+    c.b += (Math.random()-0.5) * 0.06;
+    colors[i*3]   = c.r;
+    colors[i*3+1] = c.g;
+    colors[i*3+2] = c.b;
   }
   const geo = new THREE.BufferGeometry();
   geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-  const colorMap = { petal:0xF6C6C8, snow:0xEEF4FF, maple:0xE85520, leaf:0x88C860 };
+  geo.setAttribute('color',    new THREE.BufferAttribute(colors, 3));
   particleSystem = new THREE.Points(geo, new THREE.PointsMaterial({
-    color: colorMap[type] || 0xFFFFFF,
-    size:  type === 'snow' ? 0.15 : 0.22,
-    transparent: true, opacity: type === 'snow' ? 0.85 : 0.72,
+    size:  type === 'snow' ? 0.06 : 0.08,
+    transparent: true, opacity: type === 'snow' ? 0.80 : 0.65,
     depthWrite: false, sizeAttenuation: true,
+    vertexColors: true,
   }));
   particleSystem.userData.ptype = type;
   scene.add(particleSystem);
@@ -620,15 +643,17 @@ function buildParticles(type) {
 function updateParticles(delta) {
   if (!particleSystem) return;
   const pos = particleSystem.geometry.attributes.position.array;
-  const spd = particleSystem.userData.ptype === 'snow' ? 0.5 : 0.8;
+  const spd = particleSystem.userData.ptype === 'snow' ? 0.4 : 0.6;
   const t   = Date.now() * 0.001;
   for (let i = 0; i < PARTICLE_COUNT; i++) {
     pos[i*3+1] -= spd * delta;
-    pos[i*3]   += Math.sin(t + i) * 0.004;
+    // 更豐富的漂浮：雙重正弦 + 微風
+    pos[i*3]   += Math.sin(t * 0.8 + i * 1.3) * 0.003 + Math.cos(t * 0.3 + i) * 0.001;
+    pos[i*3+2] += Math.cos(t * 0.6 + i * 0.7) * 0.002;
     if (pos[i*3+1] < -0.5) {
-      pos[i*3]   = (Math.random()-0.5) * 24;
-      pos[i*3+1] = 12 + Math.random() * 4;
-      pos[i*3+2] = (Math.random()-0.5) * 24;
+      pos[i*3]   = (Math.random()-0.5) * 28;
+      pos[i*3+1] = 14 + Math.random() * 4;
+      pos[i*3+2] = (Math.random()-0.5) * 28;
     }
   }
   particleSystem.geometry.attributes.position.needsUpdate = true;
@@ -1364,7 +1389,8 @@ function updatePlants(now) {
 
     if (p.stage === 'growing') {
       const prog = Math.min((now - p.lastUpdate) / def.growTime, 1);
-      const maxScale = p.isGiant ? 2.5 : 1.0;
+      const catalogScale = def.baseScale ?? 1.0;
+      const maxScale = p.isGiant ? catalogScale * 2.5 : catalogScale;
       p.mesh.scale.setScalar(0.15 + prog * (maxScale - 0.15));
       if (prog >= 1) { p.stage = 'ready'; p.lastUpdate = now; }
 
@@ -2412,6 +2438,261 @@ function buildFurnitureMesh(id) {
 
     // ═══ 搖曳動畫標記 ═══
     g.userData.frozenTreeSway = true;
+
+  // ════════════════════════════════════════════════════════════════
+  //  和風涼亭 (Japanese Pavilion) — 開放式亭子，暗瓦屋頂，紅柱
+  // ════════════════════════════════════════════════════════════════
+  } else if (id === 'jp_pavilion') {
+    const V = 0.08;
+    const jh = (geo, mat, x, y, z) => {
+      const m = new THREE.Mesh(geo, mat); m.position.set(x,y,z);
+      m.castShadow=true; m.receiveShadow=true; g.add(m); return m;
+    };
+    // 色盤
+    const pillarD = new THREE.MeshLambertMaterial({ color:0x8B2020 });
+    const pillarM = new THREE.MeshLambertMaterial({ color:0xB03030 });
+    const roofD   = new THREE.MeshLambertMaterial({ color:0x3A2820 });
+    const roofM   = new THREE.MeshLambertMaterial({ color:0x4A3830 });
+    const roofL   = new THREE.MeshLambertMaterial({ color:0x5A4840 });
+    const baseD   = new THREE.MeshLambertMaterial({ color:0x605050 });
+    const baseM   = new THREE.MeshLambertMaterial({ color:0x787070 });
+    const floorM  = new THREE.MeshLambertMaterial({ color:0x906848 });
+    const lanternM= new THREE.MeshLambertMaterial({ color:0xFFE060, emissive:new THREE.Color(0xFFCC00), emissiveIntensity:0.5 });
+
+    // 石基座 (2層)
+    jh(new THREE.BoxGeometry(V*22,V*2,V*22), baseD, 0,V*1,0);
+    jh(new THREE.BoxGeometry(V*20,V*2,V*20), baseM, 0,V*3,0);
+    // 木地板
+    jh(new THREE.BoxGeometry(V*18,V*1,V*18), floorM, 0,V*4.5,0);
+    // 四根紅柱
+    const pH = V*16;
+    [[-1,-1],[1,-1],[-1,1],[1,1]].forEach(([sx,sz]) => {
+      jh(new THREE.BoxGeometry(V*2,pH,V*2), Math.random()>0.5?pillarD:pillarM, sx*V*8,V*5+pH/2,sz*V*8);
+      // 柱頭橫樑
+      jh(new THREE.BoxGeometry(V*3,V*1,V*2), pillarD, sx*V*8,V*5+pH+V*0.5,sz*V*8);
+    });
+    // 橫樑連接（四邊）
+    const beamY = V*5+pH;
+    jh(new THREE.BoxGeometry(V*20,V*1.5,V*1.5), pillarD, 0,beamY,V*-8);
+    jh(new THREE.BoxGeometry(V*20,V*1.5,V*1.5), pillarD, 0,beamY,V*8);
+    jh(new THREE.BoxGeometry(V*1.5,V*1.5,V*20), pillarD, V*-8,beamY,0);
+    jh(new THREE.BoxGeometry(V*1.5,V*1.5,V*20), pillarD, V*8,beamY,0);
+    // 屋頂（三層，越上越小，帶翹角）
+    const roofBase = beamY + V*2;
+    jh(new THREE.BoxGeometry(V*26,V*2,V*26), roofD, 0,roofBase,0);
+    jh(new THREE.BoxGeometry(V*24,V*1.5,V*24), roofM, 0,roofBase+V*2,0);
+    jh(new THREE.BoxGeometry(V*20,V*2,V*20), roofM, 0,roofBase+V*4,0);
+    jh(new THREE.BoxGeometry(V*14,V*2,V*14), roofL, 0,roofBase+V*6,0);
+    jh(new THREE.BoxGeometry(V*8,V*2,V*8), roofD, 0,roofBase+V*8,0);
+    // 屋脊
+    jh(new THREE.BoxGeometry(V*3,V*3,V*3), roofD, 0,roofBase+V*11,0);
+    // 翹角（四角突出）
+    [[-1,-1],[1,-1],[-1,1],[1,1]].forEach(([sx,sz]) => {
+      jh(new THREE.BoxGeometry(V*4,V*1,V*2), roofD, sx*V*14,roofBase+V*0.5,sz*V*14);
+      jh(new THREE.BoxGeometry(V*2,V*1,V*4), roofD, sx*V*14,roofBase+V*0.5,sz*V*14);
+    });
+    // 燈籠（四角）
+    [[-1,-1],[1,-1],[-1,1],[1,1]].forEach(([sx,sz]) => {
+      jh(new THREE.BoxGeometry(V*1.5,V*1.5,V*1.5), lanternM, sx*V*13,roofBase-V*1,sz*V*13);
+    });
+
+  // ════════════════════════════════════════════════════════════════
+  //  山門 (Temple Gate) — 大型門樓，紅牆暗瓦
+  // ════════════════════════════════════════════════════════════════
+  } else if (id === 'jp_gate') {
+    const V = 0.08;
+    const jh = (geo, mat, x, y, z) => {
+      const m = new THREE.Mesh(geo, mat); m.position.set(x,y,z);
+      m.castShadow=true; m.receiveShadow=true; g.add(m); return m;
+    };
+    const pillarD = new THREE.MeshLambertMaterial({ color:0x8B2020 });
+    const pillarM = new THREE.MeshLambertMaterial({ color:0xA82828 });
+    const wallD   = new THREE.MeshLambertMaterial({ color:0x9A3030 });
+    const wallM   = new THREE.MeshLambertMaterial({ color:0xB84040 });
+    const roofD   = new THREE.MeshLambertMaterial({ color:0x382018 });
+    const roofM   = new THREE.MeshLambertMaterial({ color:0x4A3028 });
+    const roofL   = new THREE.MeshLambertMaterial({ color:0x5A4038 });
+    const baseD   = new THREE.MeshLambertMaterial({ color:0x504848 });
+    const baseM   = new THREE.MeshLambertMaterial({ color:0x686060 });
+    const woodD   = new THREE.MeshLambertMaterial({ color:0x5A3020 });
+    const lanternM= new THREE.MeshLambertMaterial({ color:0xFFE060, emissive:new THREE.Color(0xFFCC00), emissiveIntensity:0.5 });
+
+    // 石基座
+    jh(new THREE.BoxGeometry(V*30,V*3,V*18), baseD, 0,V*1.5,0);
+    jh(new THREE.BoxGeometry(V*28,V*2,V*16), baseM, 0,V*4,0);
+    // 台階（正面）
+    for (let s=0; s<3; s++) {
+      jh(new THREE.BoxGeometry(V*12,V*1.5,V*2), baseM, 0,V*(1+s*1.5),V*(10+s*2));
+    }
+    // 六根紅柱（正面三根 × 背面三根）
+    const pH = V*22;
+    [-1,0,1].forEach(xi => {
+      [1,-1].forEach(zi => {
+        jh(new THREE.BoxGeometry(V*2.5,pH,V*2.5), xi===0?pillarM:pillarD, xi*V*11,V*5+pH/2,zi*V*6);
+      });
+    });
+    // 紅牆板（左右兩側，柱間）
+    [-1,1].forEach(zi => {
+      jh(new THREE.BoxGeometry(V*8,V*14,V*1.5), wallD, V*-5.5,V*12,zi*V*6);
+      jh(new THREE.BoxGeometry(V*8,V*14,V*1.5), wallM, V*5.5,V*12,zi*V*6);
+    });
+    // 橫樑
+    const beamY = V*5+pH;
+    jh(new THREE.BoxGeometry(V*28,V*2,V*2), pillarD, 0,beamY,V*-6);
+    jh(new THREE.BoxGeometry(V*28,V*2,V*2), pillarD, 0,beamY,V*6);
+    jh(new THREE.BoxGeometry(V*2,V*2,V*16), pillarD, V*-11,beamY,0);
+    jh(new THREE.BoxGeometry(V*2,V*2,V*16), pillarD, V*11,beamY,0);
+    // 斗拱（柱頭裝飾）
+    [-1,0,1].forEach(xi => {
+      jh(new THREE.BoxGeometry(V*4,V*1,V*14), woodD, xi*V*11,beamY+V*1.5,0);
+    });
+    // 大屋頂（四層堆疊）
+    const rb = beamY + V*3;
+    jh(new THREE.BoxGeometry(V*34,V*2,V*22), roofD, 0,rb,0);
+    jh(new THREE.BoxGeometry(V*30,V*2,V*20), roofM, 0,rb+V*2.5,0);
+    jh(new THREE.BoxGeometry(V*24,V*2.5,V*16), roofM, 0,rb+V*5,0);
+    jh(new THREE.BoxGeometry(V*16,V*2,V*10), roofL, 0,rb+V*8,0);
+    jh(new THREE.BoxGeometry(V*8,V*2,V*6), roofD, 0,rb+V*10.5,0);
+    // 屋脊飾
+    jh(new THREE.BoxGeometry(V*4,V*4,V*4), roofD, 0,rb+V*14,0);
+    jh(new THREE.BoxGeometry(V*2,V*2,V*2), roofL, 0,rb+V*17,0);
+    // 翹角
+    [[-1,-1],[1,-1],[-1,1],[1,1]].forEach(([sx,sz]) => {
+      jh(new THREE.BoxGeometry(V*5,V*1.5,V*3), roofD, sx*V*18,rb+V*1,sz*V*12);
+      jh(new THREE.BoxGeometry(V*3,V*1.5,V*5), roofD, sx*V*18,rb+V*1,sz*V*12);
+    });
+    // 燈籠
+    [[-1,-1],[1,-1],[-1,1],[1,1]].forEach(([sx,sz]) => {
+      jh(new THREE.BoxGeometry(V*1.8,V*1.8,V*1.8), lanternM, sx*V*16,rb-V*1,sz*V*10);
+    });
+
+  // ════════════════════════════════════════════════════════════════
+  //  和橋 (Japanese Bridge) — 紅色木橋，裝飾欄杆
+  // ════════════════════════════════════════════════════════════════
+  } else if (id === 'jp_bridge') {
+    const V = 0.08;
+    const jh = (geo, mat, x, y, z) => {
+      const m = new THREE.Mesh(geo, mat); m.position.set(x,y,z);
+      m.castShadow=true; m.receiveShadow=true; g.add(m); return m;
+    };
+    const deckD  = new THREE.MeshLambertMaterial({ color:0x5A3020 });
+    const deckM  = new THREE.MeshLambertMaterial({ color:0x6A4030 });
+    const railD  = new THREE.MeshLambertMaterial({ color:0x8B2020 });
+    const railM  = new THREE.MeshLambertMaterial({ color:0xB03030 });
+    const railL  = new THREE.MeshLambertMaterial({ color:0xC84040 });
+    const postD  = new THREE.MeshLambertMaterial({ color:0x7A2828 });
+    const baseD  = new THREE.MeshLambertMaterial({ color:0x504848 });
+    const lanternM= new THREE.MeshLambertMaterial({ color:0xFFE060, emissive:new THREE.Color(0xFFCC00), emissiveIntensity:0.5 });
+
+    // 橋墩（兩端）
+    [-1,1].forEach(sx => {
+      jh(new THREE.BoxGeometry(V*6,V*6,V*14), baseD, sx*V*18,V*3,0);
+    });
+    // 橋面（微拱形 — 中段略高）
+    const segments = 9;
+    for (let i = 0; i < segments; i++) {
+      const t = (i / (segments-1)) - 0.5; // -0.5 ~ +0.5
+      const arch = (1 - t*t*4) * V*3; // 拋物線拱起
+      const xp = (i / (segments-1) - 0.5) * V*40;
+      jh(new THREE.BoxGeometry(V*5,V*1.5,V*12), i%2===0?deckD:deckM, xp,V*6+arch,0);
+    }
+    // 欄杆柱（兩側，每隔一段）
+    for (let i = 0; i <= 8; i++) {
+      const t = (i / 8) - 0.5;
+      const arch = (1 - t*t*4) * V*3;
+      const xp = t * V*40;
+      [-1,1].forEach(sz => {
+        jh(new THREE.BoxGeometry(V*1.5,V*8,V*1.5), i%2===0?postD:railD, xp,V*10+arch,sz*V*6.5);
+      });
+    }
+    // 欄杆橫條（兩側，兩層）
+    [-1,1].forEach(sz => {
+      // 上橫條
+      for (let i = 0; i < 8; i++) {
+        const t0 = (i / 8) - 0.5, t1 = ((i+1) / 8) - 0.5;
+        const a0 = (1 - t0*t0*4) * V*3, a1 = (1 - t1*t1*4) * V*3;
+        const xp = (t0+t1)/2 * V*40;
+        jh(new THREE.BoxGeometry(V*5,V*1,V*1), i%2===0?railM:railL, xp,V*13.5+(a0+a1)/2,sz*V*6.5);
+        jh(new THREE.BoxGeometry(V*5,V*1,V*1), i%2===0?railD:railM, xp,V*10+(a0+a1)/2,sz*V*6.5);
+      }
+    });
+    // 端部燈籠
+    [-1,1].forEach(sx => {
+      jh(new THREE.BoxGeometry(V*2,V*2,V*2), lanternM, sx*V*20,V*16,0);
+    });
+
+  // ════════════════════════════════════════════════════════════════
+  //  門橋 (Gate-Bridge Combo) — 山門+橋接合
+  // ════════════════════════════════════════════════════════════════
+  } else if (id === 'jp_gate_bridge') {
+    const V = 0.08;
+    const jh = (geo, mat, x, y, z) => {
+      const m = new THREE.Mesh(geo, mat); m.position.set(x,y,z);
+      m.castShadow=true; m.receiveShadow=true; g.add(m); return m;
+    };
+    const pillarD = new THREE.MeshLambertMaterial({ color:0x8B2020 });
+    const pillarM = new THREE.MeshLambertMaterial({ color:0xA82828 });
+    const roofD   = new THREE.MeshLambertMaterial({ color:0x382018 });
+    const roofM   = new THREE.MeshLambertMaterial({ color:0x4A3028 });
+    const roofL   = new THREE.MeshLambertMaterial({ color:0x5A4038 });
+    const deckD   = new THREE.MeshLambertMaterial({ color:0x5A3020 });
+    const deckM   = new THREE.MeshLambertMaterial({ color:0x6A4030 });
+    const railD   = new THREE.MeshLambertMaterial({ color:0x8B2020 });
+    const railM   = new THREE.MeshLambertMaterial({ color:0xB03030 });
+    const baseD   = new THREE.MeshLambertMaterial({ color:0x504848 });
+    const baseM   = new THREE.MeshLambertMaterial({ color:0x686060 });
+    const lanternM= new THREE.MeshLambertMaterial({ color:0xFFE060, emissive:new THREE.Color(0xFFCC00), emissiveIntensity:0.5 });
+
+    // ── 門樓部分（右側）──
+    // 基座
+    jh(new THREE.BoxGeometry(V*16,V*3,V*14), baseD, V*14,V*1.5,0);
+    jh(new THREE.BoxGeometry(V*14,V*2,V*12), baseM, V*14,V*4,0);
+    // 四柱
+    const gH = V*18;
+    [[-1,-1],[1,-1],[-1,1],[1,1]].forEach(([sx,sz]) => {
+      jh(new THREE.BoxGeometry(V*2,gH,V*2), Math.random()>0.5?pillarD:pillarM, V*14+sx*V*5,V*5+gH/2,sz*V*5);
+    });
+    // 門樓橫樑
+    const gbY = V*5+gH;
+    jh(new THREE.BoxGeometry(V*14,V*1.5,V*1.5), pillarD, V*14,gbY,V*-5);
+    jh(new THREE.BoxGeometry(V*14,V*1.5,V*1.5), pillarD, V*14,gbY,V*5);
+    // 門樓屋頂
+    jh(new THREE.BoxGeometry(V*22,V*2,V*18), roofD, V*14,gbY+V*2,0);
+    jh(new THREE.BoxGeometry(V*18,V*2,V*14), roofM, V*14,gbY+V*4.5,0);
+    jh(new THREE.BoxGeometry(V*12,V*2,V*10), roofL, V*14,gbY+V*7,0);
+    jh(new THREE.BoxGeometry(V*6,V*2,V*6), roofD, V*14,gbY+V*9.5,0);
+    // 屋脊
+    jh(new THREE.BoxGeometry(V*3,V*3,V*3), roofD, V*14,gbY+V*12.5,0);
+    // 翹角
+    [[-1,-1],[1,-1],[-1,1],[1,1]].forEach(([sx,sz]) => {
+      jh(new THREE.BoxGeometry(V*3,V*1,V*2), roofD, V*14+sx*V*12,gbY+V*2.5,sz*V*10);
+    });
+
+    // ── 橋面部分（從門樓向左延伸）──
+    const bridgeLen = 7;
+    for (let i = 0; i < bridgeLen; i++) {
+      const xp = V*14 - (i+1)*V*5;
+      jh(new THREE.BoxGeometry(V*5.5,V*1.5,V*10), i%2===0?deckD:deckM, xp,V*5,0);
+    }
+    // 橋墩
+    jh(new THREE.BoxGeometry(V*4,V*6,V*10), baseD, V*-14,V*3,0);
+    jh(new THREE.BoxGeometry(V*4,V*6,V*10), baseD, V*0,V*3,0);
+    // 欄杆柱
+    for (let i = 0; i <= bridgeLen; i++) {
+      const xp = V*14 - i*V*5;
+      [-1,1].forEach(sz => {
+        jh(new THREE.BoxGeometry(V*1.2,V*6,V*1.2), railD, xp,V*8.5,sz*V*5.5);
+      });
+    }
+    // 欄杆橫條
+    [-1,1].forEach(sz => {
+      jh(new THREE.BoxGeometry(V*38,V*0.8,V*0.8), railM, V*-3,V*11,sz*V*5.5);
+      jh(new THREE.BoxGeometry(V*38,V*0.8,V*0.8), railD, V*-3,V*8,sz*V*5.5);
+    });
+    // 燈籠
+    [V*14, V*-21].forEach(xp => {
+      jh(new THREE.BoxGeometry(V*1.8,V*1.8,V*1.8), lanternM, xp,V*13,0);
+    });
   }
   return g;
 }
@@ -2423,7 +2704,7 @@ function spawnFurniture(x, z) {
   const def   = furnitureCatalog.find(f=>f.id===selectedFurnId) || furnitureCatalog[0];
   const group = buildFurnitureMesh(selectedFurnId);
   group.position.set(x, 0, z);
-  group.scale.setScalar(0.1);
+  group.scale.setScalar(def.scale ?? 0.1);
   group.castShadow = true;
   scene.add(group);
   placedObjects.push({ mesh:group, type:'build', furnId:def.id, gridX:x, gridZ:z });
@@ -3355,6 +3636,14 @@ function deleteAt(wx, wz) {
   });
   if (pIdx >= 0) {
     const p = plants[pIdx];
+    const def = plantCatalog[p.type];
+    // 高級作物（A/S/SS）移除前確認
+    const highGrades = ['A','S','SS'];
+    if (def && highGrades.includes(def.grade)) {
+      clearDeleteHighlight();
+      if (!confirm(`⚠️ 確定要移除 ${def.icon} ${def.name}（${def.grade}級）嗎？`)) return;
+    }
+    clearDeleteHighlight();
     scene.remove(p.mesh);
     p.mesh.traverse(c => {
       if (!c.isMesh) return;
@@ -3373,6 +3662,7 @@ function deleteAt(wx, wz) {
   const idx = placedObjects.findIndex(o => o.gridX===Math.round(wx) && o.gridZ===Math.round(wz));
   if (idx < 0) return;
   const obj = placedObjects[idx];
+  clearDeleteHighlight();
   scene.remove(obj.mesh);
   obj.mesh.traverse(c => {
     if (!c.isMesh) return;
@@ -3383,6 +3673,26 @@ function deleteAt(wx, wz) {
   occupiedCells.delete(key);
   updateUI();
   showToast('🗑️ 移除完成');
+}
+
+// 直接點擊家具也能刪除（delete 模式）
+function deleteFurnitureByMesh(targetMesh) {
+  const idx = placedObjects.findIndex(o => o.mesh === targetMesh);
+  if (idx < 0) return false;
+  const obj = placedObjects[idx];
+  const key = `${obj.gridX},${obj.gridZ}`;
+  clearDeleteHighlight();
+  scene.remove(obj.mesh);
+  obj.mesh.traverse(c => {
+    if (!c.isMesh) return;
+    c.geometry.dispose();
+    (Array.isArray(c.material)?c.material:[c.material]).forEach(m=>m.dispose());
+  });
+  placedObjects.splice(idx, 1);
+  occupiedCells.delete(key);
+  updateUI();
+  showToast('🗑️ 家具を除去');
+  return true;
 }
 
 // ============================================================
@@ -3424,6 +3734,36 @@ function bounceAnim(group) {
 let isDragging   = false;
 let pointerStart = { x:0, y:0 };
 const DRAG_THRESHOLD = 6;
+
+// ── 刪除模式：懸停紅色高亮系統 ──
+let deleteHoverMeshes = [];   // 當前被紅染的 meshes（含原色備份）
+function clearDeleteHighlight() {
+  deleteHoverMeshes.forEach(({ mesh, origColor, origEmissive, origEmissiveIntensity }) => {
+    if (!mesh.material) return;
+    const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+    mats.forEach((m, i) => {
+      if (origColor[i])    m.color.copy(origColor[i]);
+      if (origEmissive[i]) m.emissive.copy(origEmissive[i]);
+      m.emissiveIntensity = origEmissiveIntensity[i] ?? 0;
+    });
+  });
+  deleteHoverMeshes = [];
+}
+function applyDeleteHighlight(group) {
+  clearDeleteHighlight();
+  group.traverse(c => {
+    if (!c.isMesh || !c.material) return;
+    const mats = Array.isArray(c.material) ? c.material : [c.material];
+    const origColor = mats.map(m => m.color.clone());
+    const origEmissive = mats.map(m => m.emissive ? m.emissive.clone() : new THREE.Color(0));
+    const origEmissiveIntensity = mats.map(m => m.emissiveIntensity ?? 0);
+    mats.forEach(m => {
+      m.color.lerp(new THREE.Color(0xFF2020), 0.5);
+      if (m.emissive) { m.emissive.set(0xFF0000); m.emissiveIntensity = 0.3; }
+    });
+    deleteHoverMeshes.push({ mesh: c, origColor, origEmissive, origEmissiveIntensity });
+  });
+}
 
 // ── 長按系統：移動/收納 ──
 let longPressTimer = null;
@@ -3584,6 +3924,38 @@ renderer.domElement.addEventListener('pointermove', e => {
     return;
   }
 
+  // ── 刪除模式：懸停紅色高亮 ──
+  if (currentMode === 'delete') {
+    raycaster.setFromCamera(pointer, camera);
+    let foundTarget = null;
+    // 檢查植物
+    const allPM2 = [];
+    plants.forEach(p => p.mesh.traverse(c => { if (c.isMesh) allPM2.push(c); }));
+    const pHits2 = raycaster.intersectObjects(allPM2);
+    if (pHits2.length > 0) {
+      for (const p of plants) {
+        let obj = pHits2[0].object;
+        while (obj) { if (obj===p.mesh){foundTarget=p.mesh; break;} obj=obj.parent; }
+        if (foundTarget) break;
+      }
+    }
+    // 檢查家具
+    if (!foundTarget) {
+      const allFM2 = [];
+      placedObjects.forEach(o => o.mesh.traverse(c => { if (c.isMesh) allFM2.push(c); }));
+      const fHits2 = raycaster.intersectObjects(allFM2);
+      if (fHits2.length > 0) {
+        for (const o of placedObjects) {
+          let obj = fHits2[0].object;
+          while (obj) { if (obj===o.mesh){foundTarget=o.mesh; break;} obj=obj.parent; }
+          if (foundTarget) break;
+        }
+      }
+    }
+    if (foundTarget) applyDeleteHighlight(foundTarget);
+    else clearDeleteHighlight();
+  }
+
   if (hit && previewMesh) {
     if (currentMode === 'plant') {
       previewMesh.position.set(hit.x, 0.6, hit.z);
@@ -3672,15 +4044,21 @@ renderer.domElement.addEventListener('pointerup', e => {
     }
   }
 
-  // ②b 家具 export 模式
-  if (currentMode === 'export') {
+  // ②b 家具 export / delete 模式
+  if (currentMode === 'export' || currentMode === 'delete') {
     const allFM = [];
     placedObjects.forEach(o => o.mesh.traverse(c => { if (c.isMesh) allFM.push(c); }));
     const fHits = raycaster.intersectObjects(allFM);
     if (fHits.length > 0) {
       for (const o of placedObjects) {
         let obj = fHits[0].object;
-        while (obj) { if (obj===o.mesh){ exportMeshToOBJ(o.mesh, o.furnId); return; } obj=obj.parent; }
+        while (obj) {
+          if (obj===o.mesh) {
+            if (currentMode === 'export') { exportMeshToOBJ(o.mesh, o.furnId); return; }
+            if (currentMode === 'delete')  { deleteFurnitureByMesh(o.mesh); return; }
+          }
+          obj=obj.parent;
+        }
       }
     }
   }
@@ -3715,6 +4093,7 @@ renderer.domElement.addEventListener('pointerup', e => {
 //  ═══ Global API ═══  (HTML onclick)
 // ============================================================
 window.setMode = function(mode) {
+  clearDeleteHighlight();
   currentMode = mode;
   document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
   const map = { plant:'btn-plant', build:'btn-build', delete:'btn-delete', export:'btn-export' };
