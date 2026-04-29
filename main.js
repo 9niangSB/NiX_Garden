@@ -1093,27 +1093,32 @@ function buildPlantGroup(type) {
         jh(new THREE.BoxGeometry(V*1.2, V*2, bl*0.6), varyColor(0x4A3018),
            bx, crownY-V*2+Math.random()*V*4, bz);
       }
-      // 垂枝（核心特徵：20+ 條長條從冠頂垂下）
+      // 垂枝（核心特徵：30 條細長垂枝 + 細長葉片）
       const greens = [0x58A040, 0x489030, 0x68B050, 0x408028, 0x78C060];
-      for (let wi=0; wi<22; wi++) {
-        const wa = (wi/22)*Math.PI*2 + Math.random()*0.4;
-        const wr = V*(8+Math.random()*10);  // 展開半徑
-        const wLen = V*(20+Math.random()*18);  // 垂枝長度
+      for (let wi=0; wi<30; wi++) {
+        const wa = (wi/30)*Math.PI*2 + Math.random()*0.4;
+        const wr = V*(7+Math.random()*12);
+        const wLen = V*(25+Math.random()*20);  // 更長
         const wx = Math.cos(wa)*wr;
         const wz = Math.sin(wa)*wr;
-        // 垂枝：多段細長方塊
-        const segments = 4+Math.floor(Math.random()*3);
+        // 垂枝：極細線條
+        const segments = 6+Math.floor(Math.random()*3);
         const segH = wLen/segments;
         for (let si=0; si<segments; si++) {
-          const sx = wx + Math.sin(si*0.8+wi)*V*1.5;  // 微微搖曳偏移
+          const sx = wx + Math.sin(si*0.6+wi)*V*1.2;
           const sy = crownY - si*segH;
-          const sz = wz + Math.cos(si*0.6+wi)*V*1.5;
-          jh(new THREE.BoxGeometry(V*1.0, segH, V*0.8),
+          const sz = wz + Math.cos(si*0.5+wi)*V*1.2;
+          // 枝幹極細（V*0.4 寬）
+          jh(new THREE.BoxGeometry(V*0.4, segH, V*0.3),
              varyColor(greens[si%5]), sx, sy-segH/2, sz);
-          // 葉片小球（間隔掛）
-          if (si % 2 === 0) {
-            jh(new THREE.SphereGeometry(V*(1.5+Math.random()), 5, 4),
-               varyColor(greens[(si+wi)%5]), sx+V*1.5, sy-segH*0.3, sz);
+          // 細長葉片（柳樹特徵：窄而長，每段掛 1-2 片）
+          if (si % 2 === 0 || Math.random() < 0.4) {
+            const leafLen = V*(3+Math.random()*3);  // 長葉
+            const leafW   = V*0.3;                  // 極窄
+            const leafOff = (Math.random()-0.5)*V*2;
+            jh(new THREE.BoxGeometry(leafW, leafLen, V*0.15),
+               varyColor(greens[(si+wi)%5]),
+               sx+leafOff, sy-segH*0.4, sz+leafOff*0.3);
           }
         }
       }
@@ -1290,6 +1295,26 @@ function buildPlantGroup(type) {
       top.userData.isPlantTop = true;
     }
   }
+
+  // ── S/SS 等級植物：自動加發光 + 放大比例 ──
+  if (def.grade === 'S' || def.grade === 'SS') {
+    const glowColor = def.grade === 'SS' ? 0xFFD060 : 0xC0E0FF;
+    const glowInt   = def.grade === 'SS' ? 0.40 : 0.25;
+    g.traverse(c => {
+      if (c.isMesh && c.material && !c.material.emissive) {
+        c.material.emissive = new THREE.Color(glowColor);
+        c.material.emissiveIntensity = glowInt;
+      }
+    });
+    // 加光源
+    const pl = new THREE.PointLight(glowColor, def.grade==='SS' ? 2.0 : 1.2, 4.0);
+    pl.position.set(0, 1.0, 0);
+    g.add(pl);
+    // 放大 1.5x (S) / 2.0x (SS)
+    const baseScale = def.grade === 'SS' ? 2.0 : 1.5;
+    g.scale.setScalar(baseScale);
+  }
+
   return g;
 }
 
@@ -2515,46 +2540,104 @@ function buildAnimalMesh(tierDef, isBaby) {
   const eym = new THREE.MeshLambertMaterial({ color: 0x222222 });
 
   if (tierDef.lv === 5) {
-    // ═══ 紫狐：大型發光狐狸 — 紫色身體，深紫耳尖/尾巴/手腳，全身發光 ═══
-    body.material.emissive = new THREE.Color(0x6030A0);
-    body.material.emissiveIntensity = 0.35;
-    const deepP = new THREE.MeshLambertMaterial({ color:0x4A1880, emissive:new THREE.Color(0x3A1060), emissiveIntensity:0.5 });
-    const glowP = new THREE.MeshLambertMaterial({ color:0xB080E0, emissive:new THREE.Color(0x8050C0), emissiveIntensity:0.6 });
-    // 大尖耳（深紫色耳尖 + 發光內耳）
-    [-0.12,0.12].forEach(ox => {
-      const ear = new THREE.Mesh(new THREE.BoxGeometry(0.10*sc, 0.28*sc, 0.08*sc), em);
-      ear.position.set(ox*sc, tierDef.sy*sc*0.70, 0.08*sc); body.add(ear);
-      // 深紫耳尖
-      const tip = new THREE.Mesh(new THREE.BoxGeometry(0.06*sc, 0.10*sc, 0.05*sc), deepP);
-      tip.position.set(ox*sc, tierDef.sy*sc*0.88, 0.08*sc); body.add(tip);
-      // 內耳發光
-      const inner = new THREE.Mesh(new THREE.BoxGeometry(0.05*sc, 0.18*sc, 0.03*sc), glowP);
-      inner.position.set(ox*sc, tierDef.sy*sc*0.72, 0.10*sc); body.add(inner);
+    // ═══ 妖紫狐：靈狐造型 — 修長身體、尖臉長吻、三角大耳、巨大飄逸尾巴 ═══
+    body.material.emissive = new THREE.Color(0x5028A0);
+    body.material.emissiveIntensity = 0.30;
+    const V = sc;
+    const deepP = new THREE.MeshLambertMaterial({ color:0x38106A, emissive:new THREE.Color(0x2A0850), emissiveIntensity:0.45 });
+    const glowP = new THREE.MeshLambertMaterial({ color:0xC090FF, emissive:new THREE.Color(0x9060E0), emissiveIntensity:0.55 });
+    const pinkI = new THREE.MeshLambertMaterial({ color:0xE0A0C8, emissive:new THREE.Color(0xD080B0), emissiveIntensity:0.3 });
+    const whiteM = new THREE.MeshLambertMaterial({ color:0xE8D8F0 });
+
+    // ── 狐狸頭部：尖臉 + 長吻（不是兔子圓臉）──
+    // 頭（比身體窄，前端收尖）
+    const head = new THREE.Mesh(new THREE.BoxGeometry(0.32*V, 0.28*V, 0.30*V), em);
+    head.position.set(0, tierDef.sy*V*0.55, tierDef.sz*V*0.30); body.add(head);
+    // 尖吻部（往前突出，漸細）
+    const snout1 = new THREE.Mesh(new THREE.BoxGeometry(0.18*V, 0.14*V, 0.16*V), em);
+    snout1.position.set(0, tierDef.sy*V*0.42, tierDef.sz*V*0.56); body.add(snout1);
+    const snout2 = new THREE.Mesh(new THREE.BoxGeometry(0.12*V, 0.10*V, 0.12*V), em);
+    snout2.position.set(0, tierDef.sy*V*0.38, tierDef.sz*V*0.68); body.add(snout2);
+    // 鼻尖（黑色小方塊）
+    const nose = new THREE.Mesh(new THREE.BoxGeometry(0.06*V, 0.05*V, 0.04*V),
+      new THREE.MeshLambertMaterial({ color:0x1A1018 }));
+    nose.position.set(0, tierDef.sy*V*0.40, tierDef.sz*V*0.76); body.add(nose);
+    // 白色嘴下（狐狸特徵）
+    const chin = new THREE.Mesh(new THREE.BoxGeometry(0.14*V, 0.06*V, 0.14*V), whiteM);
+    chin.position.set(0, tierDef.sy*V*0.32, tierDef.sz*V*0.52); body.add(chin);
+    // 白色胸口
+    const chest = new THREE.Mesh(new THREE.BoxGeometry(0.22*V, 0.18*V, 0.10*V), whiteM);
+    chest.position.set(0, tierDef.sy*V*0.10, tierDef.sz*V*0.38); body.add(chest);
+
+    // ── 三角大耳（狐狸最重要特徵）── 尖三角形、向外微張
+    [-0.14,0.14].forEach((ox, i) => {
+      // 耳朵外框（三角 → 用梯形近似）
+      const ear = new THREE.Mesh(new THREE.BoxGeometry(0.10*V, 0.32*V, 0.06*V), em);
+      ear.position.set(ox*V, tierDef.sy*V*0.82, tierDef.sz*V*0.28);
+      ear.rotation.z = (i===0 ? 0.15 : -0.15); // 微微外張
+      body.add(ear);
+      // 耳尖（深紫色）
+      const tip = new THREE.Mesh(new THREE.BoxGeometry(0.06*V, 0.12*V, 0.05*V), deepP);
+      tip.position.set(ox*V, tierDef.sy*V*1.02, tierDef.sz*V*0.28);
+      body.add(tip);
+      // 粉色內耳
+      const inner = new THREE.Mesh(new THREE.BoxGeometry(0.05*V, 0.22*V, 0.03*V), pinkI);
+      inner.position.set(ox*V, tierDef.sy*V*0.85, tierDef.sz*V*0.30);
+      body.add(inner);
     });
-    // 深紫手腳（4隻）
-    [[-0.14,-0.22,0.18],[ 0.14,-0.22,0.18],[-0.14,-0.22,-0.16],[ 0.14,-0.22,-0.16]].forEach(([px,py,pz]) => {
-      const paw = new THREE.Mesh(new THREE.BoxGeometry(0.10*sc, 0.12*sc, 0.10*sc), deepP);
-      paw.position.set(px*sc, py*sc, pz*sc); body.add(paw);
+
+    // ── 細長眼睛（狐狸是斜長眼，不是圓眼）──
+    const eyeGlow = new THREE.MeshLambertMaterial({ color:0xD0A0FF, emissive:new THREE.Color(0xB070F0), emissiveIntensity:0.7 });
+    [-0.10,0.10].forEach(ox => {
+      const eye = new THREE.Mesh(new THREE.BoxGeometry(0.08*V, 0.04*V, 0.04*V), eyeGlow);
+      eye.position.set(ox*V, tierDef.sy*V*0.52, tierDef.sz*V*0.48); body.add(eye);
     });
-    // 大尾巴（深紫色，發光）
-    const tail1 = new THREE.Mesh(new THREE.BoxGeometry(0.10*sc, 0.10*sc, 0.22*sc), em);
-    tail1.position.set(0, tierDef.sy*sc*0.08, -tierDef.sz*sc*0.52); body.add(tail1);
-    const tail2 = new THREE.Mesh(new THREE.BoxGeometry(0.14*sc, 0.14*sc, 0.18*sc), deepP);
-    tail2.position.set(0, tierDef.sy*sc*0.12, -tierDef.sz*sc*0.68); body.add(tail2);
-    const tailGlow = new THREE.Mesh(new THREE.SphereGeometry(0.10*sc, 6, 5), glowP);
-    tailGlow.position.set(0, tierDef.sy*sc*0.14, -tierDef.sz*sc*0.80); body.add(tailGlow);
-    // 狐狸尖嘴
-    const snout = new THREE.Mesh(new THREE.BoxGeometry(0.08*sc, 0.06*sc, 0.10*sc), em);
-    snout.position.set(0, tierDef.sy*sc*0.02, tierDef.sz*sc*0.52); body.add(snout);
-    // 發光眼睛（紫色）
-    const eyeGlow = new THREE.MeshLambertMaterial({ color:0xD0A0FF, emissive:new THREE.Color(0xA060E0), emissiveIntensity:0.7 });
-    [-0.08,0.08].forEach(ox => {
-      const eye = new THREE.Mesh(new THREE.BoxGeometry(0.06*sc, 0.06*sc, 0.05*sc), eyeGlow);
-      eye.position.set(ox*sc, tierDef.sy*sc*0.18, tierDef.sz*sc*0.50); body.add(eye);
+
+    // ── 四隻腿（纖細，深紫色腳掌）──
+    [[-0.12,0.20],[ 0.12,0.20],[-0.12,-0.22],[ 0.12,-0.22]].forEach(([lx,lz]) => {
+      const leg = new THREE.Mesh(new THREE.BoxGeometry(0.07*V, 0.20*V, 0.07*V), em);
+      leg.position.set(lx*V, -tierDef.sy*V*0.22, lz*V); body.add(leg);
+      // 深紫腳掌
+      const paw = new THREE.Mesh(new THREE.BoxGeometry(0.08*V, 0.06*V, 0.09*V), deepP);
+      paw.position.set(lx*V, -tierDef.sy*V*0.34, lz*V); body.add(paw);
     });
-    // 身體周圍發光光點
-    const ptLight = new THREE.PointLight(0x8050C0, 1.2, 3.0);
-    ptLight.position.set(0, tierDef.sy*sc*0.3, 0); body.add(ptLight);
+
+    // ── 巨大飄逸尾巴（狐狸靈魂！3段漸大+發光尾尖）──
+    // 尾根（細）
+    const t1 = new THREE.Mesh(new THREE.BoxGeometry(0.10*V, 0.10*V, 0.14*V), em);
+    t1.position.set(0, tierDef.sy*V*0.15, -tierDef.sz*V*0.52); body.add(t1);
+    // 尾中段（膨脹）
+    const t2 = new THREE.Mesh(new THREE.BoxGeometry(0.18*V, 0.20*V, 0.22*V), em);
+    t2.position.set(0, tierDef.sy*V*0.28, -tierDef.sz*V*0.68);
+    t2.rotation.x = -0.3; body.add(t2);
+    // 尾末段（最大，向上翹起）
+    const t3 = new THREE.Mesh(new THREE.SphereGeometry(0.18*V, 7, 6), glowP);
+    t3.position.set(0, tierDef.sy*V*0.50, -tierDef.sz*V*0.78); body.add(t3);
+    // 尾尖（深紫發光）
+    const t4 = new THREE.Mesh(new THREE.SphereGeometry(0.12*V, 6, 5), deepP);
+    t4.position.set(0, tierDef.sy*V*0.65, -tierDef.sz*V*0.82); body.add(t4);
+    // 尾巴發光粒子
+    for (let pi=0; pi<5; pi++) {
+      const spark = new THREE.Mesh(new THREE.BoxGeometry(0.03*V, 0.03*V, 0.03*V),
+        new THREE.MeshLambertMaterial({ color:0xE0C0FF, emissive:new THREE.Color(0xC0A0F0), emissiveIntensity:0.8, transparent:true, opacity:0.6 }));
+      spark.position.set(
+        (Math.random()-0.5)*0.15*V,
+        tierDef.sy*V*(0.35+Math.random()*0.35),
+        -tierDef.sz*V*(0.60+Math.random()*0.25)
+      ); body.add(spark);
+    }
+
+    // ── 脖子繩結+鈴鐺（參照圖片）──
+    const rope = new THREE.Mesh(new THREE.BoxGeometry(0.30*V, 0.04*V, 0.04*V),
+      new THREE.MeshLambertMaterial({ color:0xE0A0C8 }));
+    rope.position.set(0, tierDef.sy*V*0.30, tierDef.sz*V*0.35); body.add(rope);
+    const bell = new THREE.Mesh(new THREE.SphereGeometry(0.04*V, 6, 5),
+      new THREE.MeshLambertMaterial({ color:0xD4AA30, emissive:new THREE.Color(0xA08010), emissiveIntensity:0.3 }));
+    bell.position.set(0, tierDef.sy*V*0.24, tierDef.sz*V*0.38); body.add(bell);
+
+    // ── 身體發光 ──
+    const ptLight = new THREE.PointLight(0x8050C0, 1.5, 3.5);
+    ptLight.position.set(0, tierDef.sy*V*0.3, 0); body.add(ptLight);
 
   } else if (tierDef.lv === 6) {
     // ═══ 血蛛王：大型紅蜘蛛 — 紅身黑紋，8 隻腳，屁股有中二黑色圖案 ═══
