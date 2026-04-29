@@ -1068,28 +1068,57 @@ function buildPlantGroup(type) {
         jh(new THREE.BoxGeometry(V*1.5, V*2, bl), varyColor(0x5A3020),
            bx, V*30+Math.random()*V*8, bz);
       }
-      // 粉色樹冠（多球堆疊，3色調 ±5% 偏移）
-      const pinks = [0xF8B0C0, 0xF0A0B8, 0xFFC0D0, 0xF090A8, 0xFFD0E0];
+      // 粉色樹冠：10 個小區塊，每區塊 8×8 密集方塊（類冰結樹風格）
+      const pinks = [0xF8B0C0, 0xF0A0B8, 0xFFC0D0, 0xF090A8, 0xFFD0E0, 0xE8A0B0, 0xF0C0D8, 0xE090A0];
       const crY = V*38;
-      // 主冠球群（18個不規則球）
-      for (let ci=0; ci<18; ci++) {
-        const ca = Math.random()*Math.PI*2;
-        const cr = V*(6+Math.random()*12);
-        const cx = Math.cos(ca)*cr;
-        const cz = Math.sin(ca)*cr;
-        const cy = crY + (Math.random()-0.4)*V*10;
-        const cs = V*(3+Math.random()*4);
-        jh(new THREE.SphereGeometry(cs,6,5), varyColor(pinks[ci%5]), cx, cy, cz);
-      }
-      // 頂部高光球
-      for (let ci=0; ci<6; ci++) {
-        const ca = Math.random()*Math.PI*2;
-        const cr = V*(4+Math.random()*6);
-        jh(new THREE.SphereGeometry(V*(2+Math.random()*2),5,4), varyColor(0xFFD0E0),
-           Math.cos(ca)*cr, crY+V*(5+Math.random()*5), Math.sin(ca)*cr);
-      }
-      const top = jh(new THREE.SphereGeometry(V*2,5,4), varyColor(0xF8B0C0), 0, crY+V*12, 0);
+      const bkSize = V*1.0;  // 每個小方塊大小
+      const clusterR = bkSize * 4;  // 8×8 = 半徑4格
+
+      // 10 個區塊中心點（不規則分佈形成自然樹冠）
+      const clusterCenters = [
+        [0, crY+V*2, 0],           // 中心
+        [V*8, crY+V*1, V*4],       // 右前
+        [-V*7, crY+V*0, V*5],      // 左前
+        [V*5, crY+V*3, -V*6],      // 右後
+        [-V*6, crY+V*2, -V*5],     // 左後
+        [V*3, crY+V*7, V*2],       // 上中右
+        [-V*4, crY+V*6, -V*2],     // 上中左
+        [V*10, crY-V*1, -V*2],     // 遠右
+        [-V*9, crY-V*2, V*3],      // 遠左
+        [0, crY+V*10, 0],          // 最頂
+      ];
+
+      clusterCenters.forEach(([cx, cy, cz], ci) => {
+        // 每個區塊 8×8 格子，隨機跳過一些格子營造不規則邊緣
+        for (let bx = -4; bx < 4; bx++) {
+          for (let bz = -4; bz < 4; bz++) {
+            // 圓形裁切 + 隨機邊緣
+            const dist = Math.sqrt(bx*bx + bz*bz);
+            if (dist > 3.8) continue;               // 圓形邊界
+            if (dist > 2.5 && Math.random() < 0.3) continue;  // 邊緣隨機缺口
+
+            // 高度隨機 ±5~8% 偏移
+            const yOff = (Math.random()-0.5) * bkSize * 0.16;
+            // 位置 ±5~8% 偏移
+            const xOff = (Math.random()-0.5) * bkSize * 0.16;
+            const zOff = (Math.random()-0.5) * bkSize * 0.16;
+
+            // 顏色從 pinks 陣列隨機選 + varyColor ±8%
+            const baseColor = pinks[Math.floor(Math.random() * pinks.length)];
+            const mat = varyColor(baseColor, 0.08);
+
+            jh(new THREE.BoxGeometry(bkSize, bkSize, bkSize), mat,
+               cx + bx*bkSize + xOff,
+               cy + yOff,
+               cz + bz*bkSize + zOff);
+          }
+        }
+      });
+
+      const top = new THREE.Object3D();
+      top.position.set(0, crY+V*14, 0);
       top.userData.isPlantTop = true;
+      g.add(top);
       // 飄落花瓣（小扁方塊）
       for (let pi=0; pi<12; pi++) {
         const px = (Math.random()-0.5)*V*30;
