@@ -1091,69 +1091,51 @@ function buildPlantGroup(type) {
            endX*0.85, endY, endZ*0.85);
       }
 
-      // ── 整片方塊雲冠（不分簇！一整個大體積用 noise 雕刻邊緣）──
-      const pinksT = [0xFFD0E0, 0xFFC8D8, 0xFFE0E8, 0xF8D0E0];
-      const pinksM = [0xF8B0C0, 0xF0A0B8, 0xFFC0D0, 0xE8A8B8];
-      const pinksB = [0xE090A8, 0xD88098, 0xC87090, 0xD898A8];
-      const bk = V*1.0;
-      // 整片範圍：X=±22, Y=±8, Z=±20 (寬扁雲形)
-      const halfW=22, halfH=8, halfD=20;
-      const _box = new THREE.BoxGeometry(bk, bk, bk);
-      const geos = [];
-      const dummy = new THREE.Object3D();
+      // ── 方塊式花冠（冰結樹風格：固定大小方塊 + ±5% 位置/顏色偏移）──
+      const pinks = [
+        0xFFD0E0, 0xFFC8D8, 0xFFE0E8,  // 淺粉（頂部）
+        0xF8B0C0, 0xF0A0B8, 0xFFC0D0,  // 中粉
+        0xE090A8, 0xD88098, 0xC87090,  // 深粉（底部/側面）
+        0xF0C0D8, 0xE8A8B8, 0xD898A8,  // 中間色
+      ];
+      const BK = V*4.5;  // 每塊方塊大小（跟冰結樹一樣）
 
-      // 簡易 noise 函數（偽隨機場，用 sin 組合模擬）
-      const noise3 = (x,y,z) =>
-        Math.sin(x*2.3+y*1.7)*0.3 + Math.sin(z*3.1+x*0.9)*0.3 +
-        Math.sin(y*4.2+z*2.1)*0.2 + Math.sin(x*5.3+z*1.3+y*2.8)*0.2;
+      // 花冠格子：寬扁雲形佈局（格子座標，每格一個方塊）
+      // X 方向 ±5 格, Y 方向 ±2 格, Z 方向 ±4 格
+      const gridW=5, gridH=2, gridD=4;
 
-      for (let bx=-halfW; bx<halfW; bx++) {
-        for (let by=-halfH; by<halfH; by++) {
-          for (let bz=-halfD; bz<halfD; bz++) {
-            const nx=bx/halfW, ny=by/halfH, nz=bz/halfD;
-            // 扁橢球基礎形（Y壓扁2x）
-            const ellip = nx*nx + ny*ny*2.5 + nz*nz;
-            if (ellip > 0.95) continue;
+      for (let gx=-gridW; gx<=gridW; gx++) {
+        for (let gy=-gridH; gy<=gridH; gy++) {
+          for (let gz=-gridD; gz<=gridD; gz++) {
+            // 扁橢球裁切
+            const nx=gx/gridW, ny=gy/gridH, nz=gz/gridD;
+            const d = nx*nx + ny*ny*2.0 + nz*nz;
+            if (d > 1.05) continue;
+            // 邊緣隨機缺口（30%）
+            if (d > 0.7 && Math.random() < 0.3) continue;
+            // 底部鏤空（露枝幹）
+            if (gy <= -gridH && Math.random() < 0.5) continue;
 
-            // noise 雕刻邊緣 → 不規則雲朵輪廓
-            const n = noise3(bx*0.4, by*0.5, bz*0.4);
-            const threshold = 0.95 - Math.max(0, n*0.3);
-            if (ellip > threshold) continue;
+            // ±5% 位置偏移（冰結樹風格）
+            const xOff = (Math.random()-0.5) * BK * 0.10;
+            const yOff = (Math.random()-0.5) * BK * 0.10;
+            const zOff = (Math.random()-0.5) * BK * 0.10;
+            // 隨機高度變化（冰結樹風格）
+            const bh = BK * (0.6 + Math.random()*0.8);
 
-            // 底部挖空一些（露出枝幹）
-            if (ny < -0.3 && Math.random() < 0.4) continue;
+            // 顏色：頂部偏白，底部偏深 + ±5% 偏移
+            const yRatio = (gy+gridH) / (gridH*2);
+            let baseColor;
+            if (yRatio > 0.65) baseColor = pinks[Math.floor(Math.random()*3)];       // 淺
+            else if (yRatio > 0.3) baseColor = pinks[3+Math.floor(Math.random()*3)];  // 中
+            else baseColor = pinks[6+Math.floor(Math.random()*3)];                    // 深
 
-            // 位置偏移 ±8%
-            const xOff=(Math.random()-0.5)*bk*0.16;
-            const yOff=(Math.random()-0.5)*bk*0.16;
-            const zOff=(Math.random()-0.5)*bk*0.16;
-            dummy.position.set(bx*bk+xOff, by*bk+yOff, bz*bk+zOff);
-            dummy.updateMatrix();
-            const c = _box.clone().applyMatrix4(dummy.matrix);
-
-            // 頂白底深色階
-            const yR = (by+halfH)/(halfH*2);
-            const pal = yR>0.6 ? pinksT : yR>0.25 ? pinksM : pinksB;
-            const bc = pal[Math.floor(Math.random()*pal.length)];
-            const f = 1+(Math.random()*2-1)*0.08;
-            const rv=Math.min(255,((bc>>16)&0xFF)*f)/255;
-            const gv=Math.min(255,((bc>>8)&0xFF)*f)/255;
-            const bv=Math.min(255,(bc&0xFF)*f)/255;
-            const cols = new Float32Array(c.attributes.position.count*3);
-            for (let i=0;i<cols.length;i+=3){ cols[i]=rv; cols[i+1]=gv; cols[i+2]=bv; }
-            c.setAttribute('color', new THREE.BufferAttribute(cols,3));
-            geos.push(c);
+            jh(new THREE.BoxGeometry(BK, bh, BK),
+               varyColor(baseColor, 0.05),
+               gx*BK + xOff,
+               crY + gy*BK + yOff,
+               gz*BK + zOff);
           }
-        }
-      }
-      if (geos.length > 0) {
-        const merged = mergeGeometries(geos);
-        if (merged) {
-          const mat = new THREE.MeshLambertMaterial({ vertexColors:true });
-          const mesh = new THREE.Mesh(merged, mat);
-          mesh.position.set(0, crY, 0);
-          mesh.castShadow = true;
-          g.add(mesh);
         }
       }
 
@@ -1166,7 +1148,7 @@ function buildPlantGroup(type) {
       });
 
       const top = new THREE.Object3D();
-      top.position.set(0, crY+halfH*bk+V*2, 0);
+      top.position.set(0, crY + gridH*BK + V*2, 0);
       top.userData.isPlantTop = true;
       g.add(top);
 
