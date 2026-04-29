@@ -79,12 +79,10 @@ let currentMode    = 'plant';
 let selectedSeed   = 'tomato';
 let selectedFurnId = 'chair';
 let currentSeason  = 'spring';
-let money          = 0;
+let money          = 20000000;  // 管理員模式：2000萬
 
 const inventory      = Object.fromEntries(Object.keys(plantCatalog).map(k=>[k,0]));
-const inventorySeeds = Object.fromEntries(Object.keys(plantCatalog).map(k=>[k,
-  (plantCatalog[k].grade==='D' || plantCatalog[k].grade==='C') ? 999 : (plantCatalog[k].price>0 ? 0 : 999)
-]));
+const inventorySeeds = Object.fromEntries(Object.keys(plantCatalog).map(k=>[k, 999]));  // 管理員模式：全解鎖
 
 const SNOW_ZONE_Z = -8;  // tiles with worldZ < this become permanent snow
 
