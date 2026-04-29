@@ -1051,111 +1051,132 @@ function buildPlantGroup(type) {
       break;
     }
     case 'sakura': {
-      // ═══ 櫻花樹：粗壯深色樹幹 + 粉色球狀樹冠(多層) + 飄落花瓣 ═══
-      const V = 0.04;  // 細緻 voxel 單位
-      // 樹幹（3色調深木）
-      jh(new THREE.CylinderGeometry(V*3.5, V*5, V*35, 7), varyColor(0x5A3020), 0, V*17.5, 0);
-      jh(new THREE.BoxGeometry(V*3, V*28, V*2.5), varyColor(0x4A2818), V*2.5, V*16, V*1.5);
-      jh(new THREE.BoxGeometry(V*2, V*24, V*2.5), varyColor(0x6A4030), -V*3, V*14, -V*1);
-      // 根部突起
-      [[V*5,V*2,V*2],[V*-4,V*2,V*3],[V*1,V*2,V*-5]].forEach(([rx,ry,rz]) =>
-        jh(new THREE.BoxGeometry(V*4, V*4, V*3), varyColor(0x4A2818), rx, ry, rz));
-      // ── 分枝：從樹幹生長出去（8支，連接樹幹到樹冠）──
-      const crY = V*38;
-      const canopySpread = V*18;  // 參照巨大櫻花樹 canopyR=18*V
-      for (let bi=0; bi<8; bi++) {
-        const ba = bi*Math.PI/4 + (Math.random()-0.5)*0.3;
-        const bl = V*(10+Math.random()*10);
-        const endX = Math.cos(ba) * bl;
-        const endZ = Math.sin(ba) * bl;
-        const startY = V*(22+Math.random()*10);  // 從樹幹不同高度長出
-        const endY   = crY - V*2 + Math.random()*V*6;
-        // 枝幹（從幹到冠的斜線，2段）
-        const midX = endX*0.4, midZ = endZ*0.4, midY = (startY+endY)*0.5;
-        jh(new THREE.BoxGeometry(V*1.8, Math.abs(midY-startY)+V*2, V*1.5), varyColor(0x5A3020),
-           midX*0.5, (startY+midY)/2, midZ*0.5);
-        jh(new THREE.BoxGeometry(V*1.2, Math.abs(endY-midY)+V*2, V*1.0), varyColor(0x4A2818),
-           (midX+endX)/2, (midY+endY)/2, (midZ+endZ)/2);
+      // ═══ 巨大櫻花樹（半個五重塔高）：粗幹+深色枝+整片方塊雲冠+粉光+落花 ═══
+      const V = 0.06;  // 放大 voxel（比之前 0.04 大 50%）
+      const trunkH = V*50;  // 高大樹幹
+      const crY = trunkH + V*2;
+
+      // ── 粗壯樹幹（3段漸細+樹皮紋理）──
+      jh(new THREE.CylinderGeometry(V*4, V*7, trunkH*0.4, 7), varyColor(0x4A2010), 0, trunkH*0.2, 0);
+      jh(new THREE.CylinderGeometry(V*3, V*5, trunkH*0.35, 7), varyColor(0x5A3020), 0, trunkH*0.52, 0);
+      jh(new THREE.CylinderGeometry(V*2, V*3.5, trunkH*0.25, 6), varyColor(0x6A3828), 0, trunkH*0.78, 0);
+      // 樹皮凹凸
+      jh(new THREE.BoxGeometry(V*3, trunkH*0.3, V*2), varyColor(0x3A1808), V*4, trunkH*0.3, V*1);
+      jh(new THREE.BoxGeometry(V*2, trunkH*0.25, V*3), varyColor(0x4A2818), -V*3.5, trunkH*0.4, -V*1);
+      // 根部
+      for (let ri=0; ri<5; ri++) {
+        const ra = ri*Math.PI*2/5 + Math.random()*0.3;
+        const rx = Math.cos(ra)*V*7, rz = Math.sin(ra)*V*7;
+        jh(new THREE.BoxGeometry(V*4, V*3, V*3), varyColor(0x3A1808), rx*0.6, V*1.5, rz*0.6);
       }
 
-      // ── 粉色樹冠：傘狀/雲朵狀（寬>高，扁平展開，簇間有縫隙露枝）──
-      // 頂部偏白淺粉，側面底部偏深粉
-      const pinksTop = [0xFFD0E0, 0xFFC8D8, 0xF8C0D0, 0xFFE0E8, 0xF0D0E0];
-      const pinksMid = [0xF8B0C0, 0xF0A0B8, 0xFFC0D0, 0xE8A0B0, 0xF0B8C8];
-      const pinksBot = [0xE090A8, 0xD88098, 0xC87090, 0xE0A0B8, 0xD090A0];
-      const bkSize = V*1.0;
-      // 比例 12:12:10（寬:深:高），扁平傘形
-      const clusterSizes = [[12,10,12],[10,8,12],[12,8,10]];
-      // 7 簇花團 — 水平展開，明顯分離（簇間留空隙看到枝幹）
-      const clusterCenters = [
-        [0,       crY+V*1,  0      ],   // 中心主簇
-        [V*14,    crY-V*1,  V*4    ],   // 右前（遠離中心）
-        [-V*13,   crY-V*0,  V*6    ],   // 左前
-        [V*10,    crY+V*1,  -V*10  ],   // 右後
-        [-V*10,   crY+V*0,  -V*8   ],   // 左後
-        [V*4,     crY+V*3,  V*12   ],   // 前方突出
-        [-V*6,    crY+V*2,  -V*13  ],   // 後方突出
-      ];
-      const _box = new THREE.BoxGeometry(bkSize, bkSize, bkSize);
+      // ── 深色枝幹（從樹幹長出，穿入花冠，可從縫隙看到）──
+      const branches = [];
+      for (let bi=0; bi<10; bi++) {
+        const ba = bi*Math.PI/5 + (Math.random()-0.5)*0.4;
+        const bLen = V*(15+Math.random()*12);
+        const endX = Math.cos(ba) * bLen;
+        const endZ = Math.sin(ba) * bLen;
+        const startY = trunkH*(0.55+Math.random()*0.3);
+        const endY = crY + V*(Math.random()*8-2);
+        branches.push({ex:endX, ez:endZ, ey:endY});
+        // 枝幹分 3 段（深色，穿過花冠）
+        const s1x=endX*0.2, s1z=endZ*0.2, s1y=(startY*2+endY)/3;
+        const s2x=endX*0.6, s2z=endZ*0.6, s2y=(startY+endY*2)/3;
+        jh(new THREE.BoxGeometry(V*2.0, V*3, bLen*0.35), varyColor(0x2A1008),
+           s1x, s1y, s1z);
+        jh(new THREE.BoxGeometry(V*1.5, V*2.5, bLen*0.35), varyColor(0x3A1810),
+           s2x, s2y, s2z);
+        jh(new THREE.BoxGeometry(V*1.0, V*2, bLen*0.2), varyColor(0x2A1008),
+           endX*0.85, endY, endZ*0.85);
+      }
 
-      clusterCenters.forEach(([cx, cy, cz]) => {
-        const [sxMax,syMax,szMax] = clusterSizes[Math.floor(Math.random()*3)];
-        const halfX=Math.floor(sxMax/2), halfY=Math.floor(syMax/2), halfZ=Math.floor(szMax/2);
-        const geos = [];
-        const dummy = new THREE.Object3D();
+      // ── 整片方塊雲冠（不分簇！一整個大體積用 noise 雕刻邊緣）──
+      const pinksT = [0xFFD0E0, 0xFFC8D8, 0xFFE0E8, 0xF8D0E0];
+      const pinksM = [0xF8B0C0, 0xF0A0B8, 0xFFC0D0, 0xE8A8B8];
+      const pinksB = [0xE090A8, 0xD88098, 0xC87090, 0xD898A8];
+      const bk = V*1.0;
+      // 整片範圍：X=±22, Y=±8, Z=±20 (寬扁雲形)
+      const halfW=22, halfH=8, halfD=20;
+      const _box = new THREE.BoxGeometry(bk, bk, bk);
+      const geos = [];
+      const dummy = new THREE.Object3D();
 
-        for (let bx=-halfX; bx<halfX; bx++) {
-          for (let by=-halfY; by<halfY; by++) {
-            for (let bz=-halfZ; bz<halfZ; bz++) {
-              const nx=bx/halfX, ny=by/halfY, nz=bz/halfZ;
-              // 扁平橢球裁切（Y方向壓扁 — 傘形）
-              const d = nx*nx + ny*ny*1.8 + nz*nz;
-              if (d > 1.0) continue;
-              if (d > 0.65 && Math.random()<0.3) continue;  // 邊緣不規則缺口
-              const xOff=(Math.random()-0.5)*bkSize*0.16;
-              const yOff=(Math.random()-0.5)*bkSize*0.16;
-              const zOff=(Math.random()-0.5)*bkSize*0.16;
-              dummy.position.set(bx*bkSize+xOff, by*bkSize+yOff, bz*bkSize+zOff);
-              dummy.updateMatrix();
-              const c = _box.clone().applyMatrix4(dummy.matrix);
-              // 頂點著色：頂部偏白，底部偏深粉
-              const yRatio = (by + halfY) / (halfY * 2);  // 0=底 1=頂
-              const palette = yRatio > 0.65 ? pinksTop : yRatio > 0.3 ? pinksMid : pinksBot;
-              const baseColor = palette[Math.floor(Math.random()*palette.length)];
-              const f = 1+(Math.random()*2-1)*0.08;
-              const r=Math.min(255,((baseColor>>16)&0xFF)*f)/255;
-              const gv=Math.min(255,((baseColor>>8)&0xFF)*f)/255;
-              const b=Math.min(255,(baseColor&0xFF)*f)/255;
-              const colors = new Float32Array(c.attributes.position.count*3);
-              for (let i=0;i<colors.length;i+=3){ colors[i]=r; colors[i+1]=gv; colors[i+2]=b; }
-              c.setAttribute('color', new THREE.BufferAttribute(colors,3));
-              geos.push(c);
-            }
+      // 簡易 noise 函數（偽隨機場，用 sin 組合模擬）
+      const noise3 = (x,y,z) =>
+        Math.sin(x*2.3+y*1.7)*0.3 + Math.sin(z*3.1+x*0.9)*0.3 +
+        Math.sin(y*4.2+z*2.1)*0.2 + Math.sin(x*5.3+z*1.3+y*2.8)*0.2;
+
+      for (let bx=-halfW; bx<halfW; bx++) {
+        for (let by=-halfH; by<halfH; by++) {
+          for (let bz=-halfD; bz<halfD; bz++) {
+            const nx=bx/halfW, ny=by/halfH, nz=bz/halfD;
+            // 扁橢球基礎形（Y壓扁2x）
+            const ellip = nx*nx + ny*ny*2.5 + nz*nz;
+            if (ellip > 0.95) continue;
+
+            // noise 雕刻邊緣 → 不規則雲朵輪廓
+            const n = noise3(bx*0.4, by*0.5, bz*0.4);
+            const threshold = 0.95 - Math.max(0, n*0.3);
+            if (ellip > threshold) continue;
+
+            // 底部挖空一些（露出枝幹）
+            if (ny < -0.3 && Math.random() < 0.4) continue;
+
+            // 位置偏移 ±8%
+            const xOff=(Math.random()-0.5)*bk*0.16;
+            const yOff=(Math.random()-0.5)*bk*0.16;
+            const zOff=(Math.random()-0.5)*bk*0.16;
+            dummy.position.set(bx*bk+xOff, by*bk+yOff, bz*bk+zOff);
+            dummy.updateMatrix();
+            const c = _box.clone().applyMatrix4(dummy.matrix);
+
+            // 頂白底深色階
+            const yR = (by+halfH)/(halfH*2);
+            const pal = yR>0.6 ? pinksT : yR>0.25 ? pinksM : pinksB;
+            const bc = pal[Math.floor(Math.random()*pal.length)];
+            const f = 1+(Math.random()*2-1)*0.08;
+            const rv=Math.min(255,((bc>>16)&0xFF)*f)/255;
+            const gv=Math.min(255,((bc>>8)&0xFF)*f)/255;
+            const bv=Math.min(255,(bc&0xFF)*f)/255;
+            const cols = new Float32Array(c.attributes.position.count*3);
+            for (let i=0;i<cols.length;i+=3){ cols[i]=rv; cols[i+1]=gv; cols[i+2]=bv; }
+            c.setAttribute('color', new THREE.BufferAttribute(cols,3));
+            geos.push(c);
           }
         }
-        // 合併成 1 個 mesh
-        if (geos.length > 0) {
-          const merged = mergeGeometries(geos);
-          if (merged) {
-            const mat = new THREE.MeshLambertMaterial({ vertexColors:true });
-            const mesh = new THREE.Mesh(merged, mat);
-            mesh.position.set(cx, cy, cz);
-            mesh.castShadow = true;
-            g.add(mesh);
-          }
+      }
+      if (geos.length > 0) {
+        const merged = mergeGeometries(geos);
+        if (merged) {
+          const mat = new THREE.MeshLambertMaterial({ vertexColors:true });
+          const mesh = new THREE.Mesh(merged, mat);
+          mesh.position.set(0, crY, 0);
+          mesh.castShadow = true;
+          g.add(mesh);
         }
+      }
+
+      // ── 粉色發光 ──
+      const glowMain = new THREE.PointLight(0xF8A0C0, 2.0, 5.0);
+      glowMain.position.set(0, crY, 0); g.add(glowMain);
+      [[-1,0,0.8],[1,0,-0.6],[0.5,0,1],[-0.7,0,-0.9]].forEach(([lx,ly,lz]) => {
+        const gl = new THREE.PointLight(0xF0B0C8, 1.0, 3.5);
+        gl.position.set(lx, crY+ly*0.3, lz); g.add(gl);
       });
 
       const top = new THREE.Object3D();
-      top.position.set(0, crY+V*14, 0);
+      top.position.set(0, crY+halfH*bk+V*2, 0);
       top.userData.isPlantTop = true;
       g.add(top);
-      // 飄落花瓣（小扁方塊）
-      for (let pi=0; pi<12; pi++) {
-        const px = (Math.random()-0.5)*V*30;
-        const py = crY - V*(5+Math.random()*25);
-        const pz = (Math.random()-0.5)*V*30;
-        jh(new THREE.BoxGeometry(V*1.2, V*0.3, V*1.0), varyColor(0xFFC0D0), px, py, pz);
+
+      // ── 落花瓣（更多、更大範圍）──
+      for (let pi=0; pi<25; pi++) {
+        const px = (Math.random()-0.5)*2.4;
+        const py = crY*0.3 + Math.random()*crY*0.7;
+        const pz = (Math.random()-0.5)*2.2;
+        jh(new THREE.BoxGeometry(V*1.5, V*0.4, V*1.2),
+           varyColor([0xFFC0D0,0xF0B0C0,0xFFD0E0][pi%3], 0.08), px, py, pz);
       }
       break;
     }
