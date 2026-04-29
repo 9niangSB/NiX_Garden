@@ -2614,8 +2614,7 @@ function spawnAnimal(lv, spawnX, spawnZ) {
     isBaby:        true,
     age:           0,
     breedCooldown: 0,
-    hunger:        tierDef.hungerMax,  // 飽食度（滿 = hungerMax）
-    isHungry:      false,
+    harvestCount:  0,     // 採收計數（滿 5 顆休息）
     speed:         tierDef.speed * 0.6,
     targetX:       (Math.random()-0.5)*14,
     targetZ:       (Math.random()-0.5)*14,
@@ -2656,15 +2655,6 @@ function updateAnimals(delta, now) {
     a.changeTimer   += delta;
     a.breedCooldown  = Math.max(0, a.breedCooldown - delta);
 
-    // ── 飽食度消耗 ──
-    a.hunger -= a.tierDef.hungerRate * delta;
-    if (a.hunger <= 0) {
-      a.hunger   = 0;
-      a.isHungry = true;
-    } else if (a.hunger > a.tierDef.hungerMax * 0.2) {
-      a.isHungry = false;
-    }
-
     // Baby → Adult
     if (a.isBaby && a.age >= GROW_AGE) {
       a.isBaby = false;
@@ -2681,21 +2671,12 @@ function updateAnimals(delta, now) {
       continue;
     }
 
-    // 飢餓罷工：不採收、不移動、原地晃動
-    if (a.isHungry) {
-      a.mesh.rotation.y += Math.sin(now*0.005)*0.03;
-      // 飢餓視覺：微微上下抖動
-      const halfH = a.tierDef.sy * (a.isBaby ? 0.4 : 1.0) / 2;
-      a.mesh.position.y = halfH + Math.sin(now*0.01)*0.02;
-      continue;
-    }
-
     // Breeding: same-level adults nearby → spawn offspring (same level)
     if (!a.isBaby && a.breedCooldown <= 0 && a.tierDef.breedTime !== null && animals.length < ANIMAL_CAP) {
       for (let bi = 0; bi < animals.length; bi++) {
         if (bi === ai) continue;
         const b = animals[bi];
-        if (b.lv !== a.lv || b.isBaby || b.breedCooldown > 0 || b.isHungry) continue;
+        if (b.lv !== a.lv || b.isBaby || b.breedCooldown > 0) continue;
         const dx = b.mesh.position.x - a.mesh.position.x;
         const dz = b.mesh.position.z - a.mesh.position.z;
         if (Math.sqrt(dx*dx+dz*dz) < 1.5) {
@@ -2730,8 +2711,16 @@ function updateAnimals(delta, now) {
       a.targetZ = nearP.mesh.position.z;
       if (nearD < 0.9) {
         harvestPlant(nearP);
-        showToast(`🐾 ${a.tierDef.nameAdult}が収穫した！`);
-        a.isIdle = true; a.idleTimer = 2; a.changeTimer = 0;
+        a.harvestCount++;
+        showToast(`🐾 ${a.tierDef.nameAdult}が収穫した！(${a.harvestCount}/5)`);
+        if (a.harvestCount >= 5) {
+          // 採滿 5 顆 → 休息 3 秒
+          a.harvestCount = 0;
+          a.isIdle = true; a.idleTimer = 3; a.changeTimer = 0;
+        } else {
+          // 每次採收短暫停頓 0.5 秒
+          a.isIdle = true; a.idleTimer = 0.5; a.changeTimer = 0;
+        }
         continue;
       }
     }
@@ -3654,11 +3643,8 @@ renderer.domElement.addEventListener('pointerup', e => {
       let obj = aHits[0].object;
       while (obj) {
         if (obj === a.mesh) {
-          if (a.isHungry) { feedAnimal(a); }
-          else {
-            const pct = Math.round(a.hunger / a.tierDef.hungerMax * 100);
-            showToast(`${a.tierDef.nameAdult} 飽食度: ${pct}%`);
-          }
+          const status = a.isBaby ? '幼体' : `採收 ${a.harvestCount}/5`;
+          showToast(`${a.tierDef.nameAdult} — ${status}`);
           return;
         }
         obj = obj.parent;
