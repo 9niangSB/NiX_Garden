@@ -60,6 +60,7 @@ const furnitureCatalog = [
   { id:'jp_gate',      name:'山門',      icon:'🏯', color:0xB82828, price:450, scale:0.14 },
   { id:'jp_bridge',    name:'和橋',      icon:'🌉', color:0xC04030, price:280, scale:0.14 },
   { id:'jp_gate_bridge', name:'門橋',    icon:'🎌', color:0xC83838, price:650, scale:0.14 },
+  { id:'jp_romon',       name:'神社楼門', icon:'🏛️', color:0xC04028, price:550, scale:0.15 },
 ];
 
 const equipmentCatalog = [
@@ -2692,6 +2693,139 @@ function buildFurnitureMesh(id) {
     // 燈籠
     [V*14, V*-21].forEach(xp => {
       jh(new THREE.BoxGeometry(V*1.8,V*1.8,V*1.8), lanternM, xp,V*13,0);
+    });
+
+  // ════════════════════════════════════════════════════════════════
+  //  神社楼門 (Shrine Rōmon Gate) — 雙紅柱+灰瓦大屋頂+匾額+石燈籠塔
+  // ════════════════════════════════════════════════════════════════
+  } else if (id === 'jp_romon') {
+    const V = 0.08;
+    const jh = (geo, mat, x, y, z) => {
+      const m = new THREE.Mesh(geo, mat); m.position.set(x,y,z);
+      m.castShadow=true; m.receiveShadow=true; g.add(m); return m;
+    };
+    // ── 色盤 ──
+    const pillarD  = new THREE.MeshLambertMaterial({ color:0x8A2018 });
+    const pillarM  = new THREE.MeshLambertMaterial({ color:0xB03028 });
+    const pillarL  = new THREE.MeshLambertMaterial({ color:0xC84038 });
+    const roofD    = new THREE.MeshLambertMaterial({ color:0x484848 });
+    const roofM    = new THREE.MeshLambertMaterial({ color:0x5A5A5A });
+    const roofL    = new THREE.MeshLambertMaterial({ color:0x6A6A6A });
+    const roofEdge = new THREE.MeshLambertMaterial({ color:0x787878 });
+    const stoneD   = new THREE.MeshLambertMaterial({ color:0x9A9088 });
+    const stoneM   = new THREE.MeshLambertMaterial({ color:0xB0A898 });
+    const stoneL   = new THREE.MeshLambertMaterial({ color:0xC8C0B0 });
+    const woodD    = new THREE.MeshLambertMaterial({ color:0x5A3020 });
+    const plaque   = new THREE.MeshLambertMaterial({ color:0x6A5830, emissive:new THREE.Color(0x4A3820), emissiveIntensity:0.2 });
+    const goldM    = new THREE.MeshLambertMaterial({ color:0xC8A850, emissive:new THREE.Color(0x8A7030), emissiveIntensity:0.3 });
+    const lanternBody = new THREE.MeshLambertMaterial({ color:0xC84030 });
+    const lanternRoof = new THREE.MeshLambertMaterial({ color:0x505050 });
+    const lanternGlow = new THREE.MeshLambertMaterial({ color:0xFFE8A0, emissive:new THREE.Color(0xFFCC60), emissiveIntensity:0.4 });
+
+    // ── 石階段（三層） ──
+    for (let s = 0; s < 3; s++) {
+      const w = V*(28 - s*2), d = V*(16 - s*1);
+      jh(new THREE.BoxGeometry(w, V*1.5, d), s===0?stoneD:stoneM, 0, V*(0.75+s*1.5), V*(s*1));
+    }
+    // 石板地面
+    jh(new THREE.BoxGeometry(V*22, V*1, V*14), stoneL, 0, V*5, 0);
+
+    // ── 雙紅主柱（粗大） ──
+    const colH = V*28;
+    const colY = V*5.5 + colH/2;
+    [-1,1].forEach(sx => {
+      // 主柱身（三色交替增加層次）
+      for (let cy = 0; cy < 7; cy++) {
+        const segH = colH / 7;
+        const mat = cy%3===0 ? pillarD : cy%3===1 ? pillarM : pillarL;
+        jh(new THREE.BoxGeometry(V*3, segH, V*3), mat, sx*V*7, V*5.5 + segH/2 + cy*segH, 0);
+      }
+      // 柱礎（石基座）
+      jh(new THREE.BoxGeometry(V*5, V*2, V*5), stoneD, sx*V*7, V*5, 0);
+    });
+
+    // ── 紅色貫（橫樑）三層 ──
+    // 下貫
+    jh(new THREE.BoxGeometry(V*22, V*2, V*2.5), pillarD, 0, V*12, 0);
+    // 中貫（含左右突出）
+    jh(new THREE.BoxGeometry(V*26, V*2, V*2), pillarM, 0, V*20, 0);
+    // 左右突出端（木鼻）
+    [-1,1].forEach(sx => {
+      jh(new THREE.BoxGeometry(V*3, V*2.5, V*3), woodD, sx*V*13.5, V*20, 0);
+    });
+    // 上貫
+    jh(new THREE.BoxGeometry(V*20, V*1.5, V*2), pillarD, 0, V*28, 0);
+
+    // ── 斗拱（bracket 裝飾） ──
+    [-1,1].forEach(sx => {
+      // 三層遞出
+      jh(new THREE.BoxGeometry(V*5, V*1.5, V*4), pillarD, sx*V*7, V*30, 0);
+      jh(new THREE.BoxGeometry(V*6, V*1, V*5), pillarM, sx*V*7, V*31.5, 0);
+      jh(new THREE.BoxGeometry(V*7, V*1, V*6), woodD, sx*V*7, V*32.5, 0);
+    });
+    // 中央連接梁
+    jh(new THREE.BoxGeometry(V*18, V*1.5, V*5), pillarD, 0, V*32, 0);
+
+    // ── 中央匾額 ──
+    jh(new THREE.BoxGeometry(V*6, V*5, V*1), plaque, 0, V*24, V*1.8);
+    // 匾額金邊
+    jh(new THREE.BoxGeometry(V*6.5, V*0.5, V*1.2), goldM, 0, V*26.8, V*1.8);
+    jh(new THREE.BoxGeometry(V*6.5, V*0.5, V*1.2), goldM, 0, V*21.5, V*1.8);
+    jh(new THREE.BoxGeometry(V*0.5, V*5, V*1.2), goldM, V*-3.2, V*24, V*1.8);
+    jh(new THREE.BoxGeometry(V*0.5, V*5, V*1.2), goldM, V*3.2, V*24, V*1.8);
+
+    // ── 大屋頂（灰瓦，寬大懸挑） ──
+    const roofBase = V*33.5;
+    // 屋簷底板（最寬）
+    jh(new THREE.BoxGeometry(V*36, V*1.5, V*22), roofD, 0, roofBase, 0);
+    // 屋簷圓瓦邊飾（小方塊排列）
+    for (let ex = -17; ex <= 17; ex += 2) {
+      jh(new THREE.BoxGeometry(V*1.2, V*1, V*1), roofEdge, V*ex, roofBase-V*1, V*11.5);
+      jh(new THREE.BoxGeometry(V*1.2, V*1, V*1), roofEdge, V*ex, roofBase-V*1, V*-11.5);
+    }
+    // 瓦面（三層堆疊遞縮）
+    jh(new THREE.BoxGeometry(V*32, V*2, V*20), roofM, 0, roofBase+V*2.5, 0);
+    jh(new THREE.BoxGeometry(V*26, V*2.5, V*16), roofM, 0, roofBase+V*5, 0);
+    jh(new THREE.BoxGeometry(V*18, V*2.5, V*12), roofL, 0, roofBase+V*8, 0);
+    jh(new THREE.BoxGeometry(V*10, V*2, V*8), roofD, 0, roofBase+V*11, 0);
+    // 屋脊（最頂端水平脊）
+    jh(new THREE.BoxGeometry(V*12, V*1.5, V*2), roofD, 0, roofBase+V*13.5, 0);
+    // 鬼瓦（屋脊兩端裝飾）
+    [-1,1].forEach(sx => {
+      jh(new THREE.BoxGeometry(V*3, V*4, V*3), roofD, sx*V*7, roofBase+V*14, 0);
+      jh(new THREE.BoxGeometry(V*2, V*2, V*2), roofEdge, sx*V*7, roofBase+V*17, 0);
+    });
+    // 翹角（四角上翹）
+    [[-1,-1],[1,-1],[-1,1],[1,1]].forEach(([sx,sz]) => {
+      jh(new THREE.BoxGeometry(V*5, V*1, V*3), roofD, sx*V*19, roofBase+V*1, sz*V*12);
+      jh(new THREE.BoxGeometry(V*3, V*2, V*2), roofEdge, sx*V*20, roofBase+V*2.5, sz*V*12);
+    });
+
+    // ── 兩側石燈籠塔 ──
+    [-1,1].forEach(sx => {
+      const lx = sx * V*16;
+      // 燈籠石基座
+      jh(new THREE.BoxGeometry(V*5, V*3, V*5), stoneD, lx, V*1.5, 0);
+      jh(new THREE.BoxGeometry(V*4.5, V*2, V*4.5), stoneM, lx, V*4, 0);
+      // 燈籠柱身
+      jh(new THREE.BoxGeometry(V*2, V*6, V*2), stoneM, lx, V*8, 0);
+      // 燈籠紅色體（窗口層）
+      jh(new THREE.BoxGeometry(V*4, V*5, V*4), lanternBody, lx, V*13.5, 0);
+      // 窗口亮光
+      [[0,0,1],[0,0,-1],[1,0,0],[-1,0,0]].forEach(([dx,dy,dz]) => {
+        jh(new THREE.BoxGeometry(
+          dz!==0?V*1.5:V*0.5,
+          V*2,
+          dx!==0?V*1.5:V*0.5
+        ), lanternGlow, lx+dx*V*2.2, V*13.5, dz*V*2.2);
+      });
+      // 燈籠小屋頂
+      jh(new THREE.BoxGeometry(V*6, V*1, V*6), lanternRoof, lx, V*16.5, 0);
+      jh(new THREE.BoxGeometry(V*5, V*1, V*5), lanternRoof, lx, V*17.5, 0);
+      jh(new THREE.BoxGeometry(V*3, V*1, V*3), lanternRoof, lx, V*18.5, 0);
+      // 燈籠尖頂
+      jh(new THREE.BoxGeometry(V*1, V*2, V*1), roofEdge, lx, V*20, 0);
+      jh(new THREE.BoxGeometry(V*0.6, V*1.5, V*0.6), goldM, lx, V*22, 0);
     });
   }
   return g;
