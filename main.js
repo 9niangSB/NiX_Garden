@@ -1059,58 +1059,78 @@ function buildPlantGroup(type) {
       // 根部突起
       [[V*5,V*2,V*2],[V*-4,V*2,V*3],[V*1,V*2,V*-5]].forEach(([rx,ry,rz]) =>
         jh(new THREE.BoxGeometry(V*4, V*4, V*3), varyColor(0x4A2818), rx, ry, rz));
-      // 分枝（6支向外放射）
-      for (let bi=0; bi<6; bi++) {
-        const ba = bi*Math.PI/3 + Math.random()*0.3;
-        const bl = V*(12+Math.random()*8);
-        const bx = Math.cos(ba)*bl*0.5;
-        const bz = Math.sin(ba)*bl*0.5;
-        jh(new THREE.BoxGeometry(V*1.5, V*2, bl), varyColor(0x5A3020),
-           bx, V*30+Math.random()*V*8, bz);
-      }
-      // 粉色樹冠：10 個小區塊，每區塊 8×8 密集方塊（類冰結樹風格）
-      const pinks = [0xF8B0C0, 0xF0A0B8, 0xFFC0D0, 0xF090A8, 0xFFD0E0, 0xE8A0B0, 0xF0C0D8, 0xE090A0];
+      // ── 分枝：從樹幹生長出去（8支，連接樹幹到樹冠）──
       const crY = V*38;
-      const bkSize = V*1.0;  // 每個小方塊大小
-      const clusterR = bkSize * 4;  // 8×8 = 半徑4格
+      const canopySpread = V*18;  // 參照巨大櫻花樹 canopyR=18*V
+      for (let bi=0; bi<8; bi++) {
+        const ba = bi*Math.PI/4 + (Math.random()-0.5)*0.3;
+        const bl = V*(10+Math.random()*10);
+        const endX = Math.cos(ba) * bl;
+        const endZ = Math.sin(ba) * bl;
+        const startY = V*(22+Math.random()*10);  // 從樹幹不同高度長出
+        const endY   = crY - V*2 + Math.random()*V*6;
+        // 枝幹（從幹到冠的斜線，2段）
+        const midX = endX*0.4, midZ = endZ*0.4, midY = (startY+endY)*0.5;
+        jh(new THREE.BoxGeometry(V*1.8, Math.abs(midY-startY)+V*2, V*1.5), varyColor(0x5A3020),
+           midX*0.5, (startY+midY)/2, midZ*0.5);
+        jh(new THREE.BoxGeometry(V*1.2, Math.abs(endY-midY)+V*2, V*1.0), varyColor(0x4A2818),
+           (midX+endX)/2, (midY+endY)/2, (midZ+endZ)/2);
+      }
 
-      // 10 個區塊中心點（不規則分佈形成自然樹冠）
-      const clusterCenters = [
-        [0, crY+V*2, 0],           // 中心
-        [V*8, crY+V*1, V*4],       // 右前
-        [-V*7, crY+V*0, V*5],      // 左前
-        [V*5, crY+V*3, -V*6],      // 右後
-        [-V*6, crY+V*2, -V*5],     // 左後
-        [V*3, crY+V*7, V*2],       // 上中右
-        [-V*4, crY+V*6, -V*2],     // 上中左
-        [V*10, crY-V*1, -V*2],     // 遠右
-        [-V*9, crY-V*2, V*3],      // 遠左
-        [0, crY+V*10, 0],          // 最頂
+      // ── 粉色樹冠：10 個區塊，3 種尺寸隨機組合，可重疊 → 茂盛感 ──
+      const pinks = [0xF8B0C0, 0xF0A0B8, 0xFFC0D0, 0xF090A8, 0xFFD0E0, 0xE8A0B0, 0xF0C0D8, 0xE090A0];
+      const bkSize = V*1.0;
+
+      // 3 種區塊尺寸
+      const clusterSizes = [
+        [12, 12, 12],  // 正方大塊
+        [8,  5,  12],  // 扁寬塊
+        [10, 8,  6],   // 窄高塊
       ];
 
-      clusterCenters.forEach(([cx, cy, cz], ci) => {
-        // 每個區塊 8×8 格子，隨機跳過一些格子營造不規則邊緣
-        for (let bx = -4; bx < 4; bx++) {
-          for (let bz = -4; bz < 4; bz++) {
-            // 圓形裁切 + 隨機邊緣
-            const dist = Math.sqrt(bx*bx + bz*bz);
-            if (dist > 3.8) continue;               // 圓形邊界
-            if (dist > 2.5 && Math.random() < 0.3) continue;  // 邊緣隨機缺口
+      // 10 個區塊（參照巨大櫻花樹的散佈範圍，允許重疊）
+      const clusterCenters = [
+        [0,       crY+V*2,   0      ],
+        [V*10,    crY+V*0,   V*6    ],
+        [-V*9,    crY-V*1,   V*7    ],
+        [V*7,     crY+V*4,   -V*8   ],
+        [-V*8,    crY+V*3,   -V*6   ],
+        [V*4,     crY+V*8,   V*3    ],
+        [-V*5,    crY+V*7,   -V*3   ],
+        [V*12,    crY-V*2,   -V*3   ],
+        [-V*11,   crY-V*3,   V*4    ],
+        [0,       crY+V*11,  0      ],
+      ];
 
-            // 高度隨機 ±5~8% 偏移
-            const yOff = (Math.random()-0.5) * bkSize * 0.16;
-            // 位置 ±5~8% 偏移
-            const xOff = (Math.random()-0.5) * bkSize * 0.16;
-            const zOff = (Math.random()-0.5) * bkSize * 0.16;
+      clusterCenters.forEach(([cx, cy, cz]) => {
+        // 隨機選一種尺寸
+        const [sxMax, syMax, szMax] = clusterSizes[Math.floor(Math.random()*3)];
+        const halfX = Math.floor(sxMax/2);
+        const halfY = Math.floor(syMax/2);
+        const halfZ = Math.floor(szMax/2);
 
-            // 顏色從 pinks 陣列隨機選 + varyColor ±8%
-            const baseColor = pinks[Math.floor(Math.random() * pinks.length)];
-            const mat = varyColor(baseColor, 0.08);
+        for (let bx = -halfX; bx < halfX; bx++) {
+          for (let by = -halfY; by < halfY; by++) {
+            for (let bz = -halfZ; bz < halfZ; bz++) {
+              // 橢球裁切（根據區塊比例）
+              const nx = bx/halfX, ny = by/halfY, nz = bz/halfZ;
+              const dist = nx*nx + ny*ny + nz*nz;
+              if (dist > 1.0) continue;
+              if (dist > 0.7 && Math.random() < 0.25) continue;  // 邊緣缺口
 
-            jh(new THREE.BoxGeometry(bkSize, bkSize, bkSize), mat,
-               cx + bx*bkSize + xOff,
-               cy + yOff,
-               cz + bz*bkSize + zOff);
+              // ±5~8% 位置偏移
+              const xOff = (Math.random()-0.5) * bkSize * 0.16;
+              const yOff = (Math.random()-0.5) * bkSize * 0.16;
+              const zOff = (Math.random()-0.5) * bkSize * 0.16;
+
+              const baseColor = pinks[Math.floor(Math.random() * pinks.length)];
+
+              jh(new THREE.BoxGeometry(bkSize, bkSize, bkSize),
+                 varyColor(baseColor, 0.08),
+                 cx + bx*bkSize + xOff,
+                 cy + by*bkSize + yOff,
+                 cz + bz*bkSize + zOff);
+            }
           }
         }
       });
