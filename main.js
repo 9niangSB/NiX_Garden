@@ -11,6 +11,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { OBJLoader }     from 'three/addons/loaders/OBJLoader.js';
 import { MTLLoader }     from 'three/addons/loaders/MTLLoader.js';
 import { OBJExporter }   from 'three/addons/exporters/OBJExporter.js';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 
 // ============================================================
 //  資料層
@@ -1077,60 +1078,58 @@ function buildPlantGroup(type) {
            (midX+endX)/2, (midY+endY)/2, (midZ+endZ)/2);
       }
 
-      // ── 粉色樹冠：10 個區塊，3 種尺寸隨機組合，可重疊 → 茂盛感 ──
+      // ── 粉色樹冠：10 區塊 × 3 種尺寸，每區塊合併成 1 個 mesh（效能優化）──
       const pinks = [0xF8B0C0, 0xF0A0B8, 0xFFC0D0, 0xF090A8, 0xFFD0E0, 0xE8A0B0, 0xF0C0D8, 0xE090A0];
       const bkSize = V*1.0;
-
-      // 3 種區塊尺寸
-      const clusterSizes = [
-        [12, 12, 12],  // 正方大塊
-        [8,  5,  12],  // 扁寬塊
-        [10, 8,  6],   // 窄高塊
-      ];
-
-      // 10 個區塊（參照巨大櫻花樹的散佈範圍，允許重疊）
+      const clusterSizes = [[12,12,12],[8,5,12],[10,8,6]];
       const clusterCenters = [
-        [0,       crY+V*2,   0      ],
-        [V*10,    crY+V*0,   V*6    ],
-        [-V*9,    crY-V*1,   V*7    ],
-        [V*7,     crY+V*4,   -V*8   ],
-        [-V*8,    crY+V*3,   -V*6   ],
-        [V*4,     crY+V*8,   V*3    ],
-        [-V*5,    crY+V*7,   -V*3   ],
-        [V*12,    crY-V*2,   -V*3   ],
-        [-V*11,   crY-V*3,   V*4    ],
-        [0,       crY+V*11,  0      ],
+        [0,crY+V*2,0],[V*10,crY,V*6],[-V*9,crY-V*1,V*7],
+        [V*7,crY+V*4,-V*8],[-V*8,crY+V*3,-V*6],[V*4,crY+V*8,V*3],
+        [-V*5,crY+V*7,-V*3],[V*12,crY-V*2,-V*3],[-V*11,crY-V*3,V*4],
+        [0,crY+V*11,0],
       ];
+      const _box = new THREE.BoxGeometry(bkSize, bkSize, bkSize);
 
       clusterCenters.forEach(([cx, cy, cz]) => {
-        // 隨機選一種尺寸
-        const [sxMax, syMax, szMax] = clusterSizes[Math.floor(Math.random()*3)];
-        const halfX = Math.floor(sxMax/2);
-        const halfY = Math.floor(syMax/2);
-        const halfZ = Math.floor(szMax/2);
+        const [sxMax,syMax,szMax] = clusterSizes[Math.floor(Math.random()*3)];
+        const halfX=Math.floor(sxMax/2), halfY=Math.floor(syMax/2), halfZ=Math.floor(szMax/2);
+        const geos = [];
+        const dummy = new THREE.Object3D();
 
-        for (let bx = -halfX; bx < halfX; bx++) {
-          for (let by = -halfY; by < halfY; by++) {
-            for (let bz = -halfZ; bz < halfZ; bz++) {
-              // 橢球裁切（根據區塊比例）
-              const nx = bx/halfX, ny = by/halfY, nz = bz/halfZ;
-              const dist = nx*nx + ny*ny + nz*nz;
-              if (dist > 1.0) continue;
-              if (dist > 0.7 && Math.random() < 0.25) continue;  // 邊緣缺口
-
-              // ±5~8% 位置偏移
-              const xOff = (Math.random()-0.5) * bkSize * 0.16;
-              const yOff = (Math.random()-0.5) * bkSize * 0.16;
-              const zOff = (Math.random()-0.5) * bkSize * 0.16;
-
-              const baseColor = pinks[Math.floor(Math.random() * pinks.length)];
-
-              jh(new THREE.BoxGeometry(bkSize, bkSize, bkSize),
-                 varyColor(baseColor, 0.08),
-                 cx + bx*bkSize + xOff,
-                 cy + by*bkSize + yOff,
-                 cz + bz*bkSize + zOff);
+        for (let bx=-halfX; bx<halfX; bx++) {
+          for (let by=-halfY; by<halfY; by++) {
+            for (let bz=-halfZ; bz<halfZ; bz++) {
+              const nx=bx/halfX, ny=by/halfY, nz=bz/halfZ;
+              if (nx*nx+ny*ny+nz*nz > 1.0) continue;
+              if (nx*nx+ny*ny+nz*nz > 0.7 && Math.random()<0.25) continue;
+              const xOff=(Math.random()-0.5)*bkSize*0.16;
+              const yOff=(Math.random()-0.5)*bkSize*0.16;
+              const zOff=(Math.random()-0.5)*bkSize*0.16;
+              dummy.position.set(bx*bkSize+xOff, by*bkSize+yOff, bz*bkSize+zOff);
+              dummy.updateMatrix();
+              const c = _box.clone().applyMatrix4(dummy.matrix);
+              // 頂點著色：整個 clone 用同色
+              const baseColor = pinks[Math.floor(Math.random()*pinks.length)];
+              const f = 1+(Math.random()*2-1)*0.08;
+              const r=Math.min(255,((baseColor>>16)&0xFF)*f)/255;
+              const gv=Math.min(255,((baseColor>>8)&0xFF)*f)/255;
+              const b=Math.min(255,(baseColor&0xFF)*f)/255;
+              const colors = new Float32Array(c.attributes.position.count*3);
+              for (let i=0;i<colors.length;i+=3){ colors[i]=r; colors[i+1]=gv; colors[i+2]=b; }
+              c.setAttribute('color', new THREE.BufferAttribute(colors,3));
+              geos.push(c);
             }
+          }
+        }
+        // 合併成 1 個 mesh
+        if (geos.length > 0) {
+          const merged = mergeGeometries(geos);
+          if (merged) {
+            const mat = new THREE.MeshLambertMaterial({ vertexColors:true });
+            const mesh = new THREE.Mesh(merged, mat);
+            mesh.position.set(cx, cy, cz);
+            mesh.castShadow = true;
+            g.add(mesh);
           }
         }
       });
