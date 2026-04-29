@@ -2465,7 +2465,7 @@ window.buySeed = buySeed;
 // ============================================================
 //  ═══ 一樓 ═══  動物 (4-tier breeding lifecycle)
 // ============================================================
-const ANIMAL_CAP = 15;   // 地圖動物上限
+const ANIMAL_CAP = 5;    // 場上動物上限（5種）
 const ANIMAL_TIER = [
   // lv1 兔: 存活 2hr, 每30min 交配, 每胎 3-6 隻, 商店價低
   { lv:1, name:'小兔', nameAdult:'大兔',   color:0xF5F0EA, accent:0xF0D0D8, sx:0.45,sy:0.45,sz:0.50, speed:1.2,
@@ -3752,17 +3752,29 @@ renderer.domElement.addEventListener('pointerup', e => {
   // ① 便利屋
   if (raycaster.intersectObjects(shopMeshes).length > 0) { openShop(); return; }
 
-  // ①b 動物（點擊餵食）
+  // ①b 動物（移除模式=出售 / 其他=查看狀態）
   const allAM = [];
   animals.forEach(a => { if (a.mesh.isMesh) allAM.push(a.mesh); else a.mesh.traverse(c => { if (c.isMesh) allAM.push(c); }); });
   const aHits = raycaster.intersectObjects(allAM);
   if (aHits.length > 0) {
-    for (const a of animals) {
+    for (let ai = 0; ai < animals.length; ai++) {
+      const a = animals[ai];
       let obj = aHits[0].object;
       while (obj) {
         if (obj === a.mesh) {
-          const status = a.isBaby ? '幼体' : `採收 ${a.harvestCount}/5`;
-          showToast(`${a.tierDef.nameAdult} — ${status}`);
+          if (currentMode === 'delete') {
+            // 出售寵物：退回一半價格
+            const sellPrice = Math.floor((a.tierDef.price || 0) * 0.5);
+            money += sellPrice;
+            scene.remove(a.mesh);
+            a.mesh.traverse(c => { if (c.isMesh) { c.geometry.dispose(); [c.material].flat().forEach(m=>m.dispose()); }});
+            animals.splice(ai, 1);
+            updateUI();
+            showToast(`💰 ${a.tierDef.nameAdult} 出售！+${sellPrice} コイン`);
+          } else {
+            const status = a.isBaby ? '幼体' : `採收 ${a.harvestCount}/5`;
+            showToast(`${a.tierDef.nameAdult} — ${status}`);
+          }
           return;
         }
         obj = obj.parent;
@@ -4008,6 +4020,22 @@ function updateShopUI() {
     row.innerHTML = `<span>${def.icon} ${def.name}</span><span class="sell-cnt">${cnt}個</span><span class="sell-val">+${cnt*(def.sell||0)}</span>`;
     sellList.appendChild(row);
   }
+  // 場上寵物出售提示
+  if (animals.length > 0) {
+    const petHdr = document.createElement('div');
+    petHdr.className = 'shop-grade-header';
+    petHdr.textContent = `🐾 場上寵物 (${animals.length}/${ANIMAL_CAP})`;
+    sellList.appendChild(petHdr);
+    animals.forEach((a, ai) => {
+      const sellPrice = Math.floor((a.tierDef.price || 0) * 0.5);
+      const row = document.createElement('div');
+      row.className = 'sell-row';
+      row.innerHTML = `<span>${a.tierDef.nameAdult}</span><span class="sell-cnt">${a.isBaby?'幼':'成'}</span><span class="sell-val"><button class="shop-buy-btn" onclick="sellAnimalByIndex(${ai})" style="font-size:11px;padding:2px 8px;">售 +${sellPrice}</button></span>`;
+      sellList.appendChild(row);
+      total += 0; // 不計入自動賣出
+    });
+  }
+
   const tot = document.getElementById('sell-total');
   if (tot) tot.textContent = `合計: ${total} コイン`;
 
@@ -4096,6 +4124,19 @@ window.buyAnimal = function(lv) {
   spawnAnimal(lv);
   updateUI();
   showToast(`🐾 LV${lv} ${def.nameAdult} 購入！`);
+};
+
+window.sellAnimalByIndex = function(idx) {
+  if (idx < 0 || idx >= animals.length) return;
+  const a = animals[idx];
+  const sellPrice = Math.floor((a.tierDef.price || 0) * 0.5);
+  money += sellPrice;
+  scene.remove(a.mesh);
+  a.mesh.traverse(c => { if (c.isMesh) { c.geometry.dispose(); [c.material].flat().forEach(m=>m.dispose()); }});
+  animals.splice(idx, 1);
+  updateUI();
+  updateShopUI();
+  showToast(`💰 ${a.tierDef.nameAdult} 出售！+${sellPrice} コイン`);
 };
 
 // ============================================================
