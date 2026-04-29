@@ -1078,15 +1078,23 @@ function buildPlantGroup(type) {
            (midX+endX)/2, (midY+endY)/2, (midZ+endZ)/2);
       }
 
-      // ── 粉色樹冠：10 區塊 × 3 種尺寸，每區塊合併成 1 個 mesh（效能優化）──
-      const pinks = [0xF8B0C0, 0xF0A0B8, 0xFFC0D0, 0xF090A8, 0xFFD0E0, 0xE8A0B0, 0xF0C0D8, 0xE090A0];
+      // ── 粉色樹冠：傘狀/雲朵狀（寬>高，扁平展開，簇間有縫隙露枝）──
+      // 頂部偏白淺粉，側面底部偏深粉
+      const pinksTop = [0xFFD0E0, 0xFFC8D8, 0xF8C0D0, 0xFFE0E8, 0xF0D0E0];
+      const pinksMid = [0xF8B0C0, 0xF0A0B8, 0xFFC0D0, 0xE8A0B0, 0xF0B8C8];
+      const pinksBot = [0xE090A8, 0xD88098, 0xC87090, 0xE0A0B8, 0xD090A0];
       const bkSize = V*1.0;
-      const clusterSizes = [[12,12,12],[8,5,12],[10,8,6]];
+      // 比例 12:12:10（寬:深:高），扁平傘形
+      const clusterSizes = [[12,10,12],[10,8,12],[12,8,10]];
+      // 7 簇花團 — 水平展開，明顯分離（簇間留空隙看到枝幹）
       const clusterCenters = [
-        [0,crY+V*2,0],[V*10,crY,V*6],[-V*9,crY-V*1,V*7],
-        [V*7,crY+V*4,-V*8],[-V*8,crY+V*3,-V*6],[V*4,crY+V*8,V*3],
-        [-V*5,crY+V*7,-V*3],[V*12,crY-V*2,-V*3],[-V*11,crY-V*3,V*4],
-        [0,crY+V*11,0],
+        [0,       crY+V*1,  0      ],   // 中心主簇
+        [V*14,    crY-V*1,  V*4    ],   // 右前（遠離中心）
+        [-V*13,   crY-V*0,  V*6    ],   // 左前
+        [V*10,    crY+V*1,  -V*10  ],   // 右後
+        [-V*10,   crY+V*0,  -V*8   ],   // 左後
+        [V*4,     crY+V*3,  V*12   ],   // 前方突出
+        [-V*6,    crY+V*2,  -V*13  ],   // 後方突出
       ];
       const _box = new THREE.BoxGeometry(bkSize, bkSize, bkSize);
 
@@ -1100,16 +1108,20 @@ function buildPlantGroup(type) {
           for (let by=-halfY; by<halfY; by++) {
             for (let bz=-halfZ; bz<halfZ; bz++) {
               const nx=bx/halfX, ny=by/halfY, nz=bz/halfZ;
-              if (nx*nx+ny*ny+nz*nz > 1.0) continue;
-              if (nx*nx+ny*ny+nz*nz > 0.7 && Math.random()<0.25) continue;
+              // 扁平橢球裁切（Y方向壓扁 — 傘形）
+              const d = nx*nx + ny*ny*1.8 + nz*nz;
+              if (d > 1.0) continue;
+              if (d > 0.65 && Math.random()<0.3) continue;  // 邊緣不規則缺口
               const xOff=(Math.random()-0.5)*bkSize*0.16;
               const yOff=(Math.random()-0.5)*bkSize*0.16;
               const zOff=(Math.random()-0.5)*bkSize*0.16;
               dummy.position.set(bx*bkSize+xOff, by*bkSize+yOff, bz*bkSize+zOff);
               dummy.updateMatrix();
               const c = _box.clone().applyMatrix4(dummy.matrix);
-              // 頂點著色：整個 clone 用同色
-              const baseColor = pinks[Math.floor(Math.random()*pinks.length)];
+              // 頂點著色：頂部偏白，底部偏深粉
+              const yRatio = (by + halfY) / (halfY * 2);  // 0=底 1=頂
+              const palette = yRatio > 0.65 ? pinksTop : yRatio > 0.3 ? pinksMid : pinksBot;
+              const baseColor = palette[Math.floor(Math.random()*palette.length)];
               const f = 1+(Math.random()*2-1)*0.08;
               const r=Math.min(255,((baseColor>>16)&0xFF)*f)/255;
               const gv=Math.min(255,((baseColor>>8)&0xFF)*f)/255;
