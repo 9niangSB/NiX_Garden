@@ -103,10 +103,19 @@ const playerVel      = { x:0, y:0, z:0 };
 let playerFacing     = 0;           // radians
 let playerBobT       = 0;
 const keysDown       = {};
-const PLAYER_SPEED   = 3.0;
+const PLAYER_SPEED   = 2.5;
 const SKI_ACCEL      = 8.0;
 const SKI_MAX_SPEED  = 12.0;
-let cameraFollowMode = true;
+let cameraFollowMode = false;       // 預設不鎖鏡頭
+
+// ── 自由行走：AI 漫步 + 點擊移動 ──
+let playerTarget     = null;        // { x, z } 點擊目標，null = AI 漫步
+let playerIdleTimer  = 0;
+let playerIdleAction = 'idle';      // idle | happy | plant | squat
+let playerIdleActionTimer = 0;
+let playerWanderTimer = 0;
+const PLAYER_WANDER_INTERVAL = 4;   // 每幾秒換方向
+let playerIsSelected = false;       // 滑鼠選中角色
 
 // ── Shop: furniture & equipment inventory ──
 const furnitureInventory = {};   // { id: count }
@@ -2903,24 +2912,90 @@ function updatePlayer(delta, now) {
 
   if (playerState === 'walking') {
     let dx = 0, dz = 0;
+    let moving = false;
+
+    // ① WASD 手動控制（有按鍵時優先）
     if (keysDown['w'] || keysDown['arrowup'])    dz -= 1;
     if (keysDown['s'] || keysDown['arrowdown'])  dz += 1;
     if (keysDown['a'] || keysDown['arrowleft'])  dx -= 1;
     if (keysDown['d'] || keysDown['arrowright']) dx += 1;
-    const moving = dx !== 0 || dz !== 0;
-    if (moving) {
+    const hasKeyInput = dx !== 0 || dz !== 0;
+
+    if (hasKeyInput) {
+      playerTarget = null;  // 手動操控 → 取消點擊目標
       const len = Math.sqrt(dx*dx + dz*dz);
       dx /= len; dz /= len;
+      moving = true;
+
+    // ② 點擊目標移動
+    } else if (playerTarget) {
+      dx = playerTarget.x - playerPos.x;
+      dz = playerTarget.z - playerPos.z;
+      const dist = Math.sqrt(dx*dx + dz*dz);
+      if (dist < 0.3) {
+        playerTarget = null;  // 到達
+      } else {
+        dx /= dist; dz /= dist;
+        moving = true;
+      }
+
+    // ③ AI 自由漫步（沒人操控時自己走）
+    } else {
+      playerWanderTimer += delta;
+      playerIdleTimer += delta;
+
+      // 隨機停下來做表情動作
+      if (playerIdleAction !== 'idle') {
+        playerIdleActionTimer -= delta;
+        if (playerIdleActionTimer <= 0) {
+          playerIdleAction = 'idle';
+          playerMesh.scale.setScalar(1);  // 復原
+        }
+      }
+
+      if (playerWanderTimer > PLAYER_WANDER_INTERVAL) {
+        playerWanderTimer = 0;
+
+        // 30% 機率停下做表情
+        if (Math.random() < 0.3 && playerIdleAction === 'idle') {
+          const actions = ['happy','plant','squat'];
+          playerIdleAction = actions[Math.floor(Math.random()*3)];
+          playerIdleActionTimer = 1.5 + Math.random();
+          // 表情動畫
+          if (playerIdleAction === 'happy') {
+            showToast('😊');
+            playerMesh.scale.set(1, 1.08, 1);  // 開心微跳
+          } else if (playerIdleAction === 'plant') {
+            showToast('🌱');
+            playerMesh.scale.set(1, 0.85, 1);  // 蹲下種菜
+          } else if (playerIdleAction === 'squat') {
+            showToast('💤');
+            playerMesh.scale.set(1, 0.80, 1);  // 蹲下休息
+          }
+        } else {
+          // 隨機選新目的地（在農場範圍內）
+          playerTarget = {
+            x: (Math.random()-0.5) * 16,
+            z: (Math.random()-0.5) * 16
+          };
+        }
+      }
+    }
+
+    if (moving) {
       playerPos.x += dx * PLAYER_SPEED * delta;
       playerPos.z += dz * PLAYER_SPEED * delta;
       playerFacing = Math.atan2(dx, dz);
       playerBobT += delta * 8;
+      playerIdleAction = 'idle';
+      playerMesh.scale.setScalar(1);
     }
+
     // Terrain height follow
     const terrainH = getMountainHeight(playerPos.x, playerPos.z);
     playerPos.y = terrainH;
     // Bob while moving
-    const bobY = (dx !== 0 || dz !== 0) ? Math.abs(Math.sin(playerBobT)) * 0.08 : 0;
+    const bobY = moving ? Math.abs(Math.sin(playerBobT)) * 0.08 : 0;
     playerMesh.position.set(playerPos.x, playerPos.y + bobY, playerPos.z);
     playerMesh.rotation.y = playerFacing;
 
@@ -2995,8 +3070,8 @@ function updatePlayer(delta, now) {
     }
   }
 
-  // Camera follow
-  if (cameraFollowMode) {
+  // Camera follow（只在滑雪時自動跟隨，平時不鎖鏡頭）
+  if (playerState === 'skiing' || playerState === 'riding_lift') {
     const targetPos = new THREE.Vector3(playerPos.x, playerPos.y + 2, playerPos.z);
     controls.target.lerp(targetPos, 0.05);
     const camOffset = new THREE.Vector3(
@@ -3556,6 +3631,17 @@ renderer.domElement.addEventListener('pointerup', e => {
   getPointerNDC(e);
   raycaster.setFromCamera(pointer, camera);
 
+  // ⓪ 點擊角色 → 選中/取消
+  if (playerMesh) {
+    const playerParts = [];
+    playerMesh.traverse(c => { if (c.isMesh) playerParts.push(c); });
+    if (raycaster.intersectObjects(playerParts).length > 0) {
+      playerIsSelected = !playerIsSelected;
+      showToast(playerIsSelected ? '🧑 角色已選中 — 點地面移動' : '🧑 取消選中');
+      return;
+    }
+  }
+
   // ① 便利屋
   if (raycaster.intersectObjects(shopMeshes).length > 0) { openShop(); return; }
 
@@ -3618,6 +3704,15 @@ renderer.domElement.addEventListener('pointerup', e => {
   // ③ 地面
   const hit = raycastGround();
   if (!hit) return;
+
+  // 角色選中時 → 點擊地面移動角色（不執行種植/家具）
+  if (playerIsSelected && playerState === 'walking') {
+    playerTarget = { x: hit.x, z: hit.z };
+    playerIsSelected = false;  // 移動後自動取消選中
+    showToast('🧑 移動中...');
+    return;
+  }
+
   const half = (GRID_SIZE/2) * CELL_SIZE;
   if (Math.abs(hit.x)>half || Math.abs(hit.z)>half) return;
 
