@@ -1091,18 +1091,19 @@ function buildPlantGroup(type) {
            endX*0.85, endY, endZ*0.85);
       }
 
-      // ── 方塊式花冠（冰結樹風格：固定大小方塊 + ±5% 位置/顏色偏移）──
+      // ── 方塊式花冠：大方塊(±8%偏移) → 內切小方塊V*1.5(±5%偏移) ──
       const pinks = [
         0xFFD0E0, 0xFFC8D8, 0xFFE0E8,  // 淺粉（頂部）
         0xF8B0C0, 0xF0A0B8, 0xFFC0D0,  // 中粉
         0xE090A8, 0xD88098, 0xC87090,  // 深粉（底部/側面）
         0xF0C0D8, 0xE8A8B8, 0xD898A8,  // 中間色
       ];
-      const BK = V*4.5;  // 每塊方塊大小（跟冰結樹一樣）
+      const BK = V*4.5;    // 大方塊格子大小
+      const SUB = V*1.5;   // 小方塊大小
+      const subCount = Math.floor(BK / SUB);  // 每邊切幾塊 = 3
 
-      // 花冠格子：寬扁雲形佈局（格子座標，每格一個方塊）
-      // X 方向 ±5 格, Y 方向 ±2 格, Z 方向 ±4 格
-      const gridW=5, gridH=2, gridD=4;
+      // 格子範圍（+2層頂部）
+      const gridW=5, gridH=4, gridD=4;  // gridH 從 2→4（多兩層頂部）
 
       for (let gx=-gridW; gx<=gridW; gx++) {
         for (let gy=-gridH; gy<=gridH; gy++) {
@@ -1111,30 +1112,48 @@ function buildPlantGroup(type) {
             const nx=gx/gridW, ny=gy/gridH, nz=gz/gridD;
             const d = nx*nx + ny*ny*2.0 + nz*nz;
             if (d > 1.05) continue;
-            // 邊緣隨機缺口（30%）
             if (d > 0.7 && Math.random() < 0.3) continue;
-            // 底部鏤空（露枝幹）
             if (gy <= -gridH && Math.random() < 0.5) continue;
 
-            // ±5% 位置偏移（冰結樹風格）
-            const xOff = (Math.random()-0.5) * BK * 0.10;
-            const yOff = (Math.random()-0.5) * BK * 0.10;
-            const zOff = (Math.random()-0.5) * BK * 0.10;
-            // 隨機高度變化（冰結樹風格）
-            const bh = BK * (0.6 + Math.random()*0.8);
+            // 大方塊 ±8% 位置偏移
+            const bigXOff = (Math.random()-0.5) * BK * 0.16;
+            const bigYOff = (Math.random()-0.5) * BK * 0.16;
+            const bigZOff = (Math.random()-0.5) * BK * 0.16;
+            const bigX = gx*BK + bigXOff;
+            const bigY = crY + gy*BK + bigYOff;
+            const bigZ = gz*BK + bigZOff;
 
-            // 顏色：頂部偏白，底部偏深 + ±5% 偏移
+            // 顏色層級
             const yRatio = (gy+gridH) / (gridH*2);
-            let baseColor;
-            if (yRatio > 0.65) baseColor = pinks[Math.floor(Math.random()*3)];       // 淺
-            else if (yRatio > 0.3) baseColor = pinks[3+Math.floor(Math.random()*3)];  // 中
-            else baseColor = pinks[6+Math.floor(Math.random()*3)];                    // 深
+            let palBase;
+            if (yRatio > 0.65) palBase = 0;       // 淺粉
+            else if (yRatio > 0.3) palBase = 3;    // 中粉
+            else palBase = 6;                      // 深粉
 
-            jh(new THREE.BoxGeometry(BK, bh, BK),
-               varyColor(baseColor, 0.05),
-               gx*BK + xOff,
-               crY + gy*BK + yOff,
-               gz*BK + zOff);
+            // 大方塊內切成 subCount×subCount×subCount 小方塊
+            for (let sx=0; sx<subCount; sx++) {
+              for (let sy=0; sy<subCount; sy++) {
+                for (let sz=0; sz<subCount; sz++) {
+                  // 小方塊邊緣隨機省略（讓大方塊不是完美正方）
+                  if (sx===0 && sz===0 && Math.random()<0.15) continue;
+                  if (sx===subCount-1 && sz===subCount-1 && Math.random()<0.15) continue;
+
+                  // 小方塊 ±5% 位置偏移
+                  const subXOff = (Math.random()-0.5) * SUB * 0.10;
+                  const subYOff = (Math.random()-0.5) * SUB * 0.10;
+                  const subZOff = (Math.random()-0.5) * SUB * 0.10;
+
+                  // 小方塊 ±5% 顏色偏移（從大方塊色階中隨機選）
+                  const baseColor = pinks[palBase + Math.floor(Math.random()*3)];
+
+                  jh(new THREE.BoxGeometry(SUB, SUB, SUB),
+                     varyColor(baseColor, 0.05),
+                     bigX + (sx - subCount/2 + 0.5)*SUB + subXOff,
+                     bigY + (sy - subCount/2 + 0.5)*SUB + subYOff,
+                     bigZ + (sz - subCount/2 + 0.5)*SUB + subZOff);
+                }
+              }
+            }
           }
         }
       }
