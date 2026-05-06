@@ -232,6 +232,27 @@ html, body {
 #toast.hidden { opacity: 0; }
 
 /* ===== Phone ===== */
+/* ===== Rotate Slider ===== */
+#rotate-panel {
+  position: absolute; bottom: 80px; left: 50%; transform: translateX(-50%);
+  display: flex; align-items: center; gap: 8px;
+  background: rgba(255,248,243,0.95); border: 1.5px solid rgba(200,155,109,0.3);
+  border-radius: 14px; padding: 8px 16px;
+  backdrop-filter: blur(8px); box-shadow: 0 4px 16px rgba(160,90,60,0.15);
+  pointer-events: auto; z-index: 15;
+}
+#rotate-panel.hidden { display: none; }
+#rotate-label { font-size: 13px; font-weight: 700; color: #7B4E3A; min-width: 48px; }
+#rotate-slider {
+  width: 160px; height: 6px; -webkit-appearance: none; appearance: none;
+  background: linear-gradient(90deg, #F6C6C8, #DC7864); border-radius: 3px; outline: none;
+}
+#rotate-slider::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 22px; height: 22px; border-radius: 50%;
+  background: #DC7864; border: 2px solid #fff; box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+  cursor: pointer;
+}
+
 @media (max-width: 480px) {
   #title-text    { font-size: 15px; }
   #season-label  { font-size: 12px; }
