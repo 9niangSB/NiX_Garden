@@ -284,10 +284,15 @@ controls.target.set(0, 0, 0);
 // ── Keyboard input for player movement ──
 window.addEventListener('keydown', e => {
   keysDown[e.key.toLowerCase()] = true;
-  // 建設模式：R鍵旋轉90度
+  // 建設模式：R鍵快速旋轉90度（電腦用戶捷徑）
   if (e.key.toLowerCase() === 'r' && currentMode === 'construct' && constructTarget) {
     constructTarget.mesh.rotation.y += Math.PI / 2;
-    showToast('🔧 90° 回転');
+    const deg = Math.round(constructTarget.mesh.rotation.y * 180 / Math.PI) % 360;
+    const slider = document.getElementById('rotate-slider');
+    if (slider) slider.value = deg;
+    const label = document.getElementById('rotate-label');
+    if (label) label.textContent = `🔄 ${deg}°`;
+    showToast(`🔧 ${deg}°`);
   }
 });
 window.addEventListener('keyup',   e => { keysDown[e.key.toLowerCase()] = false; });
@@ -4167,6 +4172,30 @@ let deleteConfirmTarget = null; // 已被紅染等待確認刪除的 mesh
 
 // ── 建設模式 ──
 let constructTarget = null;   // { mesh, data, type:'plant'|'build' }
+
+// ── 旋轉滑桿（手機友善）──
+function showRotateSlider(mesh) {
+  const panel = document.getElementById('rotate-panel');
+  const slider = document.getElementById('rotate-slider');
+  const label = document.getElementById('rotate-label');
+  if (!panel || !slider) return;
+  // 同步目前角度到滑桿
+  const curDeg = Math.round(mesh.rotation.y * 180 / Math.PI) % 360;
+  slider.value = (curDeg + 360) % 360;
+  label.textContent = `🔄 ${(curDeg+360)%360}°`;
+  panel.classList.remove('hidden');
+}
+function hideRotateSlider() {
+  document.getElementById('rotate-panel')?.classList.add('hidden');
+}
+// 滑桿即時旋轉
+document.getElementById('rotate-slider')?.addEventListener('input', (e) => {
+  if (!constructTarget) return;
+  const deg = parseInt(e.target.value);
+  constructTarget.mesh.rotation.y = deg * Math.PI / 180;
+  const label = document.getElementById('rotate-label');
+  if (label) label.textContent = `🔄 ${deg}°`;
+});
 function clearDeleteHighlight() {
   deleteHoverMeshes.forEach(({ mesh, origColor, origEmissive, origEmissiveIntensity }) => {
     if (!mesh.material) return;
@@ -4535,7 +4564,8 @@ renderer.domElement.addEventListener('pointerup', e => {
         clearConstructHighlight();
         constructTarget = { mesh: target.mesh, data: target, type: 'plant' };
         applyConstructHighlight(target.mesh);
-        showToast('🔧 植物を選択 — 地面タップで移動 / R回転');
+        showRotateSlider(target.mesh);
+        showToast('🔧 選択済 — 地面タップで移動 / スライダーで回転');
       }
       else if (target.hasFruit)         harvestPlant(target);
       else showToast(target.stage==='growing' ? '🌱 育っています...' : '🌿 もうすぐ実る...');
@@ -4568,7 +4598,8 @@ renderer.domElement.addEventListener('pointerup', e => {
               clearConstructHighlight();
               constructTarget = { mesh: o.mesh, data: o, type: 'build' };
               applyConstructHighlight(o.mesh);
-              showToast('🔧 家具を選択 — 地面タップで移動 / R回転');
+              showRotateSlider(o.mesh);
+              showToast('🔧 選択済 — 地面タップで移動 / スライダーで回転');
               return;
             }
           }
@@ -4640,6 +4671,7 @@ window.setMode = function(mode) {
   clearDeleteConfirm();
   clearConstructHighlight();
   constructTarget = null;
+  hideRotateSlider();
   currentMode = mode;
   document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
   const map = { plant:'btn-plant', build:'btn-build', construct:'btn-construct', delete:'btn-delete', export:'btn-export' };
@@ -4651,7 +4683,7 @@ window.setMode = function(mode) {
   // 點植物/家具 mode 自動開圖鑑
   if (mode === 'plant') window.openCatalog('plant');
   else if (mode === 'build') window.openCatalog('build');
-  else if (mode === 'construct') showToast('🔧 點擊物件選取 → 點地面移動 → R旋轉');
+  else if (mode === 'construct') showToast('🔧 點擊物件選取 → 拖滑桿旋轉 → 點地面移動');
 };
 
 // ============================================================
