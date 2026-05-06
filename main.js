@@ -282,7 +282,14 @@ controls.maxDistance   = 80;
 controls.target.set(0, 0, 0);
 
 // ── Keyboard input for player movement ──
-window.addEventListener('keydown', e => { keysDown[e.key.toLowerCase()] = true; });
+window.addEventListener('keydown', e => {
+  keysDown[e.key.toLowerCase()] = true;
+  // 建設模式：R鍵旋轉90度
+  if (e.key.toLowerCase() === 'r' && currentMode === 'construct' && constructTarget) {
+    constructTarget.mesh.rotation.y += Math.PI / 2;
+    showToast('🔧 90° 回転');
+  }
+});
 window.addEventListener('keyup',   e => { keysDown[e.key.toLowerCase()] = false; });
 
 // ============================================================
@@ -695,7 +702,7 @@ let previewMesh = null;
 
 function createPreviewMesh() {
   if (previewMesh) { scene.remove(previewMesh); previewMesh = null; }
-  if (currentMode === 'delete') return;
+  if (currentMode === 'delete' || currentMode === 'construct') return;
 
   let geo, color;
   if (currentMode === 'plant') {
@@ -4059,10 +4066,10 @@ function deleteAt(wx, wz) {
     // 高級作物（A/S/SS）移除前確認
     const highGrades = ['A','S','SS'];
     if (def && highGrades.includes(def.grade)) {
-      clearDeleteHighlight();
+      clearDeleteConfirm();
       if (!confirm(`⚠️ 確定要移除 ${def.icon} ${def.name}（${def.grade}級）嗎？`)) return;
     }
-    clearDeleteHighlight();
+    clearDeleteConfirm();
     scene.remove(p.mesh);
     p.mesh.traverse(c => {
       if (!c.isMesh) return;
@@ -4081,7 +4088,7 @@ function deleteAt(wx, wz) {
   const idx = placedObjects.findIndex(o => o.gridX===Math.round(wx) && o.gridZ===Math.round(wz));
   if (idx < 0) return;
   const obj = placedObjects[idx];
-  clearDeleteHighlight();
+  clearDeleteConfirm();
   scene.remove(obj.mesh);
   obj.mesh.traverse(c => {
     if (!c.isMesh) return;
@@ -4100,7 +4107,7 @@ function deleteFurnitureByMesh(targetMesh) {
   if (idx < 0) return false;
   const obj = placedObjects[idx];
   const key = `${obj.gridX},${obj.gridZ}`;
-  clearDeleteHighlight();
+  clearDeleteConfirm();
   scene.remove(obj.mesh);
   obj.mesh.traverse(c => {
     if (!c.isMesh) return;
@@ -4156,6 +4163,10 @@ const DRAG_THRESHOLD = 6;
 
 // ── 刪除模式：懸停紅色高亮系統 ──
 let deleteHoverMeshes = [];   // 當前被紅染的 meshes（含原色備份）
+let deleteConfirmTarget = null; // 已被紅染等待確認刪除的 mesh
+
+// ── 建設模式 ──
+let constructTarget = null;   // { mesh, data, type:'plant'|'build' }
 function clearDeleteHighlight() {
   deleteHoverMeshes.forEach(({ mesh, origColor, origEmissive, origEmissiveIntensity }) => {
     if (!mesh.material) return;
@@ -4167,6 +4178,10 @@ function clearDeleteHighlight() {
     });
   });
   deleteHoverMeshes = [];
+}
+function clearDeleteConfirm() {
+  clearDeleteHighlight();
+  deleteConfirmTarget = null;
 }
 function applyDeleteHighlight(group) {
   clearDeleteHighlight();
@@ -4181,6 +4196,36 @@ function applyDeleteHighlight(group) {
       if (m.emissive) { m.emissive.set(0xFF0000); m.emissiveIntensity = 0.3; }
     });
     deleteHoverMeshes.push({ mesh: c, origColor, origEmissive, origEmissiveIntensity });
+  });
+}
+
+// ── 建設模式：選中高亮系統（藍色光暈） ──
+let constructHoverMeshes = [];
+function clearConstructHighlight() {
+  constructHoverMeshes.forEach(({ mesh, origColor, origEmissive, origEmissiveIntensity }) => {
+    if (!mesh.material) return;
+    const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+    mats.forEach((m, i) => {
+      if (origColor[i])    m.color.copy(origColor[i]);
+      if (origEmissive[i]) m.emissive.copy(origEmissive[i]);
+      m.emissiveIntensity = origEmissiveIntensity[i] ?? 0;
+    });
+  });
+  constructHoverMeshes = [];
+}
+function applyConstructHighlight(group) {
+  clearConstructHighlight();
+  group.traverse(c => {
+    if (!c.isMesh || !c.material) return;
+    const mats = Array.isArray(c.material) ? c.material : [c.material];
+    const origColor = mats.map(m => m.color.clone());
+    const origEmissive = mats.map(m => m.emissive ? m.emissive.clone() : new THREE.Color(0));
+    const origEmissiveIntensity = mats.map(m => m.emissiveIntensity ?? 0);
+    mats.forEach(m => {
+      m.color.lerp(new THREE.Color(0x2080FF), 0.3);
+      if (m.emissive) { m.emissive.set(0x2060FF); m.emissiveIntensity = 0.4; }
+    });
+    constructHoverMeshes.push({ mesh: c, origColor, origEmissive, origEmissiveIntensity });
   });
 }
 
@@ -4434,14 +4479,22 @@ renderer.domElement.addEventListener('pointerup', e => {
       while (obj) {
         if (obj === a.mesh) {
           if (currentMode === 'delete') {
-            // 出售寵物：退回一半價格
-            const sellPrice = Math.floor((a.tierDef.price || 0) * 0.5);
-            money += sellPrice;
-            scene.remove(a.mesh);
-            a.mesh.traverse(c => { if (c.isMesh) { c.geometry.dispose(); [c.material].flat().forEach(m=>m.dispose()); }});
-            animals.splice(ai, 1);
-            updateUI();
-            showToast(`💰 ${a.tierDef.nameAdult} 出售！+${sellPrice} コイン`);
+            if (deleteConfirmTarget === a.mesh) {
+              // 二次點擊：確認刪除
+              const sellPrice = Math.floor((a.tierDef.price || 0) * 0.5);
+              money += sellPrice;
+              clearDeleteConfirm();
+              scene.remove(a.mesh);
+              a.mesh.traverse(c => { if (c.isMesh) { c.geometry.dispose(); [c.material].flat().forEach(m=>m.dispose()); }});
+              animals.splice(ai, 1);
+              updateUI();
+              showToast(`💰 ${a.tierDef.nameAdult} 出售！+${sellPrice} コイン`);
+            } else {
+              // 一次點擊：高亮 + 提示
+              applyDeleteHighlight(a.mesh);
+              deleteConfirmTarget = a.mesh;
+              showToast('🗑️ もう一度タップで削除');
+            }
           } else {
             const status = a.isBaby ? '幼体' : `採收 ${a.harvestCount}/5`;
             showToast(`${a.tierDef.nameAdult} — ${status}`);
@@ -4468,15 +4521,30 @@ renderer.domElement.addEventListener('pointerup', e => {
         exportMeshToOBJ(target.mesh, target.type);
         return;
       }
-      if (currentMode === 'delete')     deleteAt(target.gridX, target.gridZ);
+      if (currentMode === 'delete') {
+        if (deleteConfirmTarget === target.mesh) {
+          deleteAt(target.gridX, target.gridZ);
+        } else {
+          applyDeleteHighlight(target.mesh);
+          deleteConfirmTarget = target.mesh;
+          showToast('🗑️ もう一度タップで削除');
+        }
+      }
+      else if (currentMode === 'construct') {
+        // 建設模式：選取植物
+        clearConstructHighlight();
+        constructTarget = { mesh: target.mesh, data: target, type: 'plant' };
+        applyConstructHighlight(target.mesh);
+        showToast('🔧 植物を選択 — 地面タップで移動 / R回転');
+      }
       else if (target.hasFruit)         harvestPlant(target);
       else showToast(target.stage==='growing' ? '🌱 育っています...' : '🌿 もうすぐ実る...');
       return;
     }
   }
 
-  // ②b 家具 export / delete 模式
-  if (currentMode === 'export' || currentMode === 'delete') {
+  // ②b 家具 export / delete / construct 模式
+  if (currentMode === 'export' || currentMode === 'delete' || currentMode === 'construct') {
     const allFM = [];
     placedObjects.forEach(o => o.mesh.traverse(c => { if (c.isMesh) allFM.push(c); }));
     const fHits = raycaster.intersectObjects(allFM);
@@ -4486,7 +4554,23 @@ renderer.domElement.addEventListener('pointerup', e => {
         while (obj) {
           if (obj===o.mesh) {
             if (currentMode === 'export') { exportMeshToOBJ(o.mesh, o.furnId); return; }
-            if (currentMode === 'delete')  { deleteFurnitureByMesh(o.mesh); return; }
+            if (currentMode === 'delete') {
+              if (deleteConfirmTarget === o.mesh) {
+                deleteFurnitureByMesh(o.mesh);
+              } else {
+                applyDeleteHighlight(o.mesh);
+                deleteConfirmTarget = o.mesh;
+                showToast('🗑️ もう一度タップで削除');
+              }
+              return;
+            }
+            if (currentMode === 'construct') {
+              clearConstructHighlight();
+              constructTarget = { mesh: o.mesh, data: o, type: 'build' };
+              applyConstructHighlight(o.mesh);
+              showToast('🔧 家具を選択 — 地面タップで移動 / R回転');
+              return;
+            }
           }
           obj=obj.parent;
         }
@@ -4513,10 +4597,39 @@ renderer.domElement.addEventListener('pointerup', e => {
     spawnPlant(hit.x, hit.z);
   } else if (currentMode === 'export') {
     // export 模式點地面不做任何事
+  } else if (currentMode === 'construct') {
+    // 建設模式：點地面 → 移動選中物件
+    if (constructTarget) {
+      const ct = constructTarget;
+      if (ct.type === 'plant') {
+        ct.mesh.position.set(hit.x, ct.mesh.position.y, hit.z);
+        ct.data.gridX = hit.x;
+        ct.data.gridZ = hit.z;
+        showToast('🔧 移動完了');
+      } else if (ct.type === 'build') {
+        const snapped = snapToGrid(hit);
+        const oldKey = `${ct.data.gridX},${ct.data.gridZ}`;
+        const newKey = `${snapped.x},${snapped.z}`;
+        if (occupiedCells.has(newKey) && newKey !== oldKey) {
+          showToast('⚠️ そこは占有されています');
+        } else {
+          occupiedCells.delete(oldKey);
+          occupiedCells.add(newKey);
+          ct.data.gridX = snapped.x;
+          ct.data.gridZ = snapped.z;
+          ct.mesh.position.set(snapped.x, ct.mesh.position.y, snapped.z);
+          showToast('🔧 移動完了');
+        }
+      }
+    } else {
+      showToast('🔧 先に物件を選択してください');
+    }
+  } else if (currentMode === 'delete') {
+    // 點擊空地面清除高亮確認
+    clearDeleteConfirm();
   } else {
     const { x, z } = snapToGrid(hit);
     if (currentMode === 'build')       spawnFurniture(x, z);
-    else if (currentMode === 'delete') deleteAt(hit.x, hit.z);
   }
 });
 
@@ -4524,18 +4637,21 @@ renderer.domElement.addEventListener('pointerup', e => {
 //  ═══ Global API ═══  (HTML onclick)
 // ============================================================
 window.setMode = function(mode) {
-  clearDeleteHighlight();
+  clearDeleteConfirm();
+  clearConstructHighlight();
+  constructTarget = null;
   currentMode = mode;
   document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
-  const map = { plant:'btn-plant', build:'btn-build', delete:'btn-delete', export:'btn-export' };
+  const map = { plant:'btn-plant', build:'btn-build', construct:'btn-construct', delete:'btn-delete', export:'btn-export' };
   document.getElementById(map[mode])?.classList.add('active');
-  const labels = { plant:'種植', build:'家具', delete:'移除', export:'匯出' };
+  const labels = { plant:'種植', build:'家具', construct:'建設', delete:'移除', export:'匯出' };
   document.getElementById('mode-label').textContent = `模式：${labels[mode]}`;
   closeAllPanels();
   createPreviewMesh();
   // 點植物/家具 mode 自動開圖鑑
   if (mode === 'plant') window.openCatalog('plant');
   else if (mode === 'build') window.openCatalog('build');
+  else if (mode === 'construct') showToast('🔧 點擊物件選取 → 點地面移動 → R旋轉');
 };
 
 // ============================================================
