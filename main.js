@@ -50,7 +50,7 @@ const furnitureCatalog = [
   { id:'door',   name:'門',     icon:'🚪', color:0x8B6040, price:20 },
   { id:'cobble', name:'石子路', icon:'🪨', color:0xB0A898, price:10 },
   { id:'pond',   name:'池塘',   icon:'💧', color:0x5C8FB0, price:50 },
-  { id:'japanese_house', name:'和風小屋', icon:'🏯', color:0xC87060, price:500 },
+  { id:'japanese_house', name:'和風小屋', icon:'🏯', color:0xC87060, price:500, scale:0.07 },
   { id:'tea_house',      name:'茶室',    icon:'🍵', color:0xB03020, price:400 },
   { id:'jump_ramp',   name:'小跳台',  icon:'🎿', color:0xE8F0FF, price:30 },
   { id:'big_jump',    name:'大跳台',  icon:'🏔️', color:0xD0E8FF, price:80 },
@@ -262,8 +262,63 @@ renderer.outputColorSpace  = THREE.SRGBColorSpace;
 document.getElementById('canvas-container').appendChild(renderer.domElement);
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0xF2E9E4);
-scene.fog        = new THREE.Fog(0xF2E9E4, 50, 120);
+
+// ── Panoramic Gradient Sky System ──────────────────────────
+// 4 time periods, colors faded 30% from reference art
+const SKY_PERIODS = {
+  dawn:      { top: 0xE0B898, bot: 0xF5EDE0, fog: 0xEDD8C0, amb: 0xFFF0D8, ambI: 1.2, dir: 0xFFB868, dirI: 1.6, glow: 0.04 },
+  day:       { top: 0xBDD0D8, bot: 0xEDE4D0, fog: 0xE0D8C8, amb: 0xFFF5E8, ambI: 1.4, dir: 0xFFE8C8, dirI: 2.2, glow: 0 },
+  evening:   { top: 0x1E3848, bot: 0x2D5868, fog: 0x1E4858, amb: 0xA0B8C8, ambI: 1.0, dir: 0xB0C0E0, dirI: 0.9, glow: 0.10 },
+  latenight: { top: 0x1A1818, bot: 0x2A2420, fog: 0x201C18, amb: 0xC0B8A8, ambI: 0.85, dir: 0xA0B0C8, dirI: 0.6, glow: 0.15 },
+};
+const _skyCache = {};
+function createSkyGradient(topHex, botHex) {
+  const key = `${topHex}_${botHex}`;
+  if (_skyCache[key]) return _skyCache[key];
+  const canvas = document.createElement('canvas');
+  canvas.width = 2; canvas.height = 256;
+  const ctx = canvas.getContext('2d');
+  const topC = new THREE.Color(topHex), botC = new THREE.Color(botHex);
+  const grad = ctx.createLinearGradient(0, 0, 0, 256);
+  grad.addColorStop(0, `rgb(${Math.round(topC.r*255)},${Math.round(topC.g*255)},${Math.round(topC.b*255)})`);
+  grad.addColorStop(1, `rgb(${Math.round(botC.r*255)},${Math.round(botC.g*255)},${Math.round(botC.b*255)})`);
+  ctx.fillStyle = grad; ctx.fillRect(0, 0, 2, 256);
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.magFilter = THREE.LinearFilter; tex.minFilter = THREE.LinearFilter;
+  _skyCache[key] = tex;
+  return tex;
+}
+function getSkyPeriod() {
+  const h = new Date().getHours();
+  if (h >= 5 && h < 7) return SKY_PERIODS.dawn;
+  if (h >= 7 && h < 17) return SKY_PERIODS.day;
+  if (h >= 17 && h < 22) return SKY_PERIODS.evening;
+  return SKY_PERIODS.latenight;
+}
+function updateSkyGradient() {
+  const p = getSkyPeriod();
+  scene.background = createSkyGradient(p.top, p.bot);
+  scene.fog = new THREE.Fog(p.fog, 50, 120);
+  if (typeof ambientLight !== 'undefined') {
+    ambientLight.color.setHex(p.amb);
+    ambientLight.intensity = p.ambI;
+  }
+  if (typeof dirLight !== 'undefined') {
+    dirLight.color.setHex(p.dir);
+    dirLight.intensity = p.dirI;
+  }
+  // Building glow
+  if (typeof shopGroup !== 'undefined') {
+    shopGroup.traverse(c => {
+      if (c.isMesh && c.material && c.material.emissive) {
+        if (p.glow > 0) { c.material.emissive.set(0xFFD060); c.material.emissiveIntensity = p.glow; }
+        else { c.material.emissiveIntensity = 0; }
+      }
+    });
+  }
+}
+
+updateSkyGradient();
 
 const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 300);
 camera.position.set(0, 14, 20);
@@ -444,164 +499,220 @@ function buildMountains() {
 const shopGroup  = new THREE.Group();
 const shopMeshes = [];
 
-// ═══ 日式露天攤位（參照 pngtree 和風市集攤） ═══
+// ═══ 日式市場攤位 v2.0 — SKILL A/B/C/D/E/F/G ═══
+// Reference: Japanese yatai with tiled hip roof, L-shaped counter,
+// striped awning, noren curtain, merchandise displays, potted plant
 {
-  const V = 0.08;
+  const V = 0.22;
+  const S = 0.37; // scale factor: keeps footprint ~2.5 units (same as V=0.08 version)
   const sh = (geo, mat, x, y, z) => {
     const m = new THREE.Mesh(geo, mat);
-    m.position.set(x, y, z); m.castShadow = true; m.receiveShadow = true;
+    m.position.set(x*S, y*S, z*S); m.castShadow = true; m.receiveShadow = true;
     m.userData.isShop = true;
+    m.scale.setScalar(S);
     shopGroup.add(m); shopMeshes.push(m);
     return m;
   };
 
-  // ── 色盤 ──
-  const wkD = new THREE.MeshLambertMaterial({ color: 0x5A3820 });  // 深木
-  const wkM = new THREE.MeshLambertMaterial({ color: 0x7A5030 });  // 中木
-  const wkL = new THREE.MeshLambertMaterial({ color: 0x9A6840 });  // 淺木
-  const wkP = new THREE.MeshLambertMaterial({ color: 0xC89060 });  // 木板淺
-  const rfD = new THREE.MeshLambertMaterial({ color: 0x5A4838 });  // 屋瓦深
-  const rfM = new THREE.MeshLambertMaterial({ color: 0x7A6050 });  // 屋瓦中
-  const rfL = new THREE.MeshLambertMaterial({ color: 0x8A7060 });  // 屋瓦淺
-  const rfH = new THREE.MeshLambertMaterial({ color: 0x9A8070 });  // 屋瓦高光
-  const awA = new THREE.MeshLambertMaterial({ color: 0xF0E0C0 });  // 遮棚白
-  const awB = new THREE.MeshLambertMaterial({ color: 0xD4A060 });  // 遮棚橙
-  const wallM = new THREE.MeshLambertMaterial({ color: 0xF5E8D0 }); // 牆面米
-  const wallD = new THREE.MeshLambertMaterial({ color: 0xE0D0B8 }); // 牆面深
-  const glsM = new THREE.MeshLambertMaterial({ color: 0xC8E0F0, transparent:true, opacity:0.55 }); // 玻璃
-  const glow = new THREE.MeshLambertMaterial({ color: 0xFFF0C0, emissive: new THREE.Color(0xFFDD80), emissiveIntensity: 0.4 });
+  // ── PALETTE: 3-tone per material (SKILL C) ──────────────────
+  const wkD = new THREE.MeshLambertMaterial({ color: 0x3A2010 }); // dark wood frame
+  const wkM = new THREE.MeshLambertMaterial({ color: 0x5A3820 }); // mid wood
+  const pnD = new THREE.MeshLambertMaterial({ color: 0x6A4020 }); // panel dark
+  const pnM = new THREE.MeshLambertMaterial({ color: 0x8A5C2A }); // panel mid
+  const pnL = new THREE.MeshLambertMaterial({ color: 0xB08040 }); // panel light
+  const stA = new THREE.MeshLambertMaterial({ color: 0xD0C8BE }); // stone light
+  const stB = new THREE.MeshLambertMaterial({ color: 0xB0A898 }); // stone mid
+  const stC = new THREE.MeshLambertMaterial({ color: 0x908880 }); // stone dark
+  const rfD = new THREE.MeshLambertMaterial({ color: 0x484040 }); // roof dark
+  const rfM = new THREE.MeshLambertMaterial({ color: 0x686058 }); // roof mid
+  const rfL = new THREE.MeshLambertMaterial({ color: 0x888078 }); // roof light
+  const rfH = new THREE.MeshLambertMaterial({ color: 0x9A8878 }); // roof highlight
+  const awA = new THREE.MeshLambertMaterial({ color: 0xF0E8D0 }); // awning cream
+  const awB = new THREE.MeshLambertMaterial({ color: 0xE0A060 }); // awning orange
+  const wallM = new THREE.MeshLambertMaterial({ color: 0xF5E8D0 }); // wall cream
+  const wallD = new THREE.MeshLambertMaterial({ color: 0xE0D0B8 }); // wall dark
+  const lnR = new THREE.MeshLambertMaterial({ color: 0xE04040, emissive: new THREE.Color(0xC03020), emissiveIntensity: 0.25 });
+  const glsM = new THREE.MeshLambertMaterial({ color: 0xC8E0F0, transparent:true, opacity:0.50 });
+  const bowlA = new THREE.MeshLambertMaterial({ color: 0xF0E0C0 });
+  const bowlB = new THREE.MeshLambertMaterial({ color: 0xC04030 });
+  const foodA = new THREE.MeshLambertMaterial({ color: 0xF0D040 });
+  const foodB = new THREE.MeshLambertMaterial({ color: 0xE08830 });
+  const bottleM = new THREE.MeshLambertMaterial({ color: 0x404840 });
+  const grA = new THREE.MeshLambertMaterial({ color: 0x5A8838 });
+  const grB = new THREE.MeshLambertMaterial({ color: 0x78A850 });
+  const potM = new THREE.MeshLambertMaterial({ color: 0x8A6040 });
+  const signM = new THREE.MeshLambertMaterial({ color: 0xF0E0C0 });
+  const norenM = new THREE.MeshLambertMaterial({ color: 0xE8C8A0 });
+  const whM = new THREE.MeshLambertMaterial({ color: 0xF0EDE8 });
 
-  // ── 石板底座（圓形攤位地基）──
-  for (let sx=-3; sx<=3; sx++) {
-    for (let sz=-3; sz<=3; sz++) {
-      if (sx*sx+sz*sz > 10) continue;
-      sh(new THREE.BoxGeometry(V*4, V*1, V*4),
-         new THREE.MeshLambertMaterial({ color: [0xD0C8B8,0xC8C0B0,0xD8D0C0][Math.abs(sx+sz)%3] }),
-         sx*V*4, V*0.5, sz*V*4);
+  // ── SKILL A: STONE PLATFORM — 3 layers circular ────────────
+  sh(new THREE.CylinderGeometry(V*15, V*17, V*2, 12), stC, 0, V*1, 0);
+  sh(new THREE.CylinderGeometry(V*14.5, V*16, V*1.2, 12), stB, 0, V*2.4, 0);
+  sh(new THREE.CylinderGeometry(V*14, V*15, V*0.6, 12), stA, 0, V*3.3, 0);
+  // Stone edge bricks (SKILL D)
+  for (let a = 0; a < 10; a++) {
+    const ang = (a / 10) * Math.PI * 2 + 0.2;
+    const r = V * 16.5;
+    sh(new THREE.BoxGeometry(V*2.2, V*1.2, V*1.5), [stA,stB,stC][a%3],
+      Math.cos(ang)*r, V*1.2, Math.sin(ang)*r);
+  }
+
+  // ── SKILL A: WALLS — back + left (2V thick) ────────────────
+  sh(new THREE.BoxGeometry(V*26, V*16, V*2.5), wallM, 0, V*11.7, -V*12);
+  sh(new THREE.BoxGeometry(V*26, V*0.8, V*2.5), pnD, 0, V*3.9, -V*12);
+  sh(new THREE.BoxGeometry(V*26, V*0.8, V*2.5), pnL, 0, V*20.1, -V*12);
+  [-V*11, -V*4, V*4, V*11].forEach(bx => {
+    sh(new THREE.BoxGeometry(V*1.2, V*16, V*2.5), wkD, bx, V*11.7, -V*12);
+  });
+  sh(new THREE.BoxGeometry(V*26, V*0.8, V*2.8), wkD, 0, V*14, -V*12);
+  // Left wall
+  sh(new THREE.BoxGeometry(V*2.5, V*16, V*22), wallD, -V*13, V*11.7, -V*1);
+  sh(new THREE.BoxGeometry(V*2.5, V*0.8, V*22), pnD, -V*13, V*3.9, -V*1);
+  sh(new THREE.BoxGeometry(V*2.5, V*0.8, V*22), pnL, -V*13, V*20.1, -V*1);
+  [-V*8, 0, V*8].forEach(bz => {
+    sh(new THREE.BoxGeometry(V*2.5, V*16, V*1.2), wkD, -V*13, V*11.7, bz);
+  });
+
+  // ── 4 CORNER PILLARS (SKILL A) ────────────────────────────
+  const pH = V*20, pBase = V*3.7;
+  [[-V*12,-V*11],[V*12,-V*11],[-V*12,V*10],[V*12,V*10]].forEach(([px,pz]) => {
+    sh(new THREE.BoxGeometry(V*2.8, pH, V*2.8), wkD, px, pH/2+pBase, pz);
+    sh(new THREE.BoxGeometry(V*3.5, V*1.5, V*3.5), wkM, px, pBase, pz);
+    sh(new THREE.BoxGeometry(V*3.8, V*1.2, V*3.8), wkM, px, pH+pBase-V*0.5, pz);
+  });
+
+  // ── SKILL B: TILED HIP ROOF — 4 layers + edge lip ─────────
+  const roofY = pH + pBase + V*1;
+  const rW = V*34, rD = V*30;
+  // Underside beams
+  for (let bx = -V*12; bx <= V*12; bx += V*4) {
+    sh(new THREE.BoxGeometry(V*0.6, V*0.5, rD), wkD, bx, roofY-V*0.6, -V*1);
+  }
+  sh(new THREE.BoxGeometry(rW+V*5, V*0.5, rD+V*5), rfD, 0, roofY-V*0.8, -V*1);
+  sh(new THREE.BoxGeometry(rW+V*3, V*0.25, rD+V*3), rfM, 0, roofY-V*0.2, -V*1);
+  sh(new THREE.BoxGeometry(rW, V*1.4, rD), rfD, 0, roofY+V*0.7, -V*1);
+  sh(new THREE.BoxGeometry(rW-V*5, V*1.1, rD-V*5), rfM, 0, roofY+V*2.0, -V*1);
+  sh(new THREE.BoxGeometry(rW-V*10, V*0.8, rD-V*10), rfL, 0, roofY+V*2.9, -V*1);
+  sh(new THREE.BoxGeometry(rW-V*14, V*0.7, V*1.2), rfD, 0, roofY+V*3.6, -V*1);
+  // Tile rows (SKILL D)
+  for (let row = 0; row < 3; row++) {
+    const tw = rW - row*V*3, td = rD - row*V*3;
+    const ty = roofY + V*0.2 + row*V*0.7;
+    for (let tx = -tw/2+V*2; tx < tw/2; tx += V*2.8) {
+      sh(new THREE.BoxGeometry(V*2.5, V*0.4, V*1.0), row%2===0?rfD:rfM,
+        tx+(row%2)*V*0.4, ty, -V*1+td/2-V*0.8);
+      sh(new THREE.BoxGeometry(V*2.5, V*0.4, V*1.0), row%2===0?rfD:rfM,
+        tx, ty, -V*1-td/2+V*0.8);
     }
   }
+  // Gable triangle (SKILL D)
+  sh(new THREE.BoxGeometry(V*6, V*3, V*1.2), pnL, 0, roofY+V*3.5, V*10);
+  sh(new THREE.BoxGeometry(V*4, V*1.5, V*1.2), pnM, 0, roofY+V*5.2, V*10);
+  sh(new THREE.BoxGeometry(V*8, V*0.8, V*1.2), wkD, 0, roofY+V*2.2, V*10);
 
-  // ── 後牆（三面圍，前面開放）──
-  sh(new THREE.BoxGeometry(V*28, V*16, V*2), wallM, 0, V*10, -V*12);  // 後牆
-  sh(new THREE.BoxGeometry(V*2, V*16, V*22), wallD, -V*14, V*10, 0);  // 左牆
-  sh(new THREE.BoxGeometry(V*28, V*1, V*2), wkD, 0, V*2, -V*12);     // 後牆踢腳
-  sh(new THREE.BoxGeometry(V*2, V*1, V*22), wkD, -V*14, V*2, 0);     // 左踢腳
+  // ── STRIPED AWNING (front + right) ─────────────────────────
+  for (let s = 0; s < 5; s++) {
+    sh(new THREE.BoxGeometry(V*4.8, V*5, V*0.4), s%2===0?awA:awB,
+      -V*9.6+s*V*4.8, roofY-V*4.5, V*11);
+  }
+  for (let s = 0; s < 4; s++) {
+    sh(new THREE.BoxGeometry(V*0.4, V*5, V*5), s%2===0?awA:awB,
+      V*13, roofY-V*4.5, -V*7.5+s*V*5);
+  }
 
-  // ── 木柱（4根，前面2根+後面2根）──
-  [[-V*13,V*12],[V*13,V*12],[-V*13,-V*11],[V*13,-V*11]].forEach(([px,pz]) => {
-    sh(new THREE.BoxGeometry(V*1.8, V*26, V*1.8), wkD, px, V*14, pz);
-    sh(new THREE.BoxGeometry(V*2.2, V*1, V*2.2), wkM, px, V*1.5, pz);   // 柱基
-    sh(new THREE.BoxGeometry(V*2.2, V*0.6, V*2.2), wkL, px, V*27.2, pz); // 柱頭
+  // ── MAIN COUNTER (L-shape) ─────────────────────────────────
+  sh(new THREE.BoxGeometry(V*24, V*1.5, V*7), pnL, 0, V*7.5, V*7.5);
+  sh(new THREE.BoxGeometry(V*24, V*5, V*1.5), pnM, 0, V*6, V*10.5);
+  sh(new THREE.BoxGeometry(V*24, V*0.8, V*7), pnD, 0, V*4, V*7.5);
+  [-V*9,-V*3,V*3,V*9].forEach(cx => {
+    sh(new THREE.BoxGeometry(V*1, V*5, V*1.6), wkD, cx, V*6, V*10.5);
+  });
+  // Right extension
+  sh(new THREE.BoxGeometry(V*6, V*1.5, V*18), pnL, V*9, V*7.5, -V*1.5);
+  sh(new THREE.BoxGeometry(V*1.5, V*5, V*18), pnM, V*11.5, V*6, -V*1.5);
+  sh(new THREE.BoxGeometry(V*6, V*0.8, V*18), pnD, V*9, V*4, -V*1.5);
+
+  // ── DISPLAY ITEMS (SKILL F) ────────────────────────────────
+  for (let i = 0; i < 3; i++) {
+    sh(new THREE.CylinderGeometry(V*1.2, V*1.0, V*1.2, 8), i%2===0?bowlA:bowlB,
+      -V*8+i*V*7, V*8.8, V*6.5);
+  }
+  sh(new THREE.BoxGeometry(V*20, V*0.8, V*5), pnM, 0, V*10, V*4);
+  sh(new THREE.BoxGeometry(V*18, V*0.8, V*4), pnL, 0, V*12, V*3.5);
+  for (let i = 0; i < 4; i++) {
+    sh(new THREE.BoxGeometry(V*2, V*1.5, V*1.5), i%2===0?foodA:foodB,
+      -V*7+i*V*5, V*11.2, V*4);
+  }
+  for (let i = 0; i < 3; i++) {
+    sh(new THREE.BoxGeometry(V*1.5, V*1.2, V*1.2), foodA, -V*5+i*V*5, V*13.2, V*3.5);
+  }
+  for (let i = 0; i < 3; i++) {
+    sh(new THREE.CylinderGeometry(V*0.6, V*0.6, V*2.8, 6), bottleM,
+      V*8.5, V*9.5, -V*5+i*V*5);
+  }
+  // Glass display case
+  sh(new THREE.BoxGeometry(V*8, V*5, V*5), glsM, -V*4, V*11, V*7);
+  sh(new THREE.BoxGeometry(V*8, V*0.4, V*5), wkM, -V*4, V*13.7, V*7);
+  // Red pastry inside case
+  sh(new THREE.BoxGeometry(V*5, V*1.5, V*3), bowlB, -V*4, V*9.5, V*7);
+
+  // ── RED LANTERNS (SKILL F) ─────────────────────────────────
+  [[-V*10,V*12],[V*10,V*12],[V*14,V*3]].forEach(([lx,lz]) => {
+    sh(new THREE.BoxGeometry(V*0.25, V*2, V*0.25), wkD, lx, roofY-V*2.5, lz);
+    sh(new THREE.SphereGeometry(V*1.8, 8, 8), lnR, lx, roofY-V*5, lz);
+    sh(new THREE.CylinderGeometry(V*0.4, V*0.25, V*0.6, 6), wkD, lx, roofY-V*6.8, lz);
   });
 
-  // ── 屋頂：多層瓦片（核心細節）──
-  const roofY = V*27;
-  // 第1層：大底板（最寬，深色）
-  sh(new THREE.BoxGeometry(V*36, V*1.2, V*30), rfD, 0, roofY, 0);
-  // 第2層：中板（稍窄）
-  sh(new THREE.BoxGeometry(V*34, V*1.0, V*28), rfM, 0, roofY+V*1.2, 0);
-  // 第3層：淺色
-  sh(new THREE.BoxGeometry(V*32, V*0.8, V*26), rfL, 0, roofY+V*2.2, 0);
-  // 第4層：高光
-  sh(new THREE.BoxGeometry(V*30, V*0.6, V*24), rfH, 0, roofY+V*3.0, 0);
-  // 屋脊（頂部深色條）
-  sh(new THREE.BoxGeometry(V*2, V*1.5, V*28), rfD, 0, roofY+V*4.2, 0);
-  sh(new THREE.BoxGeometry(V*1.2, V*0.5, V*28), rfM, 0, roofY+V*5.2, 0);
-  // 瓦片紋路（橫條 — 每隔一段深淺交替）
-  for (let ri=-4; ri<=4; ri++) {
-    const rz = ri * V*3;
-    sh(new THREE.BoxGeometry(V*34, V*0.3, V*1.5), ri%2===0 ? rfD : rfM, 0, roofY-V*0.1, rz);
-  }
-  // 屋簷下緣（出簷深色邊）
-  sh(new THREE.BoxGeometry(V*36, V*0.5, V*1.5), rfD, 0, roofY-V*0.6, V*15);
-  sh(new THREE.BoxGeometry(V*36, V*0.5, V*1.5), rfD, 0, roofY-V*0.6, -V*15);
-  sh(new THREE.BoxGeometry(V*1.5, V*0.5, V*30), rfD, V*18, roofY-V*0.6, 0);
-  sh(new THREE.BoxGeometry(V*1.5, V*0.5, V*30), rfD, -V*18, roofY-V*0.6, 0);
+  // ── HANGING SIGN (ema-style) ───────────────────────────────
+  sh(new THREE.BoxGeometry(V*0.2, V*2.5, V*0.2), wkD, V*14, roofY-V*2, V*9);
+  sh(new THREE.BoxGeometry(V*5.5, V*4, V*0.6), signM, V*14, roofY-V*5.5, V*9);
+  sh(new THREE.BoxGeometry(V*6, V*0.5, V*0.8), wkD, V*14, roofY-V*3.7, V*9);
+  sh(new THREE.BoxGeometry(V*2.5, V*2, V*0.2), wkD, V*14, roofY-V*5.5, V*9.4);
 
-  // ── 遮棚（白橙條紋布，正面垂掛）──
-  for (let ai=0; ai<8; ai++) {
-    const ax = -V*13 + ai*V*3.8;
-    sh(new THREE.BoxGeometry(V*3.6, V*3.5, V*0.5), ai%2===0 ? awA : awB,
-       ax, roofY-V*3.5, V*13);
-  }
-  // 側面遮棚
-  for (let ai=0; ai<6; ai++) {
-    const az = -V*10 + ai*V*3.8;
-    sh(new THREE.BoxGeometry(V*0.5, V*3.5, V*3.6), ai%2===0 ? awA : awB,
-       V*14, roofY-V*3.5, az);
+  // ── NOREN CURTAIN (back wall) ──────────────────────────────
+  sh(new THREE.BoxGeometry(V*10, V*7, V*0.3), norenM, -V*5, V*15, -V*11.5);
+  sh(new THREE.BoxGeometry(V*0.25, V*6, V*0.4), wkD, -V*2, V*15, -V*11.5);
+  sh(new THREE.BoxGeometry(V*0.25, V*6, V*0.4), wkD, -V*8, V*15, -V*11.5);
+
+  // ── POTTED PLANT (SKILL E) ─────────────────────────────────
+  sh(new THREE.CylinderGeometry(V*2, V*1.6, V*3, 8), potM, -V*15, V*5.2, V*7);
+  sh(new THREE.SphereGeometry(V*2.2, 7, 6), grA, -V*15, V*8, V*7);
+  sh(new THREE.SphereGeometry(V*1.6, 7, 6), grB, -V*14.2, V*8.8, V*6.5);
+  sh(new THREE.SphereGeometry(V*1.4, 7, 6), grA, -V*15.8, V*8.4, V*7.5);
+
+  // ── BENCH + CRATE (SKILL F) ────────────────────────────────
+  sh(new THREE.BoxGeometry(V*6, V*0.8, V*3), pnL, V*3, V*4.5, V*13);
+  sh(new THREE.BoxGeometry(V*1.2, V*2.8, V*1.2), pnD, V*1, V*3, V*13);
+  sh(new THREE.BoxGeometry(V*1.2, V*2.8, V*1.2), pnD, V*5, V*3, V*13);
+  sh(new THREE.BoxGeometry(V*4, V*3.5, V*4), pnM, V*12, V*5.5, V*13);
+  sh(new THREE.BoxGeometry(V*4.5, V*0.4, V*4.5), pnD, V*12, V*7.5, V*13);
+  sh(new THREE.BoxGeometry(V*0.4, V*3.5, V*4.2), wkD, V*10.5, V*5.5, V*13);
+  sh(new THREE.BoxGeometry(V*0.4, V*3.5, V*4.2), wkD, V*13.5, V*5.5, V*13);
+
+  // ── HANGING DRIED GOODS ────────────────────────────────────
+  for (let i = 0; i < 3; i++) {
+    sh(new THREE.BoxGeometry(V*0.2, V*2, V*0.2), wkD, V*3+i*V*3, roofY-V*1.5, V*10);
+    sh(new THREE.BoxGeometry(V*1.5, V*2.5, V*0.5), foodB, V*3+i*V*3, roofY-V*4, V*10);
   }
 
-  // ── 前檯面（開放式攤位櫃台）──
-  sh(new THREE.BoxGeometry(V*26, V*1.2, V*5), wkM, 0, V*8, V*9);   // 檯面板
-  sh(new THREE.BoxGeometry(V*26, V*0.4, V*5), wkP, 0, V*8.8, V*9); // 淺色面板
-  // 檯面下方木板（簍空感 — 間隔木條）
-  for (let bi=0; bi<7; bi++) {
-    const bx = -V*11 + bi*V*3.8;
-    sh(new THREE.BoxGeometry(V*1.2, V*6, V*0.8), wkD, bx, V*4, V*11); // 直條
-  }
-  sh(new THREE.BoxGeometry(V*26, V*0.8, V*0.8), wkM, 0, V*1.5, V*11); // 底橫條
-  sh(new THREE.BoxGeometry(V*26, V*0.8, V*0.8), wkM, 0, V*5.0, V*11); // 中橫條
-
-  // ── 右側展台 ──
-  sh(new THREE.BoxGeometry(V*10, V*7, V*5), wkM, V*9, V*5, V*2);
-  sh(new THREE.BoxGeometry(V*10, V*0.4, V*5), wkP, V*9, V*8.2, V*2);
-
-  // ── 商品展示：碗盤杯子果實 ──
-  // 大碗
-  sh(new THREE.CylinderGeometry(V*2.5, V*2, V*1.5, 8),
-     new THREE.MeshLambertMaterial({ color: 0xF0E0C0 }), -V*5, V*10, V*9);
-  // 小碗排列
-  [[-V*8,V*9.5,V*9,0xE8D0B0],[V*2,V*9.5,V*9,0xD0B898],[V*6,V*9.5,V*9,0xC8A880]].forEach(([bx,by,bz,bc]) => {
-    sh(new THREE.CylinderGeometry(V*1.2, V*1, V*1, 7),
-       new THREE.MeshLambertMaterial({ color: bc }), bx, by, bz);
+  // ── ROUND WINDOW on left wall ──────────────────────────────
+  const rwX = -V*13 - V*0.02;
+  [[0,0.45],[0,-0.45],[0.45,0],[-0.45,0],[0.32,0.32],[0.32,-0.32],[-0.32,0.32],[-0.32,-0.32]].forEach(([dy,dz]) => {
+    sh(new THREE.BoxGeometry(V*0.3, V*0.45, V*0.45), pnL, rwX, V*13+dy*0.5, -V*4+dz*0.5);
   });
-  // 玻璃展示罩
-  sh(new THREE.BoxGeometry(V*6, V*5, V*4), glsM, -V*4, V*12, V*8.5);
-  // 罩內紅色糕點
-  sh(new THREE.BoxGeometry(V*4, V*1.5, V*2.5),
-     new THREE.MeshLambertMaterial({ color: 0xD04030 }), -V*4, V*10.5, V*8.5);
-  // 階梯展架（後方牆上）
-  for (let si=0; si<3; si++) {
-    sh(new THREE.BoxGeometry(V*8, V*0.6, V*3), wkL,
-       -V*4, V*12 + si*V*3, -V*9 + si*V*1.5);
-    // 架上小物
-    sh(new THREE.BoxGeometry(V*1.5, V*1.5, V*1.5),
-       new THREE.MeshLambertMaterial({ color: [0xE8C040,0xD09030,0xC07020][si] }),
-       -V*4 + si*V*2, V*13 + si*V*3, -V*9 + si*V*1.5);
-  }
-  // 右側醬料瓶排列
-  for (let ji=0; ji<4; ji++) {
-    sh(new THREE.CylinderGeometry(V*0.5, V*0.5, V*2.5, 6),
-       new THREE.MeshLambertMaterial({ color: [0xF0F0E8,0xE8E0D0,0xD8D0C0,0xC8C0B0][ji] }),
-       V*7+ji*V*2, V*9.8, V*2);
-  }
+  sh(new THREE.BoxGeometry(V*0.3, V*1.1, V*1.1), whM, rwX, V*13, -V*4);
 
-  // ── 掛物：燈籠 + 木牌 ──
-  // 右側木招牌
-  sh(new THREE.BoxGeometry(V*4, V*6, V*0.6), wkP, V*15, V*18, V*10);
-  sh(new THREE.BoxGeometry(V*3, V*4, V*0.4), wallM, V*15, V*18.5, V*10.4);
-  // 正面掛物（魚乾/肉乾）
-  for (let hi=0; hi<3; hi++) {
-    sh(new THREE.BoxGeometry(V*0.6, V*3, V*0.4),
-       new THREE.MeshLambertMaterial({ color: [0xA06030,0x905028,0xB07038][hi] }),
-       V*6+hi*V*2.5, V*22, V*12);
-  }
-  // 左前盆栽
-  sh(new THREE.CylinderGeometry(V*1.5, V*1.2, V*2.5, 7),
-     new THREE.MeshLambertMaterial({ color: 0x9A7050 }), -V*16, V*2.5, V*10);
-  sh(new THREE.SphereGeometry(V*2.5, 6, 5),
-     new THREE.MeshLambertMaterial({ color: 0x50A038 }), -V*16, V*5.5, V*10);
-  // 前方小板凳
-  sh(new THREE.BoxGeometry(V*4, V*0.6, V*3), wkL, V*4, V*3, V*14);
-  [[-V*1.3,V*14],[V*1.3,V*14],[V*-1.3,V*11.5],[V*1.3,V*11.5]].forEach(([lx,lz]) => {
-    sh(new THREE.BoxGeometry(V*0.6, V*2.5, V*0.6), wkD, V*4+lx, V*1.5, lz);
-  });
-
-  // ── 光源 ──
+  // ── LIGHTS ─────────────────────────────────────────────────
   const sL1 = new THREE.PointLight(0xFFDD88, 1.5, 5.0);
-  sL1.position.set(0, V*22, V*5); shopGroup.add(sL1);
+  sL1.position.set(0, V*22*S, V*5*S); shopGroup.add(sL1);
   const sL2 = new THREE.PointLight(0xFFF0C0, 0.8, 4.0);
-  sL2.position.set(-V*8, V*10, V*9); shopGroup.add(sL2);
+  sL2.position.set(-V*8*S, V*10*S, V*9*S); shopGroup.add(sL2);
+  // Lantern lights
+  [[-V*10,V*12],[V*10,V*12],[V*14,V*3]].forEach(([lx,lz]) => {
+    const pl = new THREE.PointLight(0xFF8844, 0.4, 3.0);
+    pl.position.set(lx*S, (roofY-V*5)*S, lz*S);
+    shopGroup.add(pl);
+  });
 }
 
 shopGroup.position.set(9,0,8);
@@ -4039,6 +4150,8 @@ function setSeason(s) {
   const cfg = SEASON_CFG[s];
   scene.background = new THREE.Color(cfg.bg);
   scene.fog         = new THREE.Fog(cfg.fog, 40, 80);
+  // Apply sky gradient over season colors
+  updateSkyGradient();
   groundTiles.forEach(t => {
     if (t.userData.isSnow) return;
     t.material.color.setHex(cfg.grass[t.userData.colorIdx % cfg.grass.length]);
@@ -5056,6 +5169,12 @@ function animate() {
     o.mesh.rotation.z = Math.sin(swayT * 0.6) * 0.012;
     o.mesh.rotation.x = Math.cos(swayT * 0.45 + 0.5) * 0.008;
   });
+
+  // Update sky gradient every 60s
+  if (!window._lastSkyUpdate || Date.now() - window._lastSkyUpdate > 60000) {
+    updateSkyGradient();
+    window._lastSkyUpdate = Date.now();
+  }
 
   renderer.render(scene, camera);
 }
